@@ -32,7 +32,7 @@ DOMAIN="http://home.dedominic.pw:$WEB_PORT"
 # on highlight, call the following script/s
 HIGHLIGHT="./lib/decide.sh"
 # on private message, as in query
-PRIVATE=
+PRIVATE="./lib/invite.sh"
 # on join
 JOINING=
 
