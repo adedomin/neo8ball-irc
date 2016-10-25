@@ -53,8 +53,8 @@ send_msg() {
 if [ -n "$WEB_ROOT" ]; then
     if ! [ -d "$WEB_ROOT" ]; then
         mkdir "$WEB_ROOT" || \
-            echo "failed to create web root" >&2 && \
-            exit 1
+            ( echo "failed to create web root" >&2
+              exit 1 )
     fi
     pushd "$WEB_ROOT" >/dev/null
     python2 -m SimpleHTTPServer "$WEB_PORT" >/dev/null 2>/dev/null </dev/null &
@@ -74,8 +74,6 @@ fi
 
 send_cmd() {
     while read -r cmd arg other; do
-
-        #echo "$cmd $arg $other"
 
         case $cmd in
             :j|:join)
@@ -144,13 +142,11 @@ handle_privmsg() {
 
     for reg in "${!REGEX[@]}"; do
         if [[ "$4" =~ $reg ]]; then
-            [ -x "${REGEX[$reg]}" ] || echo "NOOP"
+            [ -x "${REGEX[$reg]}" ] || return
             ${REGEX[$reg]} "$1" "$2" "$3" "$4" "$WEB_ROOT"
             return
         fi
     done
-
-    echo "NOOP"
 }
 
 send_msg "NICK $NICK"
