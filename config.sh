@@ -46,6 +46,7 @@ COMMANDS=(
 ["8ball"]="./lib/8ball.sh" 
 ["decide"]="./lib/decide.sh" 
 ["duck"]="./lib/search.sh" 
+["ddg"]="./lib/search.sh" 
 ["g"]="./lib/search.sh"
 )
 
