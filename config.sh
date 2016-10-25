@@ -3,7 +3,7 @@ NICK="neo8ball"
 # irc server
 SERVER="irc.rizon.net"
 # channels to join
-CHANNELS=("#/cum/" "#trollhour" "#ghetty")
+CHANNELS=("#prussian")
 
 # port number
 PORT="6697"
@@ -22,10 +22,10 @@ READ_NOTICE=
 # below settings control web configuration
 
 # directory to serve
-WEB_ROOT="$PWD/web"
-WEB_PORT=18080
-# hostname:port the content could be accessed at
-DOMAIN="http://home.dedominic.pw:$WEB_PORT"
+#WEB_ROOT="$PWD/web"
+#WEB_PORT=18080
+## hostname:port the content could be accessed at
+#DOMAIN="http://example.com:$WEB_PORT"
 
 ## DECLARE IRC events here ##
 
@@ -41,7 +41,13 @@ CMD_PREFIX=".,!"
 declare -A COMMANDS
 # command names should be what to test for
 # avoid adding prefixes like .help
-COMMANDS=(["say"]="./lib/say.sh" ["8"]="./lib/8ball.sh" ["8ball"]="./lib/8ball.sh" ["decide"]="./lib/decide.sh" ["duck"]="./lib/search.sh" ["g"]="./lib/search.sh")
+COMMANDS=(
+    ["8"]="./lib/8ball.sh" 
+    ["8ball"]="./lib/8ball.sh"
+    ["decide"]="./lib/decide.sh" 
+    ["duck"]="./lib/search.sh"
+    ["g"]="./lib/search.sh"
+)
 
 # regex patterns
 # if you need more fine grained control
