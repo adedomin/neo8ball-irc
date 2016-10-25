@@ -42,11 +42,11 @@ declare -A COMMANDS
 # command names should be what to test for
 # avoid adding prefixes like .help
 COMMANDS=(
-    ["8"]="./lib/8ball.sh" 
-    ["8ball"]="./lib/8ball.sh"
-    ["decide"]="./lib/decide.sh" 
-    ["duck"]="./lib/search.sh"
-    ["g"]="./lib/search.sh"
+["8"]="./lib/8ball.sh" 
+["8ball"]="./lib/8ball.sh" 
+["decide"]="./lib/decide.sh" 
+["duck"]="./lib/search.sh" 
+["g"]="./lib/search.sh"
 )
 
 # regex patterns
