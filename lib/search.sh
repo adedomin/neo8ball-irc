@@ -32,6 +32,7 @@ rawurlencode() {
 }
 
 RES=$(curl "${SEARCH_ENGINE}$(rawurlencode "${4}")" 2>/dev/null | \
+sed 's@</*b>@@g' | \
 html2 2>/dev/null | \
 grep -A 2 "@class=result__a" | \
 sed '/^--$/d' | \
