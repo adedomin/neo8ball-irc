@@ -129,13 +129,11 @@ handle_privmsg() {
         return
     fi
 
-    local comm
-    local msg
-    read -r comm msg <<< "$4"
     for cmd in "${!COMMANDS[@]}"; do
-        if [[ "$comm" =~ [${CMD_PREFIX}]${cmd} ]]; then
+        local reg="^[${CMD_PREFIX}]${cmd}\\b(.*)"
+        if [[ "$4" =~ $reg ]]; then
             [ -x "${COMMANDS[$cmd]}" ] || return
-            ${COMMANDS[$cmd]} "$1" "$2" "$3" "$msg" "$WEB_ROOT"
+            ${COMMANDS[$cmd]} "$1" "$2" "$3" "${BASH_REMATCH[1]}" "$WEB_ROOT"
             return
         fi
     done
