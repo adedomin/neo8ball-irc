@@ -13,24 +13,51 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-CONFIG_PATH='./config.sh'
-if [ "$1" = '-c' ] || [ "$1" = '--config' ]; then
-    CONFIG_PATH="$2"
+usage() {
+    echo "usage: $0 [-c config]"
+    echo "       -c --config - a config file"
+    echo ""
+    echo "by default, if empty, the script assumes all the information can be found in the same directory as the script"
+    exit 1
+}
+
+die() {
+    echo "$1" >&2
+    exit 1
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -c|--config)
+            CONFIG_PATH="$2"
+            shift
+        ;;
+        -h|--help)
+            usage
+        ;;
+    esac
+done
+
+if [ -z "$CONFIG_PATH" ]; then
+    CONFIG_PATH="$(dirname "$0")/config.sh"
 fi
 
 if [ -f "$CONFIG_PATH" ]; then
     . "$CONFIG_PATH"
 else
     echo "NO CONFIG FILE FOUND"
-    exit 1
+    usage
 fi
 
 [ -d "$temp_dir/bash-ircbot" ] && rm -r "$temp_dir/bash-ircbot"
 infile="$temp_dir/bash-ircbot/in"
 outfile="$temp_dir/bash-ircbot/out"
-mkdir "$temp_dir/bash-ircbot"
-mkfifo "$infile"
-mkfifo "$outfile"
+mkdir "$temp_dir/bash-ircbot" || \
+    die "failed to make temp directory, check your config"
+mkfifo "$infile" || \
+    die "couldn't make named pipe"
+mkfifo "$outfile" || \
+    die "couldn't make named pipe"
 
 quit_prg() {
     pkill -P $$
@@ -51,31 +78,25 @@ if [ -z "$NICK" ]; then
     usage
 fi
 
+[ -n "$TLS" ] && TLS="--ssl"
+if [ -z "$BASH_TCP" ]; then
+    exec 3<> "$infile" || \
+        die "unknown failure mapping named pipe to fd"
+    exec 4<> "$outfile" || \
+        die "unknown failure mapping named pipe to fd"
+    ( ncat $SERVER $PORT $TLS <&3 >&4
+      kill -TERM $$ ) &
+else
+    infile="/dev/tcp/${SERVER}/${PORT}"
+    exec 3<> "$infile" || \
+        die "Cannot connect to $SERVER on port $PORT"
+    exec 4<&3 || \
+        die "unknown failure mapping named pipe to fd"
+fi
+
 send_msg() {
     printf "%s\r\n" "$*" >&3
 }
-
-if [ -n "$WEB_ROOT" ]; then
-    if ! [ -d "$WEB_ROOT" ]; then
-        mkdir "$WEB_ROOT" || \
-            ( echo "failed to create web root" >&2
-              exit 1 )
-    fi
-    pushd "$WEB_ROOT" >/dev/null
-    python2 -m SimpleHTTPServer "$WEB_PORT" >/dev/null 2>/dev/null </dev/null &
-    popd >/dev/null
-fi
-
-[ -n "$TLS" ] && TLS="--ssl"
-if [ -z "$BASH_TCP" ]; then
-    exec 3<> "$infile"
-    exec 4<> "$outfile"
-    ncat $SERVER $PORT $TLS <&3 >&4 &
-else
-    infile="/dev/tcp/${SERVER}/${PORT}"
-    exec 3<> "$infile"
-    exec 4<&3
-fi
 
 send_cmd() {
     while read -r cmd arg other; do
@@ -92,9 +113,6 @@ send_cmd() {
                 ;;
             :mn|:notice)
                 send_msg "NOTICE $arg :$other"
-                ;;
-            :w|:web)
-                send_msg "PRIVMSG $arg :$DOMAIN/$other"
                 ;;
             :n|:nick)
                 send_msg "NICK $arg"
@@ -122,36 +140,41 @@ handle_privmsg() {
             echo -e ":mn $3 \001VERSION bash-ircbot: v0.0.1-ALPHA\001"
             return
         fi
-        [ -x "$PRIVATE" ] || return
-        $PRIVATE "$3" "$2" "$3" "$4" "$WEB_ROOT"
+        [ -x "$LIB_PATH/$PRIVATE" ] || return
+        $LIB_PATH/$PRIVATE \
+            "$3" "$2" "$3" "$4"
         return
     fi
 
     local highlight="$NICK.? (.*)"
     if [[ "$4" =~ $highlight ]]; then
-        [ -x "$HIGHLIGHT" ] || return
-        $HIGHLIGHT "$1" "$2" "$3" "${BASH_REMATCH[1]}" "$WEB_ROOT"
+        [ -x "$LIB_PATH/$HIGHLIGHT" ] || return
+        $LIB_PATH/$HIGHLIGHT \
+            "$1" "$2" "$3" "${BASH_REMATCH[1]}"
         return
     fi
 
     for cmd in "${!COMMANDS[@]}"; do
         local reg="^[${CMD_PREFIX}]${cmd}\\b(.*)"
         if [[ "$4" =~ $reg ]]; then
-            [ -x "${COMMANDS[$cmd]}" ] || return
-            ${COMMANDS[$cmd]} "$1" "$2" "$3" "${BASH_REMATCH[1]}" "$WEB_ROOT"
+            [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
+            $LIB_PATH/${COMMANDS[$cmd]} \
+                "$1" "$2" "$3" "${BASH_REMATCH[1]}"
             return
         fi
     done
 
     for reg in "${!REGEX[@]}"; do
         if [[ "$4" =~ $reg ]]; then
-            [ -x "${REGEX[$reg]}" ] || return
-            ${REGEX[$reg]} "$1" "$2" "$3" "$4" "$WEB_ROOT"
+            [ -x "$LIB_PATH/${REGEX[$reg]}" ] || return
+            $LIB_PATH/${REGEX[$reg]} \
+                "$1" "$2" "$3" "$4"
             return
         fi
     done
 }
 
+# start communication
 send_msg "NICK $NICK"
 send_msg "USER $NICK +i * :$NICK"
 # join chans
@@ -184,7 +207,4 @@ while read -r user command channel message; do
             $JOINING "$channel" "$datetime" "$user" "$message" | send_cmd
         ;;
     esac
-
-    [ -x "$LOGGER" ] && \
-        $LOGGER "$channel" "$datetime" "$user" "$message"
 done <&4

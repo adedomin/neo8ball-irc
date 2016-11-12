@@ -29,10 +29,12 @@ READ_NOTICE=
 
 ## DECLARE IRC events here ##
 
+LIB_PATH="$(dirname "$0")/"
+
 # on highlight, call the following script/s
-HIGHLIGHT="./lib/decide.sh"
+HIGHLIGHT="lib/decide.sh"
 # on private message, as in query
-PRIVATE="./lib/invite.sh"
+PRIVATE="lib/invite.sh"
 # on join
 JOINING=
 
@@ -42,16 +44,16 @@ declare -A COMMANDS
 # command names should be what to test for
 # avoid adding prefixes like .help
 COMMANDS=(
-["8"]="./lib/8ball.sh" 
-["8ball"]="./lib/8ball.sh" 
-["decide"]="./lib/decide.sh" 
-["duck"]="./lib/search.sh" 
-["ddg"]="./lib/search.sh" 
-["g"]="./lib/search.sh"
+["8"]="lib/8ball.sh" 
+["8ball"]="lib/8ball.sh" 
+["decide"]="lib/decide.sh" 
+["duck"]="lib/search.sh" 
+["ddg"]="lib/search.sh" 
+["g"]="lib/search.sh"
 )
 
 # regex patterns
 # if you need more fine grained control
 # uses bash regex language
 declare -A REGEX
-#REGEX=(["^\.bots"]="./test/bots.sh")
+#REGEX=(["^\.bots"]="test/bots.sh")
