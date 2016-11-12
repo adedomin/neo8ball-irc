@@ -1,5 +1,5 @@
 # nickname, also username
-NICK="neo8ball"
+NICK="neo8ball2"
 # irc server
 SERVER="irc.rizon.net"
 # channels to join
@@ -32,7 +32,7 @@ READ_NOTICE=
 LIB_PATH="$(dirname "$0")/"
 
 # on highlight, call the following script/s
-HIGHLIGHT="lib/decide.sh"
+HIGHLIGHT="lib/8ball.sh"
 # on private message, as in query
 PRIVATE="lib/invite.sh"
 # on join
@@ -46,7 +46,7 @@ declare -A COMMANDS
 COMMANDS=(
 ["8"]="lib/8ball.sh" 
 ["8ball"]="lib/8ball.sh" 
-["decide"]="lib/decide.sh" 
+["decide"]="lib/8ball.sh" 
 ["duck"]="lib/search.sh" 
 ["ddg"]="lib/search.sh" 
 ["g"]="lib/search.sh"

@@ -22,4 +22,10 @@ responses=(
 "Don't count on it."
 )
 
-echo ":m $1 $3: ${responses[$(($RANDOM % 20))]}"
+reg="(.*) or (.*)\?" # decide
+reg2="(.*)\?" # regular 8ball msg
+if [[ "$4" =~ $reg ]]; then
+    echo ":m $1 $3: ${BASH_REMATCH[($RANDOM % 2)+1]}"
+elif [[ "$4" =~ $reg2 ]]; then
+    echo ":m $1 $3: ${responses[$((RANDOM % 20))]}"
+fi
