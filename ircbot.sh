@@ -13,8 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [ -f ./config.sh ]; then
-    . ./config.sh
+CONFIG_PATH='./config.sh'
+if [ "$1" = '-c' ] || [ "$1" = '--config' ]; then
+    CONFIG_PATH="$2"
+fi
+
+if [ -f "$CONFIG_PATH" ]; then
+    . "$CONFIG_PATH"
 else
     echo "NO CONFIG FILE FOUND"
     exit 1
@@ -171,13 +176,15 @@ while read -r user command channel message; do
             handle_privmsg "$channel" "$datetime" "$user" "$message" | send_cmd
         ;;
         NOTICE)
-            [ -z "$READ_NOTICE" ] && continue
+            [ -z "$READ_NOTICE" ] || \
             handle_privmsg "$channel" "$datetime" "$user" "$message" | send_cmd
         ;;
         JOIN)
-            [ -z "$JOINING" ] && continue
-            [ -x "$JOINING" ] || continue
+            [ -x "$JOINING" ] && \
             $JOINING "$channel" "$datetime" "$user" "$message" | send_cmd
         ;;
     esac
+
+    [ -x "$LOGGER" ] && \
+        $LOGGER "$channel" "$datetime" "$user" "$message"
 done <&4
