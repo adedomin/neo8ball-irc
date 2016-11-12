@@ -50,6 +50,8 @@ COMMANDS=(
 ["duck"]="lib/search.sh" 
 ["ddg"]="lib/search.sh" 
 ["g"]="lib/search.sh"
+["help"]="lib/help.sh"
+["bots"]="lib/bots.sh"
 )
 
 # regex patterns
