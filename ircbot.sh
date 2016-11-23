@@ -36,6 +36,7 @@ while [ $# -gt 0 ]; do
             usage
         ;;
     esac
+    shift
 done
 
 if [ -z "$CONFIG_PATH" ]; then
@@ -192,8 +193,11 @@ while read -r user command channel message; do
         continue
     fi
 
+    if [ -n "$LOG_STDOUT" ]; then
+        echo "$channel $datetime * <$user> $message"
+    fi
+
     [ "$user" = "$NICK" ] && continue
-#    echo "$channel $user $datetime $message"
     case $command in
         PRIVMSG)
             handle_privmsg "$channel" "$datetime" "$user" "$message" | send_cmd

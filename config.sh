@@ -3,13 +3,13 @@ NICK="neo8ball2"
 # irc server
 SERVER="irc.rizon.net"
 # channels to join
-CHANNELS=("#prussian")
+CHANNELS=("#ghetty" "#prussian")
 
 # port number
 PORT="6697"
 # use tls
 # set to blank to disable
-TLS=a
+TLS=yes
 
 # IPC related files will use this root
 temp_dir=/tmp
@@ -17,15 +17,9 @@ temp_dir=/tmp
 # read notice messages? spec say do not
 READ_NOTICE=
 
-## WEB STUFF - NOT IMPL ##
-# some bots may need to share/create files
-# below settings control web configuration
-
-# directory to serve
-#WEB_ROOT="$PWD/web"
-#WEB_PORT=18080
-## hostname:port the content could be accessed at
-#DOMAIN="http://example.com:$WEB_PORT"
+# LOGGING
+# leave blank to not write messages to stdout
+LOG_STDOUT=yes
 
 ## DECLARE IRC events here ##
 
