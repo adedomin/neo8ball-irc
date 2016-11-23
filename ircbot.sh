@@ -104,6 +104,10 @@ send_cmd() {
 
         case $cmd in
             :j|:join)
+                # disable list joins
+                arg=$(sed -e 's/\([^,]\),.*/\1/g' <<< "$arg")
+                # prevent 0 channel jerks
+                [ "$arg" = "0" ] && continue
                 send_msg "JOIN $arg"
                 ;;
             :l|:leave)
