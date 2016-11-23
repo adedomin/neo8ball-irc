@@ -105,13 +105,19 @@ send_cmd() {
         case $cmd in
             :j|:join)
                 # disable list joins
-                arg=$(sed -e 's/\([^,]\),.*/\1/g' <<< "$arg")
-                # prevent 0 channel jerks
-                [ "$arg" = "0" ] && continue
-                send_msg "JOIN $arg"
+                arg=$(sed 's/\([^,]\),.*/\1/g' <<< "$arg")
+                # prevent nonhashed channels
+                if [[ "$arg" =~ ^[#~!\&] ]]; then
+                    send_msg "JOIN $arg"
+                fi
                 ;;
             :l|:leave)
-                send_msg "PART $arg :$other"
+                # disable list leaves?
+                arg=$(sed 's/\([^,]\),.*/\1/g' <<< "$arg")
+                # prevent nonhashed channels
+                if [[ "$arg" =~ ^[#~!\&] ]]; then
+                    send_msg "PART $arg :$other"
+                fi
                 ;;
             :m|:message)
                 send_msg "PRIVMSG $arg :$other"
