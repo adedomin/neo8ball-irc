@@ -14,24 +14,8 @@
 # limitations under the License.
 
 SEARCH_ENGINE="https://duckduckgo.com/html/?q="
-rawurlencode() {
-  local string="${1}"
-  local strlen=${#string}
-  local encoded=""
-  local pos c o
 
-  for (( pos=0 ; pos<strlen ; pos++ )); do
-     c=${string:$pos:1}
-     case "$c" in
-        [-_.~a-zA-Z0-9] ) o="${c}" ;;
-        * )               printf -v o '%%%02x' "'$c"
-     esac
-     encoded+="${o}"
-  done
-  echo "${encoded}"
-}
-
-RES=$(curl "${SEARCH_ENGINE}$(rawurlencode "${4}")" 2>/dev/null | \
+RES=$(curl "${SEARCH_ENGINE}${4}" 2>/dev/null | \
 sed 's@</*b>@@g' | \
 html2 2>/dev/null | \
 grep -A 2 "@class=result__a" | \

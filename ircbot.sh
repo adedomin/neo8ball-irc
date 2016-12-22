@@ -166,7 +166,7 @@ handle_privmsg() {
     fi
 
     for cmd in "${!COMMANDS[@]}"; do
-        local reg="^[${CMD_PREFIX}]${cmd}\\b(.*)"
+        local reg="^[${CMD_PREFIX}]${cmd}\\b (.*)"
         if [[ "$4" =~ $reg ]]; then
             [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
             $LIB_PATH/${COMMANDS[$cmd]} \
@@ -186,6 +186,9 @@ handle_privmsg() {
 }
 
 # start communication
+if [ -n "$PASS" ]; then
+    send_msg "PASS $PASS"
+fi
 send_msg "NICK $NICK"
 send_msg "USER $NICK +i * :$NICK"
 # join chans
@@ -197,6 +200,7 @@ while read -r user command channel message; do
     user=$(sed 's/^:\([^!]*\).*/\1/' <<< "$user")
     datetime=$(date +"%Y-%m-%d %H:%M:%S")
     message=${message:1}
+    message=${message%$'\r'}
     # if ping request
     if [ "$user" = "PING" ]; then
         send_msg "PONG $command"
