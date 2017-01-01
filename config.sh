@@ -46,7 +46,9 @@ COMMANDS=(
 ["g"]="lib/search.sh"
 ["help"]="lib/help.sh"
 ["bots"]="lib/bots.sh"
-["define"]="lib/define.sh"
+["v"]="lib/vidme.sh"
+["vid"]="lib/vidme.sh"
+["vidme"]="lib/vidme.sh"
 )
 
 # regex patterns
