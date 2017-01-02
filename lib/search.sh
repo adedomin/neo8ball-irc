@@ -33,5 +33,5 @@ fi
 
 IFS=$'\n' 
 for res in $RES; do
-    echo ":m $1 $res"
+    echo ":m $1 $(sed 's/\s/ :: /' <<< "$res")"
 done
