@@ -6,5 +6,9 @@ RES=$(curl "${URI}$(sed 's/ /+/g' <<< "$4")" 2>/dev/null | \
 
 IFS=$'\n'
 for res in $RES; do
+    if [ "$res" = ' :: ' ]; then
+        echo ":m $1 no results found"
+        exit 0
+    fi
     echo ":m $1 $res"
 done
