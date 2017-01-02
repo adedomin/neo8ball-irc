@@ -27,6 +27,10 @@ sed 's/\(@href\|b\)=//g' | \
 sed '/r\.search\.yahoo\.com/d' | \
 head -n 3)
 
+if [ -z "$RES" ]; then
+    echo ":m $1 no results found or unknown error"
+fi
+
 IFS=$'\n' 
 for res in $RES; do
     echo ":m $1 $res"
