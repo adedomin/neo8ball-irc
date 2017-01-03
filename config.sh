@@ -1,5 +1,5 @@
 # nickname, also username
-NICK="neo8ball2"
+NICK="neo8ball"
 # NickServ password
 # blank for unreg
 NICKSERV=
@@ -23,6 +23,8 @@ READ_NOTICE=
 # LOGGING
 # leave blank to not write messages to stdout
 LOG_STDOUT=yes
+# leave blank to ignore sent and nick changes
+LOG_INFO=yes
 
 ## DECLARE IRC events here ##
 

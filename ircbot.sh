@@ -97,9 +97,8 @@ fi
 
 send_msg() {
     printf "%s\r\n" "$*" >&3
-    if [ -n "$LOG_STDOUT" ]; then
+    [ -n "$LOG_INFO" ] && \
         echo "*** SENT *** $*"
-    fi
 }
 
 send_cmd() {
@@ -107,20 +106,10 @@ send_cmd() {
 
         case $cmd in
             :j|:join)
-                # disable list joins
-                arg=$(sed 's/\([^,]\),.*/\1/g' <<< "$arg")
-                # prevent nonhashed channels
-                if [[ "$arg" =~ ^[#~!\&] ]]; then
-                    send_msg "JOIN $arg"
-                fi
+                send_msg "JOIN $arg"
                 ;;
             :l|:leave)
-                # disable list leaves?
-                arg=$(sed 's/\([^,]\),.*/\1/g' <<< "$arg")
-                # prevent nonhashed channels
-                if [[ "$arg" =~ ^[#~!\&] ]]; then
-                    send_msg "PART $arg :$other"
-                fi
+                send_msg "PART $arg :$other"
                 ;;
             :m|:message)
                 send_msg "PRIVMSG $arg :$other"
@@ -144,33 +133,27 @@ send_cmd() {
     done
 }
 
-join_ident() {
-    # join chans
-    for channel in ${CHANNELS[*]}; do
-        send_cmd <<< ":j $channel"
-    done
-
-    if [ -n "$NICKSERV" ]; then
-        send_cmd <<< ":m NickServ IDENTIFY $NICKSERV"
-    fi
-}
-
 # $1: channel
 # $2: datetime
 # $3: user
 # $4: msg
 handle_privmsg() {
+    # private message to us
     if [ "$NICK" = "$1" ]; then
-        if [[ "$message" =~ "VERSION" ]]; then
-            echo -e ":mn $3 \001VERSION bash-ircbot: v0.0.1-ALPHA\001"
+        # most servers require this "in spirit"
+        # tell them what we are
+        if [ "$message" = $'\001VERSION\001' ]; then
+            echo -e ":mn $3 \001VERSION bash-ircbot: v1.0.0-SNAPSHOT\001"
             return
         fi
+
         [ -x "$LIB_PATH/$PRIVATE" ] || return
         $LIB_PATH/$PRIVATE \
             "$3" "$2" "$3" "$4"
         return
     fi
 
+    # highlight event in message
     local highlight="$NICK.? (.*)"
     if [[ "$4" =~ $highlight ]]; then
         [ -x "$LIB_PATH/$HIGHLIGHT" ] || return
@@ -179,6 +162,7 @@ handle_privmsg() {
         return
     fi
 
+    # check for command mention in message
     for cmd in "${!COMMANDS[@]}"; do
         local reg="^[${CMD_PREFIX}]${cmd}\\b(.*)"
         if [[ "$4" =~ $reg ]]; then
@@ -189,6 +173,7 @@ handle_privmsg() {
         fi
     done
 
+    # fallback regex check on message
     for reg in "${!REGEX[@]}"; do
         if [[ "$4" =~ $reg ]]; then
             [ -x "$LIB_PATH/${REGEX[$reg]}" ] || return
@@ -205,6 +190,7 @@ if [ -n "$PASS" ]; then
 fi
 send_msg "NICK $NICK"
 send_msg "USER $NICK +i * :$NICK"
+# wait for server ident
 while read -r user command channel message; do
     user=$(sed 's/^:\([^!]*\).*/\1/' <<< "$user")
     datetime=$(date +"%Y-%m-%d %H:%M:%S")
@@ -215,11 +201,29 @@ while read -r user command channel message; do
         continue
     fi
     [ -n "$LOG_STDOUT" ] && \
-        echo "$channel $datetime * <$user> $message"
+        echo "$channel $datetime $command <$user> $message"
+    # server confirms ident
     [ "$command" = '004' ] && break
-    [ "$command" = '433' ] && die 'Nick in use!'
+    [ "$command" = '464' ] && \
+        die '*** NOTICE *** INVALID PASSWORD'
+    [ "$command" = '465' ] && \
+        die '*** NOTICE *** YOU ARE BANNED'
+    # nick collided
+    if [ "$command" = '433' ]; then
+        NICK="${NICK}_"
+        send_msg "NICK $NICK"
+        [ -n "$LOG_INFO" ] && \
+            echo "*** NOTICE *** NICK CHANGED TO $NICK"
+    fi
 done <&4
-join_ident
+# join chans
+CHANNELS=$(printf ",%s" "${CHANNELS[@]}")
+send_cmd <<< ":j ${CHANNELS:1}"
+# ident with nickserv
+if [ -n "$NICKSERV" ]; then
+    send_cmd <<< ":m NickServ IDENTIFY $NICKSERV"
+fi
+
 
 while read -r user command channel message; do
     user=$(sed 's/^:\([^!]*\).*/\1/' <<< "$user")
@@ -232,9 +236,8 @@ while read -r user command channel message; do
         continue
     fi
 
-    if [ -n "$LOG_STDOUT" ]; then
-        echo "$channel $datetime * <$user> $message"
-    fi
+    [ -n "$LOG_STDOUT" ] && \
+        echo "$channel $datetime $command <$user> $message"
 
     [ "$user" = "$NICK" ] && continue
     case $command in

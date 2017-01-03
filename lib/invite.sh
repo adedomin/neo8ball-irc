@@ -14,6 +14,12 @@
 # limitations under the License.
 
 read -r cmd chan <<< "$4"
+# disable list joins
+chan=$(sed 's/\([^,]\),.*/\1/g' <<< "$chan")
+# prevent joins to channels like 0
+if ! [[ "$chan" =~ ^[#~!\&] ]]; then
+    exit 0
+fi
 
 case $cmd in
     invite|INVITE)
