@@ -20,11 +20,16 @@ URI_ENCODE() {
     cut -c 3-
 }
 
-WEATHER="api.openweathermap.org/data/2.5/weather?APPID=${OWM_KEY}&q="
+WEATHER="api.openweathermap.org/data/2.5/weather?APPID=${OWM_KEY}&"
+query='q='
 
 IFS=$',' read -r city country <<< "$4"
+if [[ "$city" =~ [0-9]{5} ]]; then
+    query='zip='
+fi
+
 country=$(xargs echo <<< "$country")
-query=$(URI_ENCODE "$city")
+query=${query}$(URI_ENCODE "$city")
 if [ -n "$country" ]; then
     query="${query},${country}"
 fi
@@ -33,10 +38,12 @@ RES=$(curl "${WEATHER}${query}" 2>/dev/null)
 
 if [ -z "$RES" ]; then
     echo ":m $1 no weather information"
+    exit 0
 fi
 
 if [ "$(jq -r '.cod' <<< "$RES")" != '200' ]; then
     echo ":m $1 $(jq -r '.message' <<< "$RES")"
+    exit 0
 fi
 
 KELV=$(jq -r '.main.temp' <<< "$RES")
