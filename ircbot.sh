@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+VERSION="bash-ircbot: v1.1.0-RC1"
 
 usage() {
     echo "usage: $0 [-c config]"
@@ -143,7 +144,7 @@ handle_privmsg() {
         # most servers require this "in spirit"
         # tell them what we are
         if [ "$message" = $'\001VERSION\001' ]; then
-            echo -e ":mn $3 \001VERSION bash-ircbot: v1.0.0-SNAPSHOT\001"
+            echo -e ":mn $3 \001VERSION $VERSION\001"
             return
         fi
 
@@ -168,7 +169,7 @@ handle_privmsg() {
         if [[ "$4" =~ $reg ]]; then
             [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
             $LIB_PATH/${COMMANDS[$cmd]} \
-                "$1" "$2" "$3" "$(xargs <<< "${BASH_REMATCH[1]}")"
+                "$1" "$2" "$3" "${BASH_REMATCH[1]:1}"
             return
         fi
     done
