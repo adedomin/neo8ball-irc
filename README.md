@@ -12,6 +12,14 @@ configure:
 
     vim ./config.sh
 
+For weather, you need an API key; if you use systemd service, you can set the OWM_KEY variable there. e.g.
+
+    Environment="OWM_KEY=<some-key-goes-here>"
+
+In your 8ball.service file.
+If you do not do this, you need to maintain another method for making this value available to your bot.
+You can likely include it in your config file and export the variable.
+
 Licence
 -------
 
