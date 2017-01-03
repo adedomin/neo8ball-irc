@@ -47,5 +47,5 @@ HUMIDITY=$(jq -r '.main.humidity' <<< "$RES")
 loc=$(jq -r '. | .name + ", " + .sys.country' <<< "$RES")
 city_id=$(jq -r '.id' <<< "$RES")
 
-echo ":m $1 $loc :: Temp $CURR_CELS °C | $CURR_FAHR °F :: Conditions $COND :: Humidity $HUMIDITY%"
-echo ":m $1 See More at http://openweathermap.org/city/$city_id"
+echo ":m $1 $loc :: Conditions $COND :: Temp $CURR_CELS °C | $CURR_FAHR °F :: Humidity $HUMIDITY%"
+echo ":m $1 See More for $loc at http://openweathermap.org/city/$city_id"
