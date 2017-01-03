@@ -166,11 +166,11 @@ handle_privmsg() {
     fi
 
     for cmd in "${!COMMANDS[@]}"; do
-        local reg="^[${CMD_PREFIX}]${cmd}\\b (.*)"
+        local reg="^[${CMD_PREFIX}]${cmd}\\b(.*)"
         if [[ "$4" =~ $reg ]]; then
             [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
             $LIB_PATH/${COMMANDS[$cmd]} \
-                "$1" "$2" "$3" "${BASH_REMATCH[1]}"
+                "$1" "$2" "$3" "$(xargs <<< "${BASH_REMATCH[1]}")"
             return
         fi
     done
