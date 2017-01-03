@@ -1,9 +1,12 @@
 # nickname, also username
 NICK="neo8ball2"
+# NickServ password
+# blank for unreg
+NICKSERV=
 # irc server
 SERVER="irc.rizon.net"
 # channels to join
-CHANNELS=("#ghetty" "#prussian")
+CHANNELS=("#prussian")
 
 # port number
 PORT="6697"

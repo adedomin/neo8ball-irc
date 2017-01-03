@@ -97,6 +97,9 @@ fi
 
 send_msg() {
     printf "%s\r\n" "$*" >&3
+    if [ -n "$LOG_STDOUT" ]; then
+        echo "** SENT: $*"
+    fi
 }
 
 send_cmd() {
@@ -139,6 +142,17 @@ send_cmd() {
                 ;;
         esac
     done
+}
+
+join_ident() {
+    # join chans
+    for channel in ${CHANNELS[*]}; do
+        send_cmd <<< ":j $channel"
+    done
+
+    if [ -n "$NICKSERV" ]; then
+        send_cmd <<< ":m NickServ IDENTIFY $NICKSERV"
+    fi
 }
 
 # $1: channel
@@ -191,10 +205,10 @@ if [ -n "$PASS" ]; then
 fi
 send_msg "NICK $NICK"
 send_msg "USER $NICK +i * :$NICK"
-# join chans
-for channel in ${CHANNELS[*]}; do
-    send_cmd <<< ":j $channel"
-done
+while read -r user command channel message; do
+    [ "$channel" != '*' ] && break
+done <&4
+join_ident
 
 while read -r user command channel message; do
     user=$(sed 's/^:\([^!]*\).*/\1/' <<< "$user")
