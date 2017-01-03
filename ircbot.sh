@@ -98,7 +98,7 @@ fi
 send_msg() {
     printf "%s\r\n" "$*" >&3
     if [ -n "$LOG_STDOUT" ]; then
-        echo "** SENT: $*"
+        echo "*** SENT *** $*"
     fi
 }
 
@@ -206,7 +206,18 @@ fi
 send_msg "NICK $NICK"
 send_msg "USER $NICK +i * :$NICK"
 while read -r user command channel message; do
-    [ "$channel" != '*' ] && break
+    user=$(sed 's/^:\([^!]*\).*/\1/' <<< "$user")
+    datetime=$(date +"%Y-%m-%d %H:%M:%S")
+    message=${message:1}
+    message=${message%$'\r'}
+    if [ "$user" = "PING" ]; then
+        send_msg "PONG $command"
+        continue
+    fi
+    [ -n "$LOG_STDOUT" ] && \
+        echo "$channel $datetime * <$user> $message"
+    [ "$command" = '004' ] && break
+    [ "$command" = '433' ] && die 'Nick in use!'
 done <&4
 join_ident
 
