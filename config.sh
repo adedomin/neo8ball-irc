@@ -49,6 +49,9 @@ COMMANDS=(
 ["v"]="lib/vidme.sh"
 ["vid"]="lib/vidme.sh"
 ["vidme"]="lib/vidme.sh"
+["w"]="lib/weather.sh"
+["owm"]="lib/weather.sh"
+["weather"]="lib/weather.sh"
 )
 
 # regex patterns

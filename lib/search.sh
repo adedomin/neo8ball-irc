@@ -13,9 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+URI_ENCODE() {
+    curl -Gso /dev/null \
+        -w '%{url_effective}' \
+        --data-urlencode @- '' <<< "$1" | \
+    cut -c 3-
+}
+
 SEARCH_ENGINE="https://duckduckgo.com/html/?q="
 
-RES=$(curl "${SEARCH_ENGINE}${4}" 2>/dev/null | \
+RES=$(curl "${SEARCH_ENGINE}$(URI_ENCODE "$4")" 2>/dev/null | \
 sed 's@</*b>@@g' | \
 html2 2>/dev/null | \
 grep -A 2 "@class=result__a" | \
