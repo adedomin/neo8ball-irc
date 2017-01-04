@@ -29,7 +29,9 @@ if [ -z "$arg" ] && \
     [ -f "$WEATHER_DB" ]; then
 
     arg="$(jq -r '.["'"$3"'"]' < "$WEATHER_DB")"
-    if [ -z "$arg" ]; then
+    # apparently using array access AND non-TTY capture
+    # shell makes jq behave retardedly and unexpected
+    if [ -z "$arg" ] || [ "$arg" = "null" ]; then
         echo ":mn $3 You have to set a default location first, use .location <location> or .wd <location>"
         exit 0
     fi
