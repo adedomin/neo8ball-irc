@@ -57,6 +57,8 @@ COMMANDS=(
 ["w"]="lib/weather.sh"
 ["owm"]="lib/weather.sh"
 ["weather"]="lib/weather.sh"
+["wd"]="lib/weatherdb.sh"
+["location"]="lib/weatherdb.sh"
 )
 
 # regex patterns

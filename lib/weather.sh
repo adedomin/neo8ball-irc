@@ -23,8 +23,18 @@ URI_ENCODE() {
 WEATHER="api.openweathermap.org/data/2.5/weather?APPID=${OWM_KEY}&"
 query='q='
 
-IFS=$',' read -r city country <<< "$4"
-if [[ "$city" =~ [0-9]{5} ]]; then
+arg="$4"
+if [ -z "$arg" ] && \
+    [ -n "$WEATHER_DB" ] && \
+    [ -f "$WEATHER_DB" ]; then
+
+    arg="$(jq -r ".$3" < "$WEATHER_DB")"
+    echo "*** TEST *** $arg" >&2
+fi
+
+IFS=$',' read -r city country <<< "$arg"
+# US Postal code, I don't feel like figuring out what others look like.
+if [[ "$city" =~ ^[0-9]{5}(-[0-9]{4})?$ ]]; then
     query='zip='
 fi
 
