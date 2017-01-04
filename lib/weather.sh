@@ -71,7 +71,7 @@ city_id=$(jq -r '.id' <<< "$RES")
 if [ "$(bc -l <<< "$CURR_FAHR >= 80.00")" -eq 1 ]; then
     CURR_FAHR=$'\003'"04$CURR_FAHR"$'\003'
     CURR_CELS=$'\003'"04$CURR_CELS"$'\003'
-elif [ "$(bc -l <<< "$CURR_FAHR <= 40.00")" -eq 1 ]; then
+elif [ "$(bc -l <<< "$CURR_FAHR < 50.00")" -eq 1 ]; then
     CURR_FAHR=$'\003'"02$CURR_FAHR"$'\003'
     CURR_CELS=$'\003'"02$CURR_CELS"$'\003'
 else
