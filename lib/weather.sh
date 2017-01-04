@@ -67,5 +67,17 @@ HUMIDITY=$(jq -r '.main.humidity' <<< "$RES")
 loc=$(jq -r '. | .name + ", " + .sys.country' <<< "$RES")
 city_id=$(jq -r '.id' <<< "$RES")
 
-echo ":m $1 $loc :: Conditions $COND :: Temp $CURR_CELS °C | $CURR_FAHR °F :: Humidity $HUMIDITY%"
-echo ":m $1 See More for $loc at http://openweathermap.org/city/$city_id"
+# add color to temps!!!
+if [ "$(bc -l <<< "$CURR_FAHR >= 80.00")" -eq 1 ]; then
+    CURR_FAHR=$'\003'"04$CURR_FAHR"$'\003'
+    CURR_CELS=$'\003'"04$CURR_CELS"$'\003'
+elif [ "$(bc -l <<< "$CURR_FAHR <= 40.00")" -eq 1 ]; then
+    CURR_FAHR=$'\003'"02$CURR_FAHR"$'\003'
+    CURR_CELS=$'\003'"02$CURR_CELS"$'\003'
+else
+    CURR_FAHR=$'\003'"03$CURR_FAHR"$'\003'
+    CURR_CELS=$'\003'"03$CURR_CELS"$'\003'
+fi
+
+echo -e ":m $1 \002${loc}\002 :: \002Conditions\002 $COND :: \002Temp\002 $CURR_CELS °C | $CURR_FAHR °F :: \002Humidity\002 $HUMIDITY%"
+echo -e ":m $1 See More for \002${loc}\002 at http://openweathermap.org/city/$city_id"

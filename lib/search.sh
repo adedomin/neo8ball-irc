@@ -43,7 +43,6 @@ if [ -z "$RES" ]; then
     echo ":m $1 no results found or unknown error"
 fi
 
-IFS=$'\n' 
-for res in $RES; do
-    echo ":m $1 $(sed 's/\s/ :: /' <<< "$res")"
-done
+while read -r url title; do
+    echo -e ":m $1 \002${title}\002 :: $url"
+done <<< "$RES"

@@ -1,3 +1,2 @@
 #!/usr/bin/env bash
-echo ":m $1 Highlight me and ask me your yes or no questions. I can also decide between two choices separated by an or. All questions must end in a question mark."
-echo ":m $1 8ball .8ball <question>? :: Web Search .ddg <query> :: Weather .w <location> :: Set Location .location <location> :: Vidme .v <query>"
+echo -e ":m $1 \0028ball\002 .8ball <question>? :: \002Web Search\002 .ddg <query> :: \002Weather\002 .w <location> :: \002Set Location\002 .location <location> :: \002Vidme\002 .v <query>"
