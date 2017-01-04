@@ -7,7 +7,15 @@ if [ -z "$WEATHER_DB" ] ||\
     exit 0
 fi
 
-# must buffer to ensure the file is saved properly
-echo "$( jq -c '. | .["'"$3"'"] = "'"$4"'"' < "$WEATHER_DB" )" \
-    > "$WEATHER_DB"
-echo ":mn $3 You can now use .w without any arguments"
+if [ -z "$4" ]; then
+    echo "$( jq -c 'del(.["'"$3"'"])' \
+        < "$WEATHER_DB" )" \
+        > "$WEATHER_DB"
+
+    echo ":mn $3 Your default was deleted"
+else
+    echo "$( jq -c '. | .["'"$3"'"] = "'"$4"'"' \
+        < "$WEATHER_DB" )" \
+        > "$WEATHER_DB"
+    echo ":mn $3 You can now use the weather command without arguments"
+fi
