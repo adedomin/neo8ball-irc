@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# not impl
+exit 0
+
 URI='http://www.dictionary.com/browse/'
 
 RES=$(curl "${URI}${4}" 2>/dev/null | \

@@ -29,7 +29,10 @@ if [ -z "$arg" ] && \
     [ -f "$WEATHER_DB" ]; then
 
     arg="$(jq -r ".$3" < "$WEATHER_DB")"
-    echo "*** TEST *** $arg" >&2
+    if [ -z "$arg" ]; then
+        echo ":mn $3 You have to set a default location first, use .location <location> or .wd <location>"
+        exit 0
+    fi
 fi
 
 IFS=$',' read -r city country <<< "$arg"

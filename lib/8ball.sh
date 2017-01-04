@@ -42,4 +42,6 @@ if [[ "$4" =~ $reg ]]; then
     echo ":m $1 $3: ${BASH_REMATCH[($RANDOM % 2)+1]}"
 elif [[ "$4" =~ $reg2 ]]; then
     echo ":m $1 $3: ${responses[$((RANDOM % 20))]}"
+else
+    echo ":mn $3 You must ask me a question, hint use a question mark (?)"
 fi
