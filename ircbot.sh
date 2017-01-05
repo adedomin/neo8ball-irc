@@ -168,10 +168,10 @@ handle_privmsg() {
     read -r cmd args <<< "$4"
     local reg="^[${CMD_PREFIX}]${cmd:1}"
     if [[ "$cmd" =~ $reg ]]; then
-        cmd="${cmd:1}"
-        [ -n "${COMMANDS[$cmd]}" ] || return
-        [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
-        $LIB_PATH/${COMMANDS[$cmd]} \
+        cmd="${COMMANDS[${cmd:1}]}"
+        [ -n "$cmd" ] || return
+        [ -x "$LIB_PATH/${cmd}" ] || return
+        $LIB_PATH/${cmd} \
             "$1" "$2" "$3" "$args"
     fi
 
