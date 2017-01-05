@@ -11,7 +11,6 @@ if [ -z "$4" ]; then
     echo "$( jq -c 'del(.["'"$3"'"])' \
         < "$WEATHER_DB" )" \
         > "$WEATHER_DB"
-
     echo ":mn $3 Your default was deleted"
 else
     echo "$( jq -c '. | .["'"$3"'"] = "'"$4"'"' \

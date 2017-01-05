@@ -80,6 +80,7 @@ if [ -z "$NICK" ]; then
     usage
 fi
 
+# Connect to server
 [ -n "$TLS" ] && TLS="--ssl"
 if [ -z "$BASH_TCP" ]; then
     exec 3<> "$infile" || \
@@ -96,6 +97,7 @@ else
         die "unknown failure mapping named pipe to fd"
 fi
 
+# any literal argument/s will be sent
 send_msg() {
     printf "%s\r\n" "$*" >&3
     [ -n "$LOG_INFO" ] && \
@@ -163,16 +165,15 @@ handle_privmsg() {
         return
     fi
 
-    # check for command mention in message
-    for cmd in "${!COMMANDS[@]}"; do
-        local reg="^[${CMD_PREFIX}]${cmd}\\b(.*)"
-        if [[ "$4" =~ $reg ]]; then
-            [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
-            $LIB_PATH/${COMMANDS[$cmd]} \
-                "$1" "$2" "$3" "${BASH_REMATCH[1]:1}"
-            return
-        fi
-    done
+    read -r cmd args <<< "$4"
+    local reg="^[${CMD_PREFIX}]${cmd:1}"
+    if [[ "$cmd" =~ $reg ]]; then
+        cmd="${cmd:1}"
+        [ -n "${COMMANDS[$cmd]}" ] || return
+        [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
+        $LIB_PATH/${COMMANDS[$cmd]} \
+            "$1" "$2" "$3" "$args"
+    fi
 
     # fallback regex check on message
     for reg in "${!REGEX[@]}"; do
