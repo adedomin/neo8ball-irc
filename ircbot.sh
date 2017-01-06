@@ -72,9 +72,15 @@ trap 'quit_prg' SIGINT SIGTERM
 
 reload_config() {
     _NICK="$NICK"
+    _NICKSERV="$NICKSERV"
     . "$CONFIG_PATH"
+    # NICK changed
     if [ "$NICK" != "$_NICK" ]; then
         send_msg "NICK $NICK"
+    fi
+    # pass change for nickserv
+    if [ "$NICKSERV" != "$_NICKSERV" ]; then
+        send_cmd <<< ":m NickServ IDENTIFY $NICKSERV"
     fi
 }
 trap 'reload_config' SIGHUP SIGWINCH
