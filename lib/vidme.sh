@@ -27,10 +27,10 @@ URI_ENCODE() {
     cut -c 3-
 }
 
-VIDME='https://vid.me/api/videos/search?order=hot&query='
+VIDME='https://vid.me/api/videos/search?order=score&query='
 
 RES=$(curl "${VIDME}$(URI_ENCODE "$4")" 2>/dev/null | \
-    jq -r '.videos[0],.videos[1],.videos[2] | .full_url + " " + .title'
+    jq -r '.videos[0],.videos[1],.videos[2],.videos[3],.videos[4] | .full_url + " " + .title'
 )
 
 while read -r url title; do
