@@ -30,11 +30,11 @@ URI_ENCODE() {
 VIDME='https://vid.me/api/videos/search?order=score&query='
 
 RES=$(curl "${VIDME}$(URI_ENCODE "$4")" 2>/dev/null | \
-    jq -r '.videos[0],.videos[1],.videos[2],.videos[3] | .full_url + " " + (.duration|tostring) + " " + (.view_count|tostring) + " " + (.likes_count|tostring) + " " + .title'
+    jq -r '.videos[0],.videos[1],.videos[2],.videos[3] // empty | .full_url + " " + (.duration|tostring) + " " + (.view_count|tostring) + " " + (.likes_count|tostring) + " " + .title'
 )
 
 while read -r url duration views likes title; do
-    [ -z "$url" ] && exit
+    [ -z "$title" ] && exit
     min="$(bc <<< "scale=0; $duration / 60")"
     sec="$(bc <<< "scale=0; ($duration % 60)/1")"
     red=$'\003'"04"
