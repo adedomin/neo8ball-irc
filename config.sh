@@ -28,12 +28,12 @@ LOG_INFO=yes
 
 ## DECLARE IRC events here ##
 
-LIB_PATH="$(dirname "$0")/"
+LIB_PATH="$(dirname "$0")/lib/"
 
 # on highlight, call the following script/s
-HIGHLIGHT="lib/8ball.sh"
+HIGHLIGHT="8ball.sh"
 # on private message, as in query
-PRIVATE="lib/invite.sh"
+PRIVATE="invite.sh"
 # on join
 JOINING=
 
@@ -43,24 +43,24 @@ declare -A COMMANDS
 # command names should be what to test for
 # avoid adding prefixes like .help
 COMMANDS=(
-["8"]="lib/8ball.sh" 
-["8ball"]="lib/8ball.sh" 
-["define"]="lib/define.sh"
-["decide"]="lib/8ball.sh" 
-["duck"]="lib/search.sh" 
-["ddg"]="lib/search.sh" 
-["g"]="lib/search.sh"
-["help"]="lib/help.sh"
-["bots"]="lib/bots.sh"
-["source"]="lib/bots.sh"
-["v"]="lib/vidme.sh"
-["vid"]="lib/vidme.sh"
-["vidme"]="lib/vidme.sh"
-["w"]="lib/weather.sh"
-["owm"]="lib/weather.sh"
-["weather"]="lib/weather.sh"
-["wd"]="lib/weatherdb.sh"
-["location"]="lib/weatherdb.sh"
+["8"]="8ball.sh" 
+["8ball"]="8ball.sh" 
+["define"]="define.sh"
+["decide"]="8ball.sh" 
+["duck"]="search.sh" 
+["ddg"]="search.sh" 
+["g"]="search.sh"
+["help"]="help.sh"
+["bots"]="bots.sh"
+["source"]="bots.sh"
+["v"]="vidme.sh"
+["vid"]="vidme.sh"
+["vidme"]="vidme.sh"
+["w"]="weather.sh"
+["owm"]="weather.sh"
+["weather"]="weather.sh"
+["wd"]="weatherdb.sh"
+["location"]="weatherdb.sh"
 )
 
 # regex patterns

@@ -68,7 +68,16 @@ quit_prg() {
     rm -rf "$temp_dir/bash-ircbot"
     exit 0
 }
-trap 'quit_prg' SIGINT SIGHUP SIGTERM
+trap 'quit_prg' SIGINT SIGTERM
+
+reload_config() {
+    _NICK="$NICK"
+    . "$CONFIG_PATH"
+    if [ "$NICK" != "$_NICK" ]; then
+        send_msg "NICK $NICK"
+    fi
+}
+trap 'reload_config' SIGHUP SIGWINCH
 
 if [ -z "$(which ncat 2>/dev/null)" ]; then
     echo "WARN: ncat not found, TLS will not be enabled" >&2
@@ -156,7 +165,7 @@ handle_privmsg() {
 
         [ -x "$LIB_PATH/$PRIVATE" ] || return
         $LIB_PATH/$PRIVATE \
-            "$3" "$2" "$3" "$4"
+            "$3" "$2" "$3" "$4" "$LIB_PATH"
         return
     fi
 
@@ -165,7 +174,7 @@ handle_privmsg() {
     if [[ "$4" =~ $highlight ]]; then
         [ -x "$LIB_PATH/$HIGHLIGHT" ] || return
         $LIB_PATH/$HIGHLIGHT \
-            "$1" "$2" "$3" "${BASH_REMATCH[1]}"
+            "$1" "$2" "$3" "${BASH_REMATCH[1]}" "$LIB_PATH"
         return
     fi
 
@@ -176,7 +185,7 @@ handle_privmsg() {
         [ -n "${COMMANDS[$cmd]}" ] || return
         [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
         $LIB_PATH/${COMMANDS[$cmd]} \
-            "$1" "$2" "$3" "$args"
+            "$1" "$2" "$3" "$args" "$LIB_PATH"
     fi
 
     # fallback regex check on message
@@ -184,7 +193,7 @@ handle_privmsg() {
         if [[ "$4" =~ $reg ]]; then
             [ -x "$LIB_PATH/${REGEX[$reg]}" ] || return
             $LIB_PATH/${REGEX[$reg]} \
-                "$1" "$2" "$3" "$4"
+                "$1" "$2" "$3" "$4" "$LIB_PATH"
             return
         fi
     done
