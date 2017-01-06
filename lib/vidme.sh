@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+red=$'\003'"04"
+green=$'\003'"03"
 
 if [ -z "$4" ]; then
     echo ":mn $3 This command requires a search query"
@@ -37,7 +39,5 @@ while read -r url duration views likes title; do
     [ -z "$title" ] && exit
     min="$(bc <<< "scale=0; $duration / 60")"
     sec="$(bc <<< "scale=0; ($duration % 60)/1")"
-    red=$'\003'"04"
-    green=$'\003'"03"
     echo -e ":m $1 \002${title}\002 (${min}m${sec}s) :: \002Views\002 ${red}$(printf "%'d" "$views")\003 :: \002Likes\002 ${green}$(printf "%'d" "$likes")\003 :: \002URL\002 $url"
 done <<< "$RES"
