@@ -37,5 +37,7 @@ while read -r url duration views likes title; do
     [ -z "$url" ] && exit
     min="$(bc <<< "scale=0; $duration / 60")"
     sec="$(bc <<< "scale=0; ($duration % 60)/1")"
-    echo -e ":m $1 \002${title}\002 (${min}m${sec}s) :: \00303$(printf "%'d" "$views")\003 :: \00303$(printf "%'d" "$likes")\003 :: $url"
+    red=$'\003'"04"
+    green=$'\003'"03"
+    echo -e ":m $1 \002${title}\002 (${min}m${sec}s) :: ${red}$(printf "%'d" "$views")\003 :: ${green}$(printf "%'d" "$likes")\003 :: $url"
 done <<< "$RES"
