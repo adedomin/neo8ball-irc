@@ -130,6 +130,10 @@ send_cmd() {
             :r|:raw)
                 send_msg "$arg $other"
                 ;;
+            :li|:log)
+                [ -n "$LOG_INFO" ] && \
+                    echo "*** INFO *** $arg $other"
+                ;;
             *)
                 ;;
         esac
@@ -244,7 +248,7 @@ while read -r user command channel message; do
             NICK="${NICK}_"
             send_msg "NICK $NICK"
             [ -n "$LOG_INFO" ] && \
-                echo "*** NOTICE *** NICK CHANGED TO $NICK"
+                echo "*** INFO *** NICK CHANGED TO $NICK"
         ;;
     esac
 done <&4

@@ -28,7 +28,7 @@ if [ -z "$arg" ] && \
     [ -n "$WEATHER_DB" ] && \
     [ -f "$WEATHER_DB" ]; then
 
-    arg="$(jq -r '.["'"$3"'"] // empty' < "$WEATHER_DB")"
+    IFS=$':' read -r USR arg < <( grep "^$3:" "$WEATHER_DB" )
     if [ -z "$arg" ]; then
         echo ":mn $3 You have to set a default location first, use .location <location> or .wd <location>"
         exit 0
