@@ -25,8 +25,12 @@ query='q='
 
 arg="$4"
 if [ -z "$arg" ] && \
-    [ -n "$WEATHER_DB" ] && \
-    [ -f "$WEATHER_DB" ]; then
+    [ -n "$WEATHER_DB" ]; then
+
+    if [ ! -f "$WEATHER_DB" ]; then
+        echo ":mn $3 You have to set a default location first, use .location <location> or .wd <location>"
+        exit 0
+    fi
 
     IFS=$':' read -r USR arg < <( grep "^$3:" "$WEATHER_DB" )
     if [ -z "$arg" ]; then
