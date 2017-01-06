@@ -186,47 +186,23 @@ handle_privmsg() {
     done
 }
 
+post_ident() {
+    # join chans
+    CHANNELS=$(printf ",%s" "${CHANNELS[@]}")
+    send_cmd <<< ":j ${CHANNELS:1}"
+    # ident with nickserv
+    if [ -n "$NICKSERV" ]; then
+        send_cmd <<< ":m NickServ IDENTIFY $NICKSERV"
+    fi
+}
+
 # start communication
 if [ -n "$PASS" ]; then
     send_msg "PASS $PASS"
 fi
 send_msg "NICK $NICK"
 send_msg "USER $NICK +i * :$NICK"
-# wait for server ident
-while read -r user command channel message; do
-    user=$(sed 's/^:\([^!]*\).*/\1/' <<< "$user")
-    datetime=$(date +"%Y-%m-%d %H:%M:%S")
-    message=${message:1}
-    message=${message%$'\r'}
-    if [ "$user" = "PING" ]; then
-        send_msg "PONG $command"
-        continue
-    fi
-    [ -n "$LOG_STDOUT" ] && \
-        echo "$channel $datetime $command <$user> $message"
-    # server confirms ident
-    [ "$command" = '004' ] && break
-    [ "$command" = '464' ] && \
-        die '*** NOTICE *** INVALID PASSWORD'
-    [ "$command" = '465' ] && \
-        die '*** NOTICE *** YOU ARE BANNED'
-    # nick collided
-    if [ "$command" = '433' ]; then
-        NICK="${NICK}_"
-        send_msg "NICK $NICK"
-        [ -n "$LOG_INFO" ] && \
-            echo "*** NOTICE *** NICK CHANGED TO $NICK"
-    fi
-done <&4
-# join chans
-CHANNELS=$(printf ",%s" "${CHANNELS[@]}")
-send_cmd <<< ":j ${CHANNELS:1}"
-# ident with nickserv
-if [ -n "$NICKSERV" ]; then
-    send_cmd <<< ":m NickServ IDENTIFY $NICKSERV"
-fi
-
-
+# message handler loop
 while read -r user command channel message; do
     user=$(sed 's/^:\([^!]*\).*/\1/' <<< "$user")
     datetime=$(date +"%Y-%m-%d %H:%M:%S")
@@ -253,6 +229,22 @@ while read -r user command channel message; do
         JOIN)
             [ -x "$JOINING" ] && \
             $JOINING "$channel" "$datetime" "$user" "$message" | send_cmd
+        ;;
+        004)
+            # this should only happen once?
+            post_ident
+        ;;
+        464)
+            die '*** NOTICE *** INVALID PASSWORD'
+        ;;
+        465)
+            die '*** NOTICE *** YOU ARE BANNED'
+        ;;
+        433)
+            NICK="${NICK}_"
+            send_msg "NICK $NICK"
+            [ -n "$LOG_INFO" ] && \
+                echo "*** NOTICE *** NICK CHANGED TO $NICK"
         ;;
     esac
 done <&4
