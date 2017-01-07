@@ -18,13 +18,16 @@ if [ -z "$arg" ] && \
     [ -n "$WEATHER_DB" ]; then
 
     if [ ! -f "$WEATHER_DB" ]; then
-        echo ":mn $3 You have to set a default location first, use .nwsd <station> or .nwsd <station>"
+        echo ":mn $3 You have to set a default location first, use .nwsd <station> or .nwsl <station>"
+
+        echo ":mn $3 See http://w1.weather.gov/xml/current_obs/seek.php to find a station"
         exit 0
     fi
 
     IFS=$':' read -r USR arg < <( grep "^NWS~$3:" "$WEATHER_DB" )
     if [ -z "$arg" ]; then
-        echo ":mn $3 You have to set a default location first, use .location <location> or .wd <location>"
+        echo ":mn $3 You have to set a default location first, use .nwsd <station> or .nwsl <station>"
+        echo ":mn $3 See http://w1.weather.gov/xml/current_obs/seek.php to find a station"
         exit 0
     fi
 fi
