@@ -56,12 +56,14 @@ COMMANDS=(
 ["v"]="vidme.sh"
 ["vid"]="vidme.sh"
 ["vidme"]="vidme.sh"
-["w"]="weather.sh"
+#["w"]="weather.sh"
 ["owm"]="weather.sh"
 ["weather"]="weather.sh"
 ["wd"]="weatherdb.sh"
 ["location"]="weatherdb.sh"
 ["nws"]="nws.sh"
+["nwsl"]="weatherdb.sh"
+["nwsd"]="weatherdb.sh"
 )
 
 # regex patterns

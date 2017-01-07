@@ -13,17 +13,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [ -z "$4" ]; then
-    echo ":mn $3 See http://w1.weather.gov/xml/current_obs/seek.php to find a station"
-    exit 0
+arg="$4"
+if [ -z "$arg" ] && \
+    [ -n "$WEATHER_DB" ]; then
+
+    if [ ! -f "$WEATHER_DB" ]; then
+        echo ":mn $3 You have to set a default location first, use .nwsd <station> or .nwsd <station>"
+        exit 0
+    fi
+
+    IFS=$':' read -r USR arg < <( grep "^NWS~$3:" "$WEATHER_DB" )
+    if [ -z "$arg" ]; then
+        echo ":mn $3 You have to set a default location first, use .location <location> or .wd <location>"
+        exit 0
+    fi
 fi
 
-if [ "$4" = 'help' ]; then
+if [ "$arg" = 'help' ]; then
     echo ":m $1 See http://w1.weather.gov/xml/current_obs/seek.php to find a station"
     exit 0
 fi
 
-NWS="http://w1.weather.gov/xml/current_obs/${4^^}.xml"
+NWS="http://w1.weather.gov/xml/current_obs/${arg^^}.xml"
 
 RES="$(curl "$NWS" -f 2>/dev/null | \
     xml2 2>/dev/null 

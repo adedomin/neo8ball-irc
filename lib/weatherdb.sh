@@ -24,13 +24,18 @@ if [ ! -f "$WEATHER_DB" ]; then
     touch "$WEATHER_DB"
 fi
 
+USER="$3"
+if [ "$5" = 'nwsl' ] || [ "$5" = 'nwsd' ]; then
+    USER="NWS~$3"
+fi
+
 if [ -z "$4" ]; then
-    sed -i '' '/^'"$3"':/d' "$WEATHER_DB"
-    echo ":mn $3 Your defaults were deleted"
-elif grep -q "^$3:" "$WEATHER_DB"; then
-    sed -i '' 's/^'"$3"':.*$/'"$3"':'"$4"'/' "$WEATHER_DB"
+    sed -i'' '/^'"$USER"':/d' "$WEATHER_DB"
+    echo ":mn $USER Your defaults were deleted"
+elif grep -q "^$USER:" "$WEATHER_DB"; then
+    sed -i'' 's/^'"$USER"':.*$/'"$USER"':'"$4"'/' "$WEATHER_DB"
     echo ":mn $3 Your default has changed"
 else
-    echo "$3:$4" >> "$WEATHER_DB"
+    echo "$USER:$4" >> "$WEATHER_DB"
     echo ":mn $3 You can now use the weather command without arguments"
 fi

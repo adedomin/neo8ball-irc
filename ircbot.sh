@@ -171,7 +171,7 @@ handle_privmsg() {
 
         [ -x "$LIB_PATH/$PRIVATE" ] || return
         $LIB_PATH/$PRIVATE \
-            "$3" "$2" "$3" "$4" "$LIB_PATH"
+            "$3" "$2" "$3" "$4" "~PRIVATE~"
         return
     fi
 
@@ -180,7 +180,7 @@ handle_privmsg() {
     if [[ "$4" =~ $highlight ]]; then
         [ -x "$LIB_PATH/$HIGHLIGHT" ] || return
         $LIB_PATH/$HIGHLIGHT \
-            "$1" "$2" "$3" "${BASH_REMATCH[1]}" "$LIB_PATH"
+            "$1" "$2" "$3" "${BASH_REMATCH[1]}" "~HIGHLIGHT~"
         return
     fi
 
@@ -191,7 +191,7 @@ handle_privmsg() {
         [ -n "${COMMANDS[$cmd]}" ] || return
         [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
         $LIB_PATH/${COMMANDS[$cmd]} \
-            "$1" "$2" "$3" "$args" "$LIB_PATH"
+            "$1" "$2" "$3" "$args" "$cmd"
     fi
 
     # fallback regex check on message
@@ -199,7 +199,7 @@ handle_privmsg() {
         if [[ "$4" =~ $reg ]]; then
             [ -x "$LIB_PATH/${REGEX[$reg]}" ] || return
             $LIB_PATH/${REGEX[$reg]} \
-                "$1" "$2" "$3" "$4" "$LIB_PATH"
+                "$1" "$2" "$3" "$4" "$reg"
             return
         fi
     done
