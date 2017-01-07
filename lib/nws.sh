@@ -13,8 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [ -z "$4" ] || [ "$4" = 'help' ]; then
+if [ -z "$4" ]; then
     echo ":mn $3 See http://w1.weather.gov/xml/current_obs/seek.php to find a station"
+    exit 0
+fi
+
+if [ "$4" = 'help' ]; then
+    echo ":m $1 See http://w1.weather.gov/xml/current_obs/seek.php to find a station"
     exit 0
 fi
 
