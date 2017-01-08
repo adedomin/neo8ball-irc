@@ -50,6 +50,9 @@ while read -r key value; do
         *temperature_string)
             TEMP="$value"
         ;;
+        *windchill_string)
+            W_TEMP="$value"
+        ;;
         *temp_f)
             T_F="$value"
         ;;
@@ -62,7 +65,12 @@ while read -r key value; do
         *humidity)
             HUMIDITY="$value"
         ;;
-
+        *pressure_string)
+            PRESSURE="$value"
+        ;;
+        *dewpoint_string)
+            DEW="$value"
+        ;;
     esac
 done < <( 
     curl "$NWS" -f 2>/dev/null | \
@@ -84,4 +92,4 @@ else
     TEMP_COL=$'\003'"03"
 fi
 
-echo -e ":m $1 \002${LOC}\002 :: \002Conditions\002 ${CONDITIONS} :: \002Temp\002 ${TEMP_COL}${TEMP}\003 :: \002Wind\002 $WIND :: \002Humidity\002 ${HUMIDITY}%"
+echo -e ":m $1 \002${LOC}\002 :: \002Conditions\002 ${CONDITIONS} :: \002Temp\002 ${TEMP_COL}${TEMP}\003 :: \002Windchill\002 ${W_TEMP} :: \002Wind\002 $WIND :: \002Humidity\002 ${HUMIDITY}% :: \002Dewpoint\002 ${DEW} :: \002Pressure\002 ${PRESSURE}"
