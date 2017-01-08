@@ -27,22 +27,19 @@ URI_ENCODE() {
 
 SEARCH_ENGINE="https://duckduckgo.com/html/?q="
 
-RES=$(curl "${SEARCH_ENGINE}$(URI_ENCODE "$4")" 2>/dev/null | \
-sed 's@</*b>@@g' | \
-html2 2>/dev/null | \
-grep -A 2 "@class=result__a" | \
-sed '/^--$/d' | \
-sed '/@class/d' | \
-grep -Po '(?<=\/a(=|\/)).*' | \
-paste -d " " - - | \
-sed 's/\(@href\|b\)=//g' | \
-sed '/r\.search\.yahoo\.com/d' | \
-head -n 3)
-
-if [ -z "$RES" ]; then
-    echo ":m $1 no results found or unknown error"
-fi
-
 while read -r url title; do
+    [ -z "$title" ] && exit 0
     echo -e ":m $1 \002${title}\002 :: $url"
-done <<< "$RES"
+done < <(
+    curl "${SEARCH_ENGINE}$(URI_ENCODE "$4")" 2>/dev/null | \
+    sed 's@</*b>@@g' | \
+    html2 2>/dev/null | \
+    grep -A 2 "@class=result__a" | \
+    sed '/^--$/d' | \
+    sed '/@class/d' | \
+    grep -Po '(?<=\/a(=|\/)).*' | \
+    paste -d " " - - | \
+    sed 's/\(@href\|b\)=//g' | \
+    sed '/r\.search\.yahoo\.com/d' | \
+    head -n 3
+)

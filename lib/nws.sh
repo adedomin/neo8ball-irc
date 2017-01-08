@@ -39,15 +39,7 @@ fi
 
 NWS="http://w1.weather.gov/xml/current_obs/${arg^^}.xml"
 
-RES="$(curl "$NWS" -f 2>/dev/null | \
-    xml2 2>/dev/null 
-)"
 
-if [ -z "$RES" ]; then
-    echo ":m $1 Invalid station"
-    echo ":mn $3 See http://w1.weather.gov/xml/current_obs/seek.php to find a station"
-    exit 0
-fi
 
 IFS=$'='
 while read -r key value; do
@@ -57,6 +49,9 @@ while read -r key value; do
         ;;
         *temperature_string)
             TEMP="$value"
+        ;;
+        *temp_f)
+            T_F="$value"
         ;;
         *wind_string)
             WIND="$value"
@@ -69,6 +64,24 @@ while read -r key value; do
         ;;
 
     esac
-done <<< "$RES"
+done < <( 
+    curl "$NWS" -f 2>/dev/null | \
+    xml2 2>/dev/null
+)
 
-echo -e ":m $1 \002${LOC}\002 :: \002Conditions\002 ${CONDITIONS} :: \002Temp\002 $TEMP :: \002Wind\002 $WIND :: \002Humidity\002 ${HUMIDITY}%"
+if [ -z "$LOC" ]; then
+    echo ":m $1 Invalid station"
+    echo ":mn $3 See http://w1.weather.gov/xml/current_obs/seek.php to find a station"
+    exit 0
+fi
+
+# add color to temps!!!
+if [ "$(bc -l <<< "$T_F >= 80.00")" -eq 1 ]; then
+    TEMP_COL=$'\003'"04"
+elif [ "$(bc -l <<< "$T_F < 45.00")" -eq 1 ]; then
+    TEMP_COL=$'\003'"02"
+else
+    TEMP_COL=$'\003'"03"
+fi
+
+echo -e ":m $1 \002${LOC}\002 :: \002Conditions\002 ${CONDITIONS} :: \002Temp\002 ${TEMP_COL}${TEMP}\003 :: \002Wind\002 $WIND :: \002Humidity\002 ${HUMIDITY}%"
