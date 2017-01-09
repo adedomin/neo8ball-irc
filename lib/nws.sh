@@ -71,6 +71,9 @@ while read -r key value; do
         *temp_f)
             T_F="$value"
         ;;
+        *windchill_f)
+            WT_F="$value"
+        ;;
         *wind_string)
             WIND="$value"
         ;;
@@ -107,4 +110,12 @@ else
     TEMP_COL=$'\003'"03"
 fi
 
-echo -e ":m $1 \002${LOC}\002 :: ${CONDITIONS} :: \002Temp\002 ${TEMP_COL}${TEMP}\003 :: \002Windchill\002 ${W_TEMP} :: \002Wind\002 $WIND :: \002Humidity\002 ${HUMIDITY}% :: \002Dewpoint\002 ${DEW} :: \002Pressure\002 ${PRESSURE}"
+if [ "$(bc -l <<< "$WT_F >= 80.00")" -eq 1 ]; then
+    WTEMP_COL=$'\003'"04"
+elif [ "$(bc -l <<< "$WT_F < 45.00")" -eq 1 ]; then
+    WTEMP_COL=$'\003'"02"
+else
+    WTEMP_COL=$'\003'"03"
+fi
+
+echo -e ":m $1 \002${LOC}\002 :: ${CONDITIONS} :: \002Temp\002 ${TEMP_COL}${TEMP}\003 :: \002Windchill\002 ${WTEMP_COL}${W_TEMP}\003 :: \002Wind\002 $WIND :: \002Humidity\002 ${HUMIDITY}% :: \002Dewpoint\002 ${DEW} :: \002Pressure\002 ${PRESSURE}"
