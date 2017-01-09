@@ -38,16 +38,18 @@ if [ "$arg" = 'help' ]; then
 fi
 
 if [[ "$arg" =~ ^search ]]; then
-    count=0
+    if [ -z "$PERSIST_LOC" ]; then
+        echo ":mn $3 search is disabled"
+    fi
+
+    if [ ! -f "$PERSIST_LOC/stations.txt" ]; then
+        curl 'http://weather.rap.ucar.edu/surface/stations.txt' \
+        -L 2>/dev/null | \
+            sed '/^!/d' > "$PERSIST_LOC/stations.txt"
+    fi
+
     read -r srch query <<< "$arg"
-    curl 'http://weather.rap.ucar.edu/surface/stations.txt' -L | \
-        sed '/^!/d' | \
-        grep -i "$query" #|
-    while read -r cc loc stat ignore; do
-        [ "$count" = "2" ] && exit
-        echo ":m $1 \002Location\002 $loc :: \002Station\002 $stat" 
-        count=$((count+1))
-    done
+    echo ":m $1 $(grep -m 1 -i "$query" "$PERSIST_LOC/stations.txt")"
     exit 0
 fi
 

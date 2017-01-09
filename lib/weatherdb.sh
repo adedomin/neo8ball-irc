@@ -15,10 +15,12 @@
 
 # format -> username:their weather location
 
-if [ -z "$WEATHER_DB" ]; then
+if [ -z "$PERSIST_LOC" ]; then
     echo ":mn $3 This feature is not enabled"
     exit 0
 fi
+
+WEATHER_DB="$PERSIST_LOC/weather-defaults.db"
 
 if [ ! -f "$WEATHER_DB" ]; then
     touch "$WEATHER_DB"
