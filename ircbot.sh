@@ -171,7 +171,7 @@ handle_privmsg() {
 
         [ -x "$LIB_PATH/$PRIVATE" ] || return
         $LIB_PATH/$PRIVATE \
-            "$3" "$2" "$3" "$4" "~PRIVATE~"
+            "$3" "$2" "$3" "$4" "$LIB_PATH"
         return
     fi
 
@@ -180,7 +180,7 @@ handle_privmsg() {
     if [[ "$4" =~ $highlight ]]; then
         [ -x "$LIB_PATH/$HIGHLIGHT" ] || return
         $LIB_PATH/$HIGHLIGHT \
-            "$1" "$2" "$3" "${BASH_REMATCH[1]}" "~HIGHLIGHT~"
+            "$1" "$2" "$3" "${BASH_REMATCH[1]}" "$LIB_PATH"
         return
     fi
 
