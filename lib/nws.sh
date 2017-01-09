@@ -15,8 +15,9 @@
 
 arg="$4"
 if [ -z "$arg" ] && \
-    [ -n "$WEATHER_DB" ]; then
+    [ -n "$PERSIST_LOC" ]; then
 
+    WEATHER_DB="$PERSIST_LOC/weather-defaults.db"
     if [ ! -f "$WEATHER_DB" ]; then
         echo ":mn $3 You have to set a default location first, use .nwsd <station> or .nwsl <station>"
 
