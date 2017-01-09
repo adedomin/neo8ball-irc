@@ -29,6 +29,7 @@ echo "http://www.dictionary.com/browse/$(URI_ENCODE "$4")" |
     sed 's/[0-9]\./\n&/g' |
     head -n 4 |
     sed '/^$/d' |
+    sed '/file:\/\//d' |
 while read -r definition; do
     echo ":m $1 $definition"
 done
