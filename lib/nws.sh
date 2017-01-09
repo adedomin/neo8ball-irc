@@ -20,27 +20,28 @@ if [ -z "$arg" ] && \
     WEATHER_DB="$PERSIST_LOC/weather-defaults.db"
     if [ ! -f "$WEATHER_DB" ]; then
         echo ":mn $3 You have to set a default location first, use .nwsd <station> or .nwsl <station>"
-
-        echo ":mn $3 See http://w1.weather.gov/xml/current_obs/seek.php to find a station"
+        echo ":mn $3 find a station: .nws search <city or airport>"
         exit 0
     fi
 
     IFS=$':' read -r USR arg < <( grep "^NWS~$3:" "$WEATHER_DB" )
     if [ -z "$arg" ]; then
         echo ":mn $3 You have to set a default location first, use .nwsd <station> or .nwsl <station>"
-        echo ":mn $3 See http://w1.weather.gov/xml/current_obs/seek.php to find a station"
+        echo ":mn $3 find a station: .nws search <city or airport>"
         exit 0
     fi
 fi
 
 if [ "$arg" = 'help' ]; then
-    echo ":m $1 See http://w1.weather.gov/xml/current_obs/seek.php to find a station"
+    echo ":m $1 find a station: .nws search <city or airport>"
+    echo ":m $1 full list: http://weather.rap.ucar.edu/surface/stations.txt"
     exit 0
 fi
 
 if [[ "$arg" =~ ^search ]]; then
     if [ -z "$PERSIST_LOC" ]; then
         echo ":mn $3 search is disabled"
+        exit 0
     fi
 
     if [ ! -f "$PERSIST_LOC/stations.txt" ]; then
@@ -50,7 +51,7 @@ if [[ "$arg" =~ ^search ]]; then
     fi
 
     read -r srch query <<< "$arg"
-    echo ":m $1 $(grep -m 1 -i "$query" "$PERSIST_LOC/stations.txt" | cut -c 4-24)"
+    echo ":m $1 $(grep -F -m 1 -i "$query" "$PERSIST_LOC/stations.txt" | cut -c 4-24)"
     exit 0
 fi
 
@@ -96,8 +97,8 @@ done < <(
 )
 
 if [ -z "$LOC" ]; then
-    echo ":m $1 Invalid station"
-    echo ":mn $3 See http://w1.weather.gov/xml/current_obs/seek.php to find a station"
+    echo ":m $1 invalid station"
+    echo ":m $1 find a station: .nws search <city or airport>"
     exit 0
 fi
 
