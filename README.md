@@ -16,9 +16,30 @@ For weather, you need an API key; if you use systemd service, you can set the OW
 
     Environment="OWM_KEY=<some-key-goes-here>"
 
+For default weather location persistance and .nws search you need the following env variable
+
+    Environment="PERSIST_LOC=/home/neo8ball/.local/var/db/"
+
 In your 8ball.service file.
-If you do not do this, you need to maintain another method for making this value available to your bot.
+If you do not do this, you need to maintain another method for making these values available to your bot.
 You can likely include it in your config file and export the variable.
+
+Example systemd Service
+-----------------------
+
+    [Unit]
+    Description=neo8ball irc bot
+
+    [Service]
+    User=bots
+    Environment="OWM_KEY=some key"
+    Environment="PERSIST_LOC=/home/bots/.local/var/db/"
+    ExecStart=/bin/bash /home/bots/src/neo8ball-irc/ircbot.sh
+    ExecReload=/bin/kill -HUP $MAINPID
+    Restart=on-failure
+
+    [Install]
+    WantedBy=multi-user.target
 
 Licence
 -------
