@@ -50,7 +50,7 @@ if [[ "$arg" =~ ^search ]]; then
     fi
 
     read -r srch query <<< "$arg"
-    echo ":m $1 $(grep -m 1 -i "$query" "$PERSIST_LOC/stations.txt")"
+    echo ":m $1 $(grep -m 1 -i "$query" "$PERSIST_LOC/stations.txt" | cut -c 4-24)"
     exit 0
 fi
 
