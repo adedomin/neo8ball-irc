@@ -37,9 +37,21 @@ if [ "$arg" = 'help' ]; then
     exit 0
 fi
 
+if [[ "$arg" =~ ^search ]]; then
+    count=0
+    read -r srch query <<< "$arg"
+    curl 'http://weather.rap.ucar.edu/surface/stations.txt' -L | \
+        sed '/^!/d' | \
+        grep -i "$query" #|
+    while read -r cc loc stat ignore; do
+        [ "$count" = "2" ] && exit
+        echo ":m $1 \002Location\002 $loc :: \002Station\002 $stat" 
+        count=$((count+1))
+    done
+    exit 0
+fi
+
 NWS="http://w1.weather.gov/xml/current_obs/${arg^^}.xml"
-
-
 
 IFS=$'='
 while read -r key value; do
