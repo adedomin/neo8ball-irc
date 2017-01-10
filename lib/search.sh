@@ -25,11 +25,18 @@ URI_ENCODE() {
     cut -c 3-
 }
 
+URI_DECODE() {
+    # change plus to space
+    local uri="${1//+/ }"
+    # convert % to hex literal and print
+    printf '%b' "${uri//%/\\x}"
+}
+
 SEARCH_ENGINE="https://duckduckgo.com/html/?q="
 
 while read -r url title; do
     [ -z "$title" ] && exit 0
-    echo -e ":m $1 \002${title}\002 :: $url"
+    echo -e ":m $1 \002${title}\002 :: $(URI_DECODE "$url")"
 done < <(
     curl "${SEARCH_ENGINE}$(URI_ENCODE "$4")" 2>/dev/null | \
     sed 's@</*b>@@g' | \
@@ -39,7 +46,7 @@ done < <(
     sed '/@class/d' | \
     grep -Po '(?<=\/a(=|\/)).*' | \
     paste -d " " - - | \
-    sed 's/\(@href\|b\)=//g' | \
+    cut -c 22- | \
     sed '/r\.search\.yahoo\.com/d' | \
     head -n 3
 )
