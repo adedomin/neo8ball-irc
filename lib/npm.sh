@@ -25,7 +25,10 @@ ARG="${ARG%\%0A}"
 NPM="https://www.npmjs.com/-/search?text=${ARG}&from=0&size=3"
  
 while read -r name link desc; do
-    echo -e ":m $1 \002${name}\002 :: $desc :: $link"
+    if [ -n "$desc" ]; then
+        desc=" $desc ::"
+    fi 
+    echo -e ":m $1 \002${name}\002 ::$desc $link"
 done < <(
     curl "$NPM" -f 2>/dev/null |
     jq -r '.objects[0].package,.objects[1].package,.objects[2].package // empty | .name + " " + .links.npm + " " + .description'
