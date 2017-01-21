@@ -64,6 +64,7 @@ COMMANDS=(
 ["nws"]="nws.sh"
 ["nwsl"]="weatherdb.sh"
 ["nwsd"]="weatherdb.sh"
+["npm"]="npm.sh"
 )
 
 # regex patterns
