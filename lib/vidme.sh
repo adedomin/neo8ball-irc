@@ -20,8 +20,6 @@ if [ -z "$4" ]; then
     exit 0
 fi
 
-
-
 URI_ENCODE() {
     curl -Gso /dev/null \
         -w '%{url_effective}' \

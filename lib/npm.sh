@@ -13,6 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+if [ -z "$4" ]; then
+    echo ":mn $3 This command requires a search query"
+    exit 0
+fi
+
 URI_ENCODE() {
     curl -Gso /dev/null \
         -w '%{url_effective}' \
