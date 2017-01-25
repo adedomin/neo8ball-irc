@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v1.1.1"
+VERSION="bash-ircbot: v1.2.0-RC2"
 
 usage() {
     echo "usage: $0 [-c config]"
@@ -215,7 +215,8 @@ post_ident() {
     send_cmd <<< ":j ${CHANNELS:1}"
     # ident with nickserv
     if [ -n "$NICKSERV" ]; then
-        send_cmd <<< ":m NickServ IDENTIFY $NICKSERV"
+        # bypass logged send_cmd/send_msg
+        printf "%s\r\n" "PRIVMSG NickServ :IDENTIFY $NICKSERV" >&3
     fi
 }
 
@@ -233,7 +234,8 @@ while read -r user command channel message; do
     message=${message%$'\r'}
     # if ping request
     if [ "$user" = "PING" ]; then
-        send_msg "PONG $command"
+        # unless you like seing *** SENT *** PONG :blah in the log
+        printf "%s\r\n" "PONG $command" >&3
         continue
     fi
 
