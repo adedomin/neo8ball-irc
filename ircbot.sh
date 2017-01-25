@@ -194,7 +194,7 @@ handle_privmsg() {
         [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
         $LIB_PATH/${COMMANDS[$cmd]} \
             "$1" "$2" "$3" "$args" "$cmd"
-        echo ":li COMMAND EVENT -> $cmd: $1 <$3> $4"
+        echo ":li COMMAND EVENT -> $cmd: $1 <$3> $args"
     fi
 
     # fallback regex check on message
