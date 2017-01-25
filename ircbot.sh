@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v1.1.0-RC1"
+VERSION="bash-ircbot: v1.1.1"
 
 usage() {
     echo "usage: $0 [-c config]"
@@ -172,6 +172,7 @@ handle_privmsg() {
         [ -x "$LIB_PATH/$PRIVATE" ] || return
         $LIB_PATH/$PRIVATE \
             "$3" "$2" "$3" "$4" "$LIB_PATH"
+        echo ":li PRIV_MSG EVENT -> $3 <$3> $4"
         return
     fi
 
@@ -181,6 +182,7 @@ handle_privmsg() {
         [ -x "$LIB_PATH/$HIGHLIGHT" ] || return
         $LIB_PATH/$HIGHLIGHT \
             "$1" "$2" "$3" "${BASH_REMATCH[1]}" "$LIB_PATH"
+        echo ":li HIGHLIGHT EVENT -> $1 <$3> $4"
         return
     fi
 
@@ -192,6 +194,7 @@ handle_privmsg() {
         [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
         $LIB_PATH/${COMMANDS[$cmd]} \
             "$1" "$2" "$3" "$args" "$cmd"
+        echo ":li COMMAND EVENT -> $cmd: $1 <$3> $4"
     fi
 
     # fallback regex check on message
@@ -200,6 +203,7 @@ handle_privmsg() {
             [ -x "$LIB_PATH/${REGEX[$reg]}" ] || return
             $LIB_PATH/${REGEX[$reg]} \
                 "$1" "$2" "$3" "$4" "$reg"
+            echo ":li REGEX EVENT -> $reg: $1 <$3> $4"
             return
         fi
     done
