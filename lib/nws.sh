@@ -120,7 +120,7 @@ if [ -n "$W_TEMP" ]; then
         WTEMP_COL=$'\003'"03"
     fi
 else
-    WTEMP_COL=$'\003'"03"
+    WTEMP_COL="$TEMP_COL"
     W_TEMP="N/A"
 fi
 
