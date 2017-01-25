@@ -80,7 +80,7 @@ reload_config() {
     fi
     # pass change for nickserv
     if [ "$NICKSERV" != "$_NICKSERV" ]; then
-        send_cmd <<< ":m NickServ IDENTIFY $NICKSERV"
+        printf "%s\r\n" "PRIVMSG NickServ :IDENTIFY $NICKSERV" >&3
     fi
 }
 trap 'reload_config' SIGHUP SIGWINCH
