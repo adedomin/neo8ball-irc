@@ -66,6 +66,8 @@ COMMANDS=(
 ["nwsd"]="weatherdb.sh"
 ["npm"]="npm.sh"
 ["wiki"]="wikipedia.sh"
+["reddit"]="subreddit.sh"
+["sub"]="subreddit.sh"
 )
 
 # regex patterns
