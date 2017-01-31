@@ -15,6 +15,9 @@
 
 read sub sortt <<< "$4"
 
+if [ -z "$sortt" ]; then
+    sortt="hot"
+fi
 case $sortt in
     top|best|controversial|new|hot) ;;
     *) 
