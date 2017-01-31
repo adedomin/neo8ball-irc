@@ -31,8 +31,6 @@ case $sortt in
     ;;
 esac
 
-echo "https://www.reddit.com/${sub}${sortt}/.xml?limit=3"
-
 IFS=$'='
 while read -r key value; do
     case $key in
