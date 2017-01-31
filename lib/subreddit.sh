@@ -21,7 +21,7 @@ fi
 case $sortt in
     top|best|controversial|new|hot) ;;
     *) 
-       echo ':m $1 Invalid sort type: must be <top|best|controversial|new|hot>' 
+       echo ":m $1 Invalid sort type: must be <top|best|controversial|new|hot>"
        exit 0 
     ;;
 esac
