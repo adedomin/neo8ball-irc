@@ -13,18 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-read sub sortt <<< "$4"
+read -r sub sortt <<< "$4"
 
+if [ -n "$sub" ]; then
+    sub="r/${sub}/"
+fi
 if [ -z "$sortt" ]; then
     sortt="hot"
 fi
 case $sortt in
-    top|best|controversial|new|hot) ;;
+    top|best|controversial|new|hot) 
+        sortt="${sortt}"
+    ;;
     *) 
        echo ":m $1 Invalid sort type: must be <top|best|controversial|new|hot>"
        exit 0 
     ;;
 esac
+
+echo "https://www.reddit.com/${sub}${sortt}/.xml?limit=3"
 
 IFS=$'='
 while read -r key value; do
@@ -37,7 +44,7 @@ while read -r key value; do
         ;;
     esac
 done < <(
-    curl "https://www.reddit.com/r/${sub}/${sortt}/.xml?limit=3" \
+    curl "https://www.reddit.com/${sub}${sortt}/.xml?limit=3" \
         -H 'Host: www.reddit.com' \
         -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2704.103 Safari/537.36' \
         -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' \
