@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+curl -I "$5" 2>/dev/null | 
+grep -qi 'Content-Type: text/html\|Content-Type: application/xhtml+xml' || exit 0
 curl -L --max-redirs 2 "$5" 2>/dev/null \
 | html2 2>/dev/null \
 | while IFS=$'=' read -r key val; do
