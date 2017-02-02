@@ -28,7 +28,7 @@ done < <(
 
 [ -z "$mime" ] && exit 0 
 if [[ ! "$mime" =~ text/html|application/xhtml+xml ]]; then
-    echo -e ":m $1 ^ \002File\002 :: $mime ($(numfmt --to=iec <<< "$sizeof"))"
+    echo -e ":m $1 ↑ \002File\002 :: $mime ($(numfmt --to=iec <<< "$sizeof"))"
     exit 0
 fi
 
