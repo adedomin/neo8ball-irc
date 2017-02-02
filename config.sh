@@ -75,6 +75,6 @@ COMMANDS=(
 # uses bash regex language
 declare -A REGEX
 REGEX=(
-['(https?|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]']="pagetitle.sh"
+['(https?)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]']="pagetitle.sh"
 )
 
