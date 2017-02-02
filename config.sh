@@ -74,4 +74,7 @@ COMMANDS=(
 # if you need more fine grained control
 # uses bash regex language
 declare -A REGEX
-#REGEX=(["^\.bots"]="test/bots.sh")
+REGEX=(
+['(https?|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]']="pagetitle.sh"
+)
+

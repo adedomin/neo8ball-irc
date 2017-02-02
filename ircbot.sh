@@ -202,7 +202,7 @@ handle_privmsg() {
         if [[ "$4" =~ $reg ]]; then
             [ -x "$LIB_PATH/${REGEX[$reg]}" ] || return
             $LIB_PATH/${REGEX[$reg]} \
-                "$1" "$2" "$3" "$4" "$reg"
+                "$1" "$2" "$3" "$4" "${BASH_REMATCH[0]}"
             echo ":li REGEX EVENT -> $reg: $1 <$3> $4"
             return
         fi
