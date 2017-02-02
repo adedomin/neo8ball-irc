@@ -13,12 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-mime=$(curl -I "$5" 2>/dev/null | grep -Fi 'Content-Type:')
+mime=$(curl -L --max-redirs 2 -I "$5" 2>/dev/null | grep -Fi 'Content-Type:')
 
+echo $mime
 if [[ ! "$mime" =~ text/html|application/xhtml+xml ]]; then
     echo -e ":m $1 ^ \002File\002 :: $mime"
     exit 0
 fi
+
 
 curl -L --max-redirs 2 "$5" 2>/dev/null \
 | html2 2>/dev/null \
