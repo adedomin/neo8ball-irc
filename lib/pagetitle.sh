@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-curl -f -L --max-redirs 2 "$5" 2>/dev/null \
+curl -L --max-redirs 2 "$5" 2>/dev/null \
 | html2 2>/dev/null \
 | while IFS=$'=' read -r key val; do
     case $key in
