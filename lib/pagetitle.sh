@@ -15,7 +15,7 @@
 
 mime=$(curl -L --max-redirs 2 -I "$5" 2>/dev/null | grep -Fi 'Content-Type:')
 
-echo $mime
+[ -z "$mime" ] && exit 0 
 if [[ ! "$mime" =~ text/html|application/xhtml+xml ]]; then
     echo -e ":m $1 ^ \002File\002 :: $mime"
     exit 0
