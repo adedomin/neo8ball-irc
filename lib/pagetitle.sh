@@ -13,11 +13,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-mime=$(curl -L --max-redirs 2 -I "$5" 2>/dev/null | grep -Fi 'Content-Type:')
+while read -r key val; do
+    case ${key,,} in
+        content-type:)
+            mime="${val%$'\r'}"
+        ;;
+        content-length:)
+            sizeof="${val%$'\r'}"
+        ;;
+    esac
+done < <(
+    curl -L --max-redirs 2 -I "$5" 2>/dev/null
+)
 
 [ -z "$mime" ] && exit 0 
 if [[ ! "$mime" =~ text/html|application/xhtml+xml ]]; then
-    echo -e ":m $1 ^ \002File\002 :: $mime"
+    echo -e ":m $1 ^ \002File\002 :: $mime ($(numfmt --to=iec <<< "$sizeof"))"
     exit 0
 fi
 
@@ -27,7 +38,7 @@ curl -L --max-redirs 2 "$5" 2>/dev/null \
 | while IFS=$'=' read -r key val; do
     case $key in
         /html/head/title)
-            echo -e ":m $1 ^ \002title\002 :: $val"
+            echo -e ":m $1 ↑ \002Title\002 :: $val"
             exit 0
         ;;
     esac
