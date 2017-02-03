@@ -42,7 +42,7 @@ done < <(
     sed 's@</*b>@@g' |
     hxselect '.result__a' |
     html2 |
-    sed '/@class\|@rel\|a$/d' |
+    sed '/@class\|@rel\|\/html\/body\/a$/d' |
     grep -Po '(?<=\/a(=|\/)).*' |
     paste -d " " - - |
     cut -c 22- |
