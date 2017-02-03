@@ -38,15 +38,14 @@ while read -r url title; do
     [ -z "$title" ] && exit 0
     echo -e ":m $1 \002${title}\002 :: $(URI_DECODE "$url")"
 done < <(
-    curl "${SEARCH_ENGINE}$(URI_ENCODE "$4")" 2>/dev/null | \
-    sed 's@</*b>@@g' | \
-    html2 2>/dev/null | \
-    grep -A 2 "@class=result__a" | \
-    sed '/^--$/d' | \
-    sed '/@class/d' | \
-    grep -Po '(?<=\/a(=|\/)).*' | \
-    paste -d " " - - | \
-    cut -c 22- | \
-    sed '/r\.search\.yahoo\.com/d' | \
+    curl "${SEARCH_ENGINE}$(URI_ENCODE "$4")" 2>/dev/null |
+    sed 's@</*b>@@g' |
+    hxselect '.result__a' |
+    html2 |
+    sed '/@class\|@rel\|a$/d' |
+    grep -Po '(?<=\/a(=|\/)).*' |
+    paste -d " " - - |
+    cut -c 22- |
+    sed '/r.search.yahoo/d' |
     head -n 3
 )
