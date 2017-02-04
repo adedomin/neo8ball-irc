@@ -17,9 +17,10 @@ while read -r key val; do
     case ${key,,} in
         content-type:)
             mime="${val%$'\r'}"
+            mime="${mime%%;*}"
         ;;
         content-length:)
-            sizeof="${val%$'\r'}"
+            sizeof="$(numfmt --to=iec-i "${val%$'\r'}")"
         ;;
     esac
 done < <(
@@ -28,7 +29,7 @@ done < <(
 
 [ -z "$mime" ] && exit 0 
 if [[ ! "$mime" =~ text/html|application/xhtml+xml ]]; then
-    echo -e ":m $1 ↑ \002File\002 :: $mime ($(numfmt --to=iec <<< "$sizeof"))"
+    echo -e ":m $1 ↑ \002File\002 :: $mime (${sizeof}B)"
     exit 0
 fi
 
