@@ -42,10 +42,10 @@ while read -r url title; do
     echo -e ":m $1 \002${title}\002 :: $(URI_DECODE "$url")"
 done < <(
     curl "${SEARCH_ENGINE}$(URI_ENCODE "$4")" 2>/dev/null |
-    hxselect '.result__a' |
     sed 's@<\([^/a]\|/[^a]\)[^>]*>@@g' |
     html2 |
-    sed '/@class\|@rel\|\/html\/body\/a$/d' |
+    grep -F -A 2 '@class=result__a' |
+    sed '/@class\|^--$/d' |
     grep -Po '(?<=\/a(=|\/)).*' |
     paste -d " " - - |
     cut -c 22- |
