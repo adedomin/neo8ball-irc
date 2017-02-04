@@ -43,9 +43,9 @@ while read -r url title; do
 done < <(
     curl "${SEARCH_ENGINE}$(URI_ENCODE "$4")" 2>/dev/null |
     sed 's@<\([^/a]\|/[^a]\)[^>]*>@@g' |
+    grep -F 'class="result__a"' |
     html2 |
-    grep -F -A 2 '@class=result__a' |
-    sed '/@class\|^--$/d' |
+    sed '/@class\|@rel\|^\/html\/body=/d' |
     grep -Po '(?<=\/a(=|\/)).*' |
     paste -d " " - - |
     cut -c 22- |
