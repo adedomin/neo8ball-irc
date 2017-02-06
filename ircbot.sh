@@ -238,11 +238,13 @@ while read -r user command channel message; do
         printf "%s\r\n" "PONG $command" >&3
         continue
     fi
-
-    [ -n "$LOG_STDOUT" ] && \
+        [ -n "$LOG_STDOUT" ] && \
         echo "$channel $datetime $command <$user> $message"
 
-    [ "$user" = "$NICK" ] && continue
+    for nick in "${IGNORE[@]}"; do
+        [ "$nick" = "$user" ] && continue
+    done
+
     case $command in
         PRIVMSG)
             handle_privmsg "$channel" "$datetime" "$user" "$message" | send_cmd
