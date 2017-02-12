@@ -249,6 +249,7 @@ send_msg "NICK $NICK"
 send_msg "USER $NICK +i * :$NICK"
 # message handler loop
 while read -r user command channel message; do
+    unset ignore
     user=$(sed 's/^:\([^!]*\).*/\1/' <<< "$user")
     datetime=$(date +"%Y-%m-%d %H:%M:%S")
     message=${message:1}
@@ -262,6 +263,11 @@ while read -r user command channel message; do
 
     [ -n "$LOG_STDOUT" ] && \
         echo "$channel $datetime $command <$user> $message"
+
+    for nick in "${IGNORE[@]}"; do
+        [ "$nick" = "$user" ] && ignore=a
+    done
+    [ -n "$ignore" ] && continue
 
     case $command in
         PRIVMSG)

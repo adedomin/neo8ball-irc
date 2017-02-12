@@ -73,6 +73,9 @@ COMMANDS=(
 # uses bash regex language
 declare -gA REGEX
 REGEX=(
-['(https?|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]']="pagetitle.sh"
+['(https?)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]']="pagetitle.sh"
 )
 
+# list of nicks to ignore from, such as other bots
+IGNORE=(
+)
