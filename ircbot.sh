@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v1.2.0-RC2"
+VERSION="bash-ircbot: v1.3.0-RC2"
 
 usage() {
     echo "usage: $0 [-c config]"
@@ -70,9 +70,19 @@ quit_prg() {
 }
 trap 'quit_prg' SIGINT SIGTERM
 
+# helper for channel config reload
+# determine if chan is in channel list
+contains_chan() {
+  for chan in "${@:2}"; do 
+      [ "$chan" = "$1" ] && return 0
+  done
+  return 1
+}
+
 reload_config() {
-    _NICK="$NICK"
-    _NICKSERV="$NICKSERV"
+    local _NICK="$NICK"
+    local _NICKSERV="$NICKSERV"
+    local _CHANNELS=("${CHANNELS[@]}")
     . "$CONFIG_PATH"
     # NICK changed
     if [ "$NICK" != "$_NICK" ]; then
@@ -82,6 +92,16 @@ reload_config() {
     if [ "$NICKSERV" != "$_NICKSERV" ]; then
         printf "%s\r\n" "PRIVMSG NickServ :IDENTIFY $NICKSERV" >&3
     fi
+    
+    # join or part channels based on new channel list
+    uniq_chan_list="$(printf '%s\n' "${_CHANNELS[@]}" "${CHANNELS[@]}" | sort | uniq -u)"
+    for uniq_chan in $uniq_chan_list; do
+        if contains_chan "$uniq_chan" "${_CHANNELS[@]}"; then
+            send_cmd <<< ":l $uniq_chan"
+        else
+            send_cmd <<< ":j $uniq_chan"
+        fi
+    done
 }
 trap 'reload_config' SIGHUP SIGWINCH
 
@@ -211,8 +231,9 @@ handle_privmsg() {
 
 post_ident() {
     # join chans
-    CHANNELS=$(printf ",%s" "${CHANNELS[@]}")
-    send_cmd <<< ":j ${CHANNELS:1}"
+    local CHANNELS_=$(printf ",%s" "${CHANNELS[@]}")
+    CHANNELS=()
+    send_cmd <<< ":j ${CHANNELS_:1}"
     # ident with nickserv
     if [ -n "$NICKSERV" ]; then
         # bypass logged send_cmd/send_msg
@@ -242,7 +263,6 @@ while read -r user command channel message; do
     [ -n "$LOG_STDOUT" ] && \
         echo "$channel $datetime $command <$user> $message"
 
-    [ "$user" = "$NICK" ] && continue
     case $command in
         PRIVMSG)
             handle_privmsg "$channel" "$datetime" "$user" "$message" | send_cmd
@@ -252,8 +272,25 @@ while read -r user command channel message; do
             handle_privmsg "$channel" "$datetime" "$user" "$message" | send_cmd
         ;;
         JOIN)
-            [ -x "$JOINING" ] && \
-            $JOINING "$channel" "$datetime" "$user" "$message" | send_cmd
+            if [ "$user" = "$NICK" ]; then
+                channel="${channel:1}"
+                channel="${channel%$'\r'}"
+                CHANNELS+=("$channel")
+                [ -n "$LOG_INFO" ] && \
+                    echo "*** JOIN *** $channel"
+            fi
+
+        ;;
+        PART)
+            if [ "$user" = "$NICK" ]; then
+                for i in "${!CHANNELS[@]}"; do
+                    if [ "${CHANNELS[$i]}" = "$channel" ]; then
+                        unset CHANNELS["$i"]
+                    fi
+                done
+                [ -n "$LOG_INFO" ] && \
+                    echo "*** PART *** $channel"
+            fi
         ;;
         004)
             # this should only happen once?

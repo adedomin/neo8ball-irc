@@ -22,7 +22,7 @@ READ_NOTICE=
 
 # LOGGING
 # leave blank to not write messages to stdout
-LOG_STDOUT=yes
+LOG_STDOUT=
 # leave blank to ignore sent and nick changes
 LOG_INFO=yes
 
@@ -34,12 +34,10 @@ LIB_PATH="$(dirname "$0")/lib/"
 HIGHLIGHT="8ball.sh"
 # on private message, as in query
 PRIVATE="invite.sh"
-# on join
-JOINING=
 
 # prefix that commands should start with
 CMD_PREFIX=".,!"
-declare -A COMMANDS
+declare -gA COMMANDS
 # command names should be what to test for
 # avoid adding prefixes like .help
 COMMANDS=(
@@ -73,7 +71,7 @@ COMMANDS=(
 # regex patterns
 # if you need more fine grained control
 # uses bash regex language
-declare -A REGEX
+declare -gA REGEX
 REGEX=(
 ['(https?|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]']="pagetitle.sh"
 )
