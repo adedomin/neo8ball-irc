@@ -4,13 +4,16 @@ Neo 8ball
 Usage
 -----
 
-run:
+    usage: ircbot.sh [-c config]
+           -c --config - a config file
+    
+    by default, if empty, the script assumes all the information can be found in the same directory as the script
 
-    ./ircbot.sh & disown
+Configure
+---------
 
-configure:
-
-    vim ./config.sh
+Edit the config.sh file and save it where you deem approprate.
+Make sure to use the -c or --config flag if you don't leave the configuration in the default location--same directory as the ircbot.sh script.
 
 For OpenWeatherMap, you need an API key; you can set it in the config.
 Make sure it is exported.
