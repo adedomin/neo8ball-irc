@@ -7,8 +7,6 @@ Usage
     usage: ircbot.sh [-c config]
            -c --config - a config file
     
-    by default, if empty, the script assumes all the information can be found in the same directory as the script
-
 Configure
 ---------
 
