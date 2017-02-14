@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v1.3.0-RC2"
+VERSION="bash-ircbot: v1.4.0-Beta"
 
 usage() {
     echo "usage: $0 [-c config]"
@@ -106,39 +106,46 @@ reload_config() {
 trap 'reload_config' SIGHUP SIGWINCH
 
 if [ -z "$(which ncat 2>/dev/null)" ]; then
-    echo "WARN: ncat not found, TLS will not be enabled" >&2
+    [ -n "$LOG_INFO" ] &&
+        echo "*** INFO *** ncat not found; using bash tcp"
+    [ -n "$TLS" ] && 
+        die "*** CRITICAL *** tls does not work with bash tcp"
     BASH_TCP=a
 fi
 
 if [ -z "$NICK" ]; then
-    echo "Nick was not specified" >&2
-    usage
+    echo "*** ERROR *** Nick was not specified; using ircbashbot"
+    NICK="ircbashbot"
 fi
 
 # Connect to server
 [ -n "$TLS" ] && TLS="--ssl"
 if [ -z "$BASH_TCP" ]; then
-    exec 3<> "$infile" || \
+    exec 3<> "$infile" ||
         die "unknown failure mapping named pipe to fd"
-    exec 4<> "$outfile" || \
+    exec 4<> "$outfile" ||
         die "unknown failure mapping named pipe to fd"
     ( ncat $SERVER $PORT $TLS <&3 >&4
       kill -TERM $$ ) &
 else
     infile="/dev/tcp/${SERVER}/${PORT}"
-    exec 3<> "$infile" || \
+    exec 3<> "$infile" ||
         die "Cannot connect to $SERVER on port $PORT"
-    exec 4<&3 || \
+    exec 4<&3 ||
         die "unknown failure mapping named pipe to fd"
 fi
 
 # any literal argument/s will be sent
+# must be a valid IRC command string
 send_msg() {
     printf "%s\r\n" "$*" >&3
     [ -n "$LOG_INFO" ] && \
         echo "*** SENT *** $*"
 }
 
+# function which converts bash-ircbot
+# commands to IRC messages
+# must be piped or heredoc; no arguments
 send_cmd() {
     while read -r cmd arg other; do
 
@@ -175,12 +182,19 @@ send_cmd() {
     done
 }
 
+#############
+# Bot Logic #
+#############
+
+# handle private messages and
+# determine if the bot needs to react to message
 # $1: channel
 # $2: datetime
 # $3: user
 # $4: msg
 handle_privmsg() {
     # private message to us
+    # 5th argument is the $LIB_PATH
     if [ "$NICK" = "$1" ]; then
         # most servers require this "in spirit"
         # tell them what we are
@@ -197,6 +211,7 @@ handle_privmsg() {
     fi
 
     # highlight event in message
+    # 5th argument is the $LIB_PATH
     local highlight="$NICK.? (.*)"
     if [[ "$4" =~ $highlight ]]; then
         [ -x "$LIB_PATH/$HIGHLIGHT" ] || return
@@ -206,6 +221,9 @@ handle_privmsg() {
         return
     fi
 
+    # 5th argument is the command string that matched
+    # may be useful for scripts that are symlinked
+    # to multiple commands
     read -r cmd args <<< "$4"
     local reg="^[${CMD_PREFIX}]${cmd:1}"
     if [[ "$cmd" =~ $reg ]]; then
@@ -218,6 +236,7 @@ handle_privmsg() {
     fi
 
     # fallback regex check on message
+    # 5th arguemnt is the fully matched string
     for reg in "${!REGEX[@]}"; do
         if [[ "$4" =~ $reg ]]; then
             [ -x "$LIB_PATH/${REGEX[$reg]}" ] || return
@@ -229,10 +248,18 @@ handle_privmsg() {
     done
 }
 
+# After server "identifies" the bot
+# joins all channels
+# identifies with nickserv
+# NOTE: does not determine if 
+#       nickserv is available
 post_ident() {
     # join chans
     local CHANNELS_=$(printf ",%s" "${CHANNELS[@]}")
+    # channels are repopulated on JOIN commands
+    # to better reflect joined channel realities
     CHANNELS=()
+    # list join channels
     send_cmd <<< ":j ${CHANNELS_:1}"
     # ident with nickserv
     if [ -n "$NICKSERV" ]; then
@@ -241,15 +268,26 @@ post_ident() {
     fi
 }
 
-# start communication
+#######################
+# start communication #
+#######################
+
+# pass if server is private
+# this is likely not required
 if [ -n "$PASS" ]; then
     send_msg "PASS $PASS"
 fi
+# "Ident" information
 send_msg "NICK $NICK"
 send_msg "USER $NICK +i * :$NICK"
-# message handler loop
+
+# Irc commander
 while read -r user command channel message; do
     unset ignore
+    # for kick
+    kick="$(awk '{print $1}' <<< "$message")"
+
+    # clean up information
     user=$(sed 's/^:\([^!]*\).*/\1/' <<< "$user")
     datetime=$(date +"%Y-%m-%d %H:%M:%S")
     message=${message:1}
@@ -264,29 +302,43 @@ while read -r user command channel message; do
     [ -n "$LOG_STDOUT" ] && \
         echo "$channel $datetime $command <$user> $message"
 
+    # if ignore list is defined
+    # check if nick is in ignore list
     for nick in "${IGNORE[@]}"; do
         [ "$nick" = "$user" ] && ignore=a
     done
+    # if ignore, continue
     [ -n "$ignore" ] && continue
 
+    # handle commands here
     case $command in
+        # any channel message
         PRIVMSG)
             handle_privmsg "$channel" "$datetime" "$user" "$message" | send_cmd
         ;;
+        # any other channel message
+        # generally notices are not supposed
+        # to be responded to, as a bot
         NOTICE)
             [ -z "$READ_NOTICE" ] || \
             handle_privmsg "$channel" "$datetime" "$user" "$message" | send_cmd
         ;;
+        # when the bot joins a channel
+        # or a regular user
+        # bot only cares about when it joins
         JOIN)
             if [ "$user" = "$NICK" ]; then
                 channel="${channel:1}"
                 channel="${channel%$'\r'}"
+                # channel joined add to list or channels
                 CHANNELS+=("$channel")
                 [ -n "$LOG_INFO" ] && \
                     echo "*** JOIN *** $channel"
             fi
 
         ;;
+        # when a user leaves a channel
+        # only care when bot leaves a channel for any reason
         PART)
             if [ "$user" = "$NICK" ]; then
                 for i in "${!CHANNELS[@]}"; do
@@ -298,16 +350,35 @@ while read -r user command channel message; do
                     echo "*** PART *** $channel"
             fi
         ;;
+        # only other way for the bot to be removed
+        # from a channel
+        KICK)
+            if [ "$kick" = "$NICK" ]; then
+                for i in "${!CHANNELS[@]}"; do
+                    if [ "${CHANNELS[$i]}" = "$channel" ]; then
+                        unset CHANNELS["$i"]
+                    fi
+                done
+                [ -n "$LOG_INFO" ] && \
+                    echo "*** KICK *** $channel"
+
+            fi
+        ;;
+        # Server confirms we are "identified"
+        # we are ready to join channels and start
         004)
             # this should only happen once?
             post_ident
         ;;
+        # PASS command failed
         464)
             die '*** NOTICE *** INVALID PASSWORD'
         ;;
         465)
             die '*** NOTICE *** YOU ARE BANNED'
         ;;
+        # Nickname is already in use
+        # add crap and try the new nick
         433)
             NICK="${NICK}_"
             send_msg "NICK $NICK"
