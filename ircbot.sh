@@ -36,21 +36,33 @@ while [ $# -gt 0 ]; do
         -h|--help)
             usage
         ;;
+        *)
+            usage
+        ;;
     esac
     shift
 done
 
+########
+# INIT #
+########
+
+# find default configuration path
+# location script's directory
 if [ -z "$CONFIG_PATH" ]; then
     CONFIG_PATH="$(dirname "$0")/config.sh"
 fi
 
+# load configuration
 if [ -f "$CONFIG_PATH" ]; then
     . "$CONFIG_PATH"
 else
-    echo "NO CONFIG FILE FOUND"
+    echo "*** CRITICAL *** no configuration"
     usage
 fi
 
+# set up IPC mechanisms
+# named pipes to connect ncat to message loop
 [ -d "$temp_dir/bash-ircbot" ] && rm -r "$temp_dir/bash-ircbot"
 infile="$temp_dir/bash-ircbot/in"
 outfile="$temp_dir/bash-ircbot/out"
@@ -61,6 +73,9 @@ mkfifo "$infile" || \
 mkfifo "$outfile" || \
     die "couldn't make named pipe"
 
+# handler to terminate bot
+# can not trap SIGKILL
+# make sure you kill with SIGTERM or SIGINT
 quit_prg() {
     pkill -P $$
     exec 3>&-
@@ -79,6 +94,12 @@ contains_chan() {
   return 1
 }
 
+# handle configuration reloading
+# faster than restarting
+# will: change nick (if applicable)
+#       reauth with nickserv
+#       join/part new or removed channels
+#       reload all other variables, like COMMANDS, etc
 reload_config() {
     local _NICK="$NICK"
     local _NICKSERV="$NICKSERV"
@@ -105,6 +126,8 @@ reload_config() {
 }
 trap 'reload_config' SIGHUP SIGWINCH
 
+# check for ncat, use bash tcp otherwise
+# fail hard if user wanted tls and ncat not found
 if [ -z "$(which ncat 2>/dev/null)" ]; then
     [ -n "$LOG_INFO" ] &&
         echo "*** INFO *** ncat not found; using bash tcp"
@@ -113,6 +136,7 @@ if [ -z "$(which ncat 2>/dev/null)" ]; then
     BASH_TCP=a
 fi
 
+# use default nick if not set, should be set
 if [ -z "$NICK" ]; then
     echo "*** ERROR *** Nick was not specified; using ircbashbot"
     NICK="ircbashbot"
@@ -134,6 +158,30 @@ else
     exec 4<&3 ||
         die "unknown failure mapping named pipe to fd"
 fi
+
+#################
+# Other Helpers #
+#################
+
+# After server "identifies" the bot
+# joins all channels
+# identifies with nickserv
+# NOTE: does not determine if 
+#       nickserv is available
+post_ident() {
+    # join chans
+    local CHANNELS_=$(printf ",%s" "${CHANNELS[@]}")
+    # channels are repopulated on JOIN commands
+    # to better reflect joined channel realities
+    CHANNELS=()
+    # list join channels
+    send_cmd <<< ":j ${CHANNELS_:1}"
+    # ident with nickserv
+    if [ -n "$NICKSERV" ]; then
+        # bypass logged send_cmd/send_msg
+        printf "%s\r\n" "PRIVMSG NickServ :IDENTIFY $NICKSERV" >&3
+    fi
+}
 
 # any literal argument/s will be sent
 # must be a valid IRC command string
@@ -182,9 +230,9 @@ send_cmd() {
     done
 }
 
-#############
-# Bot Logic #
-#############
+#######################
+# Bot Framework Logic #
+#######################
 
 # handle private messages and
 # determine if the bot needs to react to message
@@ -248,26 +296,6 @@ handle_privmsg() {
     done
 }
 
-# After server "identifies" the bot
-# joins all channels
-# identifies with nickserv
-# NOTE: does not determine if 
-#       nickserv is available
-post_ident() {
-    # join chans
-    local CHANNELS_=$(printf ",%s" "${CHANNELS[@]}")
-    # channels are repopulated on JOIN commands
-    # to better reflect joined channel realities
-    CHANNELS=()
-    # list join channels
-    send_cmd <<< ":j ${CHANNELS_:1}"
-    # ident with nickserv
-    if [ -n "$NICKSERV" ]; then
-        # bypass logged send_cmd/send_msg
-        printf "%s\r\n" "PRIVMSG NickServ :IDENTIFY $NICKSERV" >&3
-    fi
-}
-
 #######################
 # start communication #
 #######################
@@ -280,8 +308,7 @@ fi
 # "Ident" information
 send_msg "NICK $NICK"
 send_msg "USER $NICK +i * :$NICK"
-
-# Irc commander
+# IRC event loop
 while read -r user command channel message; do
     unset ignore
     # for kick
