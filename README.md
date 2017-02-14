@@ -6,23 +6,19 @@ Usage
 
 run:
 
-    ./ircbot.sh >/dev/null 2>/dev/null & disown
+    ./ircbot.sh & disown
 
 configure:
 
     vim ./config.sh
 
-For weather, you need an API key; if you use systemd service, you can set the OWM_KEY variable there. e.g.
+For OpenWeatherMap, you need an API key; you can set it in the config.
+Make sure it is exported.
+By default the variable name is OWM_KEY.
 
-    Environment="OWM_KEY=<some-key-goes-here>"
-
-For default weather location persistance and .nws search you need the following env variable
-
-    Environment="PERSIST_LOC=/home/neo8ball/.local/var/db/"
-
-In your 8ball.service file.
-If you do not do this, you need to maintain another method for making these values available to your bot.
-You can likely include it in your config file and export the variable.
+For default weather location persistance and .nws search you need PERSIST_LOC defined in your environment.
+You can set it in the config.
+Make sure this value is exported
 
 Example systemd Service
 -----------------------
@@ -32,8 +28,6 @@ Example systemd Service
 
     [Service]
     User=bots
-    Environment="OWM_KEY=some key"
-    Environment="PERSIST_LOC=/home/bots/.local/var/db/"
     ExecStart=/bin/bash /home/bots/src/neo8ball-irc/ircbot.sh
     ExecReload=/bin/kill -HUP $MAINPID
     Restart=on-failure

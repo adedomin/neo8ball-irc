@@ -79,3 +79,11 @@ REGEX=(
 # list of nicks to ignore from, such as other bots
 IGNORE=(
 )
+
+# variables for plugins
+# comment out if you don't want 
+# to use OpenWeatherMap plugin
+export OWM_KEY="your owm key here"
+# your persistant storage here, 
+# comment out to disable weatherdb.sh
+export PERSIST_LOC="/tmp"
