@@ -23,8 +23,9 @@ fi
 URI_ENCODE() {
     curl -Gso /dev/null \
         -w '%{url_effective}' \
-        --data-urlencode @- '' <<< "$1" | \
-    cut -c 3-
+        --data-urlencode @- '' <<< "$1" |
+    cut -c 3- |
+    sed 's/%0A$//g'
 }
 
 VIDME='https://vid.me/api/videos/search?order=score&query='

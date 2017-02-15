@@ -21,13 +21,12 @@ fi
 URI_ENCODE() {
     curl -Gso /dev/null \
         -w '%{url_effective}' \
-        --data-urlencode @- '' <<< "$1" | \
-    cut -c 3-
+        --data-urlencode @- '' <<< "$1" |
+    cut -c 3- |
+    sed 's/%0A$//g'
 }
 
-ARG="$(URI_ENCODE "$4")"
-ARG="${ARG%\%0A}"
-NPM="https://www.npmjs.com/-/search?text=${ARG}&from=0&size=3"
+NPM="https://www.npmjs.com/-/search?text=$(URI_ENCODE "$4")&from=0&size=3"
  
 while read -r name link desc; do
     if [ -n "$desc" ]; then

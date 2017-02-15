@@ -21,8 +21,9 @@ fi
 URI_ENCODE() {
     curl -Gso /dev/null \
         -w '%{url_effective}' \
-        --data-urlencode @- '' <<< "$1" | \
-    cut -c 3-
+        --data-urlencode @- '' <<< "$1" |
+    cut -c 3- |
+    sed 's/%0A$//g'
 }
 
 youtube="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=$(URI_ENCODE "$4")&maxResults=3&key=${YOUTUBE_KEY}"

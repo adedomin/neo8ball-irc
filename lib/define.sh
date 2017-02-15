@@ -21,8 +21,9 @@ fi
 URI_ENCODE() {
     curl -Gso /dev/null \
         -w '%{url_effective}' \
-        --data-urlencode @- '' <<< "$1" | \
-    cut -c 3-
+        --data-urlencode @- '' <<< "$1" |
+    cut -c 3- |
+    sed 's/%0A$//g'
 }
 
 echo "http://www.dictionary.com/browse/$(URI_ENCODE "$4")" |

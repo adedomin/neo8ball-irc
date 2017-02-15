@@ -22,14 +22,13 @@ fi
 URI_ENCODE() {
     curl -Gso /dev/null \
         -w '%{url_effective}' \
-        --data-urlencode @- '' <<< "$1" | \
-    cut -c 3- 
+        --data-urlencode @- '' <<< "$1" |
+    cut -c 3- |
+    sed 's/%0A$//g'
 }
 
-arg=$(URI_ENCODE "$4")
-arg=${arg%\%0A}
-
-URBAN="http://www.urbandictionary.com/define.php?term=${arg}"
+URBAN="http://www.urbandictionary.com/define.php?term=$(URI_ENCODE "$4")
+"
 
 while read -r definition; do
     (( ${#definition} > 400 )) && 

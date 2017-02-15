@@ -21,13 +21,12 @@ fi
 URI_ENCODE() {
     curl -Gso /dev/null \
         -w '%{url_effective}' \
-        --data-urlencode @- '' <<< "$1" | \
-    cut -c 3-
+        --data-urlencode @- '' <<< "$1" |
+    cut -c 3- |
+    sed 's/%0A$//g'
 }
 
-ARG="$(URI_ENCODE "$4")"
-ARG="${ARG%\%0A}"
-WIKI="https://en.wikipedia.org/w/api.php?action=opensearch&format=json&formatversion=2&search=${ARG}&namespace=0&limit=3&suggest=false"
+WIKI="https://en.wikipedia.org/w/api.php?action=opensearch&format=json&formatversion=2&search=$(URI_ENCODE "$4")&namespace=0&limit=3&suggest=false"
 
 while read -r link name; do
     echo -e ":m $1 \002${name}\002 :: $link"
