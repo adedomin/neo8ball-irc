@@ -362,7 +362,6 @@ while read -r user command channel message; do
                 [ -n "$LOG_INFO" ] && \
                     echo "*** JOIN *** $channel"
             fi
-
         ;;
         # when a user leaves a channel
         # only care when bot leaves a channel for any reason
@@ -388,7 +387,6 @@ while read -r user command channel message; do
                 done
                 [ -n "$LOG_INFO" ] && \
                     echo "*** KICK *** $channel"
-
             fi
         ;;
         # Server confirms we are "identified"

@@ -33,3 +33,5 @@ done < <(
     | sed 's/<[^>]*>//g' \
     | recode html..UTF-8
 )
+
+echo ":mn $3 See More: $URBAN"

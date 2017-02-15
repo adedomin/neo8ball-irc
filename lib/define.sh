@@ -18,7 +18,9 @@ if [ -z "$4" ]; then
     exit 0
 fi
 
-echo "http://www.dictionary.com/browse/$(URI_ENCODE "$4")" |
+DICTIONARY="http://www.dictionary.com/browse/$(URI_ENCODE "$4")"
+
+echo "$DICTIONARY" |
     wget -O- -i- --quiet | 
     hxnormalize -x 2>/dev/null | 
     hxselect -i "div.def-set" 2>/dev/null |  
@@ -33,3 +35,5 @@ while read -r definition; do
         definition="${definition:0:400}..."
     echo ":m $1 $definition"
 done
+
+echo ":mn $3 See More: $DICTIONARY"
