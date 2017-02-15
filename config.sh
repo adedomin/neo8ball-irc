@@ -66,6 +66,9 @@ COMMANDS=(
 ["wiki"]="wikipedia.sh"
 ["reddit"]="subreddit.sh"
 ["sub"]="subreddit.sh"
+["yt"]="youtube.sh"
+["you"]="youtube.sh"
+["youtube"]="youtube.sh"
 )
 
 # regex patterns
@@ -85,5 +88,7 @@ IGNORE=(
 # to use OpenWeatherMap plugin
 export OWM_KEY="your owm key here"
 # your persistant storage here, 
-# comment out to disable weatherdb.sh
+# comment out to disabable weatherdb.sh
 export PERSIST_LOC="/tmp"
+# for youtube.sh
+export YOUTUBE_KEY=""

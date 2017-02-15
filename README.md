@@ -21,6 +21,9 @@ For default weather location persistance and .nws search you need PERSIST_LOC de
 You can set it in the config.
 Make sure this value is exported
 
+For youtube video search you need a google api key.
+variable expected is YOUTUBE_KEY.
+
 Example systemd Service
 -----------------------
 
