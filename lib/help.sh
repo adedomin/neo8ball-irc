@@ -9,4 +9,5 @@ echo -e ":m $1 \0028ball\002 .8ball <question>?|<choice1> or <choice2>? ::" \
     "\002NPM Search\002 .npm <query> ::" \
     "\002Wikipedia Search\002 .wiki <query> ::" \
     "\002Reddit\002 .reddit [sub] [new|hot|best|top|controversial] ::" \
-    "\002Youtube\002 .yt <query>" \
+    "\002Youtube\002 .you <query> ::" \
+    "\002Urban Dictionary\002 .urban <query>"

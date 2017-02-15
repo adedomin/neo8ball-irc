@@ -12,6 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# DEPENDS: recode
+
+[ -z "$4" ] && exit 0
 
 URI_ENCODE() {
     curl -Gso /dev/null \
