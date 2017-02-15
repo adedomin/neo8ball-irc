@@ -13,6 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+if [ -z "$4" ]; then
+    echo ":mn $3 This command requires a search query"
+    exit 0
+fi
+
 URI_ENCODE() {
     curl -Gso /dev/null \
         -w '%{url_effective}' \
@@ -31,5 +36,7 @@ echo "http://www.dictionary.com/browse/$(URI_ENCODE "$4")" |
     sed '/^$/d' |
     sed '/file:\/\//d' |
 while read -r definition; do
+    (( ${#definition} > 400 )) && 
+        definition="${definition:0:400}..."
     echo ":m $1 $definition"
 done

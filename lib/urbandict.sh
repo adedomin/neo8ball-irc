@@ -14,7 +14,10 @@
 # limitations under the License.
 # DEPENDS: recode
 
-[ -z "$4" ] && exit 0
+if [ -z "$4" ]; then
+    echo ":mn $3 This command requires a search query"
+    exit 0
+fi
 
 URI_ENCODE() {
     curl -Gso /dev/null \
