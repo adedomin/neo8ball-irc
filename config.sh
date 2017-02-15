@@ -69,6 +69,8 @@ COMMANDS=(
 ["yt"]="youtube.sh"
 ["you"]="youtube.sh"
 ["youtube"]="youtube.sh"
+["u"]="urbandict.sh"
+["urban"]="urbandict.sh"
 )
 
 # regex patterns
