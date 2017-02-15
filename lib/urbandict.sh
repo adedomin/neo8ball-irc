@@ -30,7 +30,7 @@ while read -r definition; do
         definition="${definition:0:400}..."
     echo ":m $1 $definition"
 done < <(
-    curl "$URBAN" -f 2>/dev/null \
+    curl "$URBAN" -L -f 2>/dev/null \
     | grep -A 2 -m 3 "<div class='meaning'>" \
     | sed '/^--/d;/<\/*div/d' \
     | sed 's/<[^>]*>//g' \
