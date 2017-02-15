@@ -20,12 +20,10 @@ URI_ENCODE() {
     cut -c 3-
 }
 
-WEATHER="api.openweathermap.org/data/2.5/weather?APPID=${OWM_KEY}&"
-query='q='
+WEATHER="api.openweathermap.org/data/2.5/weather?APPID=${OWM_KEY}&q="
 
 arg="$4"
-if [ -z "$arg" ] && \
-    [ -n "$WEATHER_DB" ]; then
+if [ -z "$arg" ] && [ -n "$PERSIST_LOC" ]; then
 
     WEATHER_DB="$PERSIST_LOC/weather-defaults.db"
     if [ ! -f "$WEATHER_DB" ]; then
@@ -40,19 +38,8 @@ if [ -z "$arg" ] && \
     fi
 fi
 
-IFS=$',' read -r city country <<< "$arg"
-# US Postal code, I don't feel like figuring out what others look like.
-if [[ "$city" =~ ^[0-9]{5}(-[0-9]{4})?$ ]]; then
-    query='zip='
-fi
-
-country=$(xargs echo <<< "$country")
-query=${query}$(URI_ENCODE "$city")
-if [ -n "$country" ]; then
-    query="${query},${country}"
-fi
-
-RES=$(curl "${WEATHER}${query}" 2>/dev/null)
+WEATHER+="$(URI_ENCODE "$arg")"
+RES=$(curl "${WEATHER}" 2>/dev/null)
 
 if [ -z "$RES" ]; then
     echo ":m $1 no weather information"
@@ -84,4 +71,8 @@ else
     CURR_CELS=$'\003'"03$CURR_CELS"$'\003'
 fi
 
-echo -e ":m $1 \002${loc}\002 :: \002Conditions\002 $COND :: \002Temp\002 $CURR_CELS °C | $CURR_FAHR °F :: \002Humidity\002 $HUMIDITY% :: \002More\002 http://openweathermap.org/city/$city_id"
+echo -e ":m $1 \002${loc}\002 ::" \
+    "\002Conditions\002 $COND ::" \
+    "\002Temp\002 $CURR_CELS °C | $CURR_FAHR °F ::" \
+    "\002Humidity\002 $HUMIDITY% ::" \
+    "\002More\002 http://openweathermap.org/city/$city_id"
