@@ -18,14 +18,6 @@ if [ -z "$4" ]; then
     exit 0
 fi
 
-URI_ENCODE() {
-    curl -Gso /dev/null \
-        -w '%{url_effective}' \
-        --data-urlencode @- '' <<< "$1" |
-    cut -c 3- |
-    sed 's/%0A$//g'
-}
-
 WIKI="https://en.wikipedia.org/w/api.php?action=opensearch&format=json&formatversion=2&search=$(URI_ENCODE "$4")&namespace=0&limit=3&suggest=false"
 
 while read -r link name; do

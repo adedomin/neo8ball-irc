@@ -94,3 +94,14 @@ export OWM_KEY="your owm key here"
 export PERSIST_LOC="/tmp"
 # for youtube.sh
 export YOUTUBE_KEY=""
+
+# common function used in plugins
+URI_ENCODE() {
+    curl -Gso /dev/null \
+        -w '%{url_effective}' \
+        --data-urlencode @- '' <<< "$1" |
+    cut -c 3- |
+    sed 's/%0A$//g'
+}
+
+export -f URI_ENCODE

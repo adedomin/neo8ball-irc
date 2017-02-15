@@ -18,14 +18,6 @@ if [ -z "$4" ]; then
     exit 0
 fi
 
-URI_ENCODE() {
-    curl -Gso /dev/null \
-        -w '%{url_effective}' \
-        --data-urlencode @- '' <<< "$1" |
-    cut -c 3- |
-    sed 's/%0A$//g'
-}
-
 NPM="https://www.npmjs.com/-/search?text=$(URI_ENCODE "$4")&from=0&size=3"
  
 while read -r name link desc; do

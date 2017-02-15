@@ -13,14 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-URI_ENCODE() {
-    curl -Gso /dev/null \
-        -w '%{url_effective}' \
-        --data-urlencode @- '' <<< "$1" |
-    cut -c 3- | 
-    sed 's/%0A$//g'
-}
-
 WEATHER="api.openweathermap.org/data/2.5/weather?APPID=${OWM_KEY}&q="
 
 arg="$4"

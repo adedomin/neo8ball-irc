@@ -20,14 +20,6 @@ if [ -z "$4" ]; then
     exit 0
 fi
 
-URI_ENCODE() {
-    curl -Gso /dev/null \
-        -w '%{url_effective}' \
-        --data-urlencode @- '' <<< "$1" |
-    cut -c 3- |
-    sed 's/%0A$//g'
-}
-
 VIDME='https://vid.me/api/videos/search?order=score&query='
 
 while read -r url duration views likes title; do

@@ -19,14 +19,6 @@ if [ -z "$4" ]; then
     exit 0
 fi
 
-URI_ENCODE() {
-    curl -Gso /dev/null \
-        -w '%{url_effective}' \
-        --data-urlencode @- '' <<< "$1" |
-    cut -c 3- |
-    sed 's/%0A$//g'
-}
-
 URBAN="http://www.urbandictionary.com/define.php?term=$(URI_ENCODE "$4")
 "
 
