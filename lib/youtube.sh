@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+[ -z "$4" ] && exit 0
+
 URI_ENCODE() {
     curl -Gso /dev/null \
         -w '%{url_effective}' \
