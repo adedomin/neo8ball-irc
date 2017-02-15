@@ -124,8 +124,7 @@ else
     W_TEMP="N/A"
 fi
 
-echo -e ":m $1 \002${LOC}\002 ::" \
-    "${CONDITIONS} ::" \
+echo -e ":m $1 \002${LOC}\002 :: ${CONDITIONS} ::" \
     "\002Temp\002 ${TEMP_COL}${TEMP}\003 ::" \
     "\002Windchill\002 ${WTEMP_COL}${W_TEMP}\003 ::" \
     "\002Wind\002 $WIND ::" \
