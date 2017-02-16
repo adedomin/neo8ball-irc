@@ -235,6 +235,19 @@ send_cmd() {
     done
 }
 
+# check if nick is in ignore list
+check_ignore() {
+    local ignore
+    # if ignore list is defined
+    # shellcheck disable=SC2153
+    for nick in "${IGNORE[@]}"; do
+        [ "$nick" = "$1" ] && ignore=a
+    done
+    # if ignore, throw 1
+    [ -n "$ignore" ] && return 1
+    return 0
+}
+
 #######################
 # Bot Framework Logic #
 #######################
@@ -329,10 +342,6 @@ send_msg "NICK $NICK"
 send_msg "USER $NICK +i * :$NICK"
 # IRC event loop
 while read -r user command channel message; do
-    unset ignore
-    # for kick
-    kick="$(awk '{print $1}' <<< "$message")"
-
     # clean up information
     user=$(sed 's/^:\([^!]*\).*/\1/' <<< "$user")
     datetime=$(date +"%Y-%m-%d %H:%M:%S")
@@ -348,27 +357,23 @@ while read -r user command channel message; do
     [ -n "$LOG_STDOUT" ] && \
         echo "$channel $datetime $command <$user> $message"
 
-    # if ignore list is defined
-    # check if nick is in ignore list
-    # shellcheck disable=SC2153
-    for nick in "${IGNORE[@]}"; do
-        [ "$nick" = "$user" ] && ignore=a
-    done
-    # if ignore, continue
-    [ -n "$ignore" ] && continue
-
     # handle commands here
     case $command in
         # any channel message
-        PRIVMSG)
-            handle_privmsg "$channel" "$datetime" "$user" "$message" | send_cmd &
+        PRIVMSG) 
+            check_ignore "$user" &&
+            handle_privmsg "$channel" "$datetime" "$user" "$message" \
+            | send_cmd &
         ;;
         # any other channel message
         # generally notices are not supposed
         # to be responded to, as a bot
         NOTICE)
-            [ -z "$READ_NOTICE" ] || \
-            handle_privmsg "$channel" "$datetime" "$user" "$message" | send_cmd &
+            if check_ignore "$user"; then
+                [ -z "$READ_NOTICE" ] || \
+                handle_privmsg "$channel" "$datetime" "$user" "$message" \
+                | send_cmd &
+            fi 
         ;;
         # when the bot joins a channel
         # or a regular user
@@ -399,6 +404,7 @@ while read -r user command channel message; do
         # only other way for the bot to be removed
         # from a channel
         KICK)
+            kick="$(awk '{print $1}' <<< "$message")"
             if [ "$kick" = "$NICK" ]; then
                 for i in "${!CHANNELS[@]}"; do
                     if [ "${CHANNELS[$i]}" = "$channel" ]; then
