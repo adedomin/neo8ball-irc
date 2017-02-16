@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v1.4.3"
+VERSION="bash-ircbot: v1.4.4-alpha"
 
 usage() {
     echo "usage: $0 [-c config]"
@@ -306,6 +306,19 @@ handle_privmsg() {
 # start communication #
 #######################
 
+# ncat uses half-close and
+# will not know if the server
+# closed unless two buffered
+# writes fail
+# fd's on linux should be buffered
+# so no race condition
+if [ -z "$BASH_TCP" ]; then
+    while sleep 10m; do
+        echo -ne '\r\n' >&3
+        echo -ne '\r\n' >&3
+    done &
+fi
+
 # pass if server is private
 # this is likely not required
 if [ -n "$PASS" ]; then
@@ -348,14 +361,14 @@ while read -r user command channel message; do
     case $command in
         # any channel message
         PRIVMSG)
-            handle_privmsg "$channel" "$datetime" "$user" "$message" | send_cmd
+            handle_privmsg "$channel" "$datetime" "$user" "$message" | send_cmd &
         ;;
         # any other channel message
         # generally notices are not supposed
         # to be responded to, as a bot
         NOTICE)
             [ -z "$READ_NOTICE" ] || \
-            handle_privmsg "$channel" "$datetime" "$user" "$message" | send_cmd
+            handle_privmsg "$channel" "$datetime" "$user" "$message" | send_cmd &
         ;;
         # when the bot joins a channel
         # or a regular user
