@@ -237,14 +237,11 @@ send_cmd() {
 
 # check if nick is in ignore list
 check_ignore() {
-    local ignore
     # if ignore list is defined
     # shellcheck disable=SC2153
     for nick in "${IGNORE[@]}"; do
-        [ "$nick" = "$1" ] && ignore=a
+        [ "$nick" = "$1" ] && return 1
     done
-    # if ignore, throw 1
-    [ -n "$ignore" ] && return 1
     return 0
 }
 
