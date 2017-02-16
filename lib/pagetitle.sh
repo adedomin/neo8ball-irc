@@ -24,7 +24,7 @@ while read -r key val; do
         ;;
     esac
 done < <(
-    curl -L --max-redirs 2 -I "$5" 2>/dev/null
+    curl -L --max-redirs 2 -m 10 -I "$5" 2>/dev/null
 )
 
 [ -z "$mime" ] && exit 0 
@@ -34,7 +34,7 @@ if [[ ! "$mime" =~ text/html|application/xhtml+xml ]]; then
 fi
 
 
-curl -L --max-redirs 2 "$5" 2>/dev/null \
+curl -L --max-redirs 2 -m 10 "$5" 2>/dev/null \
 | html2 2>/dev/null \
 | while IFS=$'=' read -r key val; do
     case $key in
