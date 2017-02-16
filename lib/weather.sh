@@ -48,8 +48,8 @@ if [ "$(jq -r '.cod' <<< "$RES")" != '200' ]; then
 fi
 
 KELV=$(jq -r '.main.temp' <<< "$RES")
-CURR_FAHR=$(bc <<< "scale=2;$KELV * 9 / 5 - 459.67")
-CURR_CELS=$(bc <<< "scale=2;$KELV - 273.15")
+CURR_FAHR="$(printf "%.2f" "$(bc <<< "scale=2;$KELV * 9 / 5 - 459.67")")"
+CURR_CELS="$(printf "%.2f" "$(bc <<< "scale=2;$KELV - 273.15")")"
 COND=$(jq -r '.weather[0].description' <<< "$RES")
 HUMIDITY=$(jq -r '.main.humidity' <<< "$RES")
 loc=$(jq -r '. | .name + ", " + .sys.country' <<< "$RES")
