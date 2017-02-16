@@ -21,6 +21,7 @@ fi
 youtube="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=$(URI_ENCODE "$4")&maxResults=3&key=${YOUTUBE_KEY}"
 
 while read -r id title; do
+    [ -z "$title" ] && exit
     echo -e ":m $1 \002${title}\002 :: https://youtu.be/${id}"
 done < <(
     curl "${youtube}" -f 2>/dev/null |
