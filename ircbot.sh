@@ -339,17 +339,19 @@ send_msg "NICK $NICK"
 send_msg "USER $NICK +i * :$NICK"
 # IRC event loop
 while read -r user command channel message; do
+    if [ "$user" = "PING" ]; then
+        # unless you like seing *** SENT *** PONG :blah in the log
+        printf "%s\r\n" "PONG $command" >&3
+        continue
+    fi
+    # needs to be here, prior to pruning
+    kick="${message% :*}"
     # clean up information
     user=$(sed 's/^:\([^!]*\).*/\1/' <<< "$user")
     datetime=$(date +"%Y-%m-%d %H:%M:%S")
     message=${message:1}
     message=${message%$'\r'}
     # if ping request
-    if [ "$user" = "PING" ]; then
-        # unless you like seing *** SENT *** PONG :blah in the log
-        printf "%s\r\n" "PONG $command" >&3
-        continue
-    fi
 
     [ -n "$LOG_STDOUT" ] && \
         echo "$channel $datetime $command <$user> $message"
@@ -401,7 +403,6 @@ while read -r user command channel message; do
         # only other way for the bot to be removed
         # from a channel
         KICK)
-            kick="$(awk '{print $1}' <<< "$message")"
             if [ "$kick" = "$NICK" ]; then
                 for i in "${!CHANNELS[@]}"; do
                     if [ "${CHANNELS[$i]}" = "$channel" ]; then
