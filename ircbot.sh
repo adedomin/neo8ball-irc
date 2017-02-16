@@ -368,11 +368,10 @@ while read -r user command channel message; do
         # generally notices are not supposed
         # to be responded to, as a bot
         NOTICE)
-            if check_ignore "$user"; then
-                [ -z "$READ_NOTICE" ] || \
-                handle_privmsg "$channel" "$datetime" "$user" "$message" \
-                | send_cmd &
-            fi 
+            [ -z "$READ_NOTICE" ] && continue
+            check_ignore "$user" &&
+            handle_privmsg "$channel" "$datetime" "$user" "$message" \
+            | send_cmd &
         ;;
         # when the bot joins a channel
         # or a regular user
