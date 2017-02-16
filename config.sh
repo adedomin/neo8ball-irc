@@ -1,3 +1,4 @@
+# shellcheck disable=2034
 # nickname, also username
 NICK="neo8ball"
 # NickServ password

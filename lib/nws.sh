@@ -25,6 +25,7 @@ if [ -z "$arg" ] && \
         exit 0
     fi
 
+    # shellcheck disable=2034
     IFS=$':' read -r USR arg < <( grep "^NWS~$3:" "$WEATHER_DB" )
     if [ -z "$arg" ]; then
         echo ":mn $3 You have to set a default location first," \
@@ -52,6 +53,7 @@ if [[ "$arg" =~ ^search ]]; then
             sed '/^!/d' > "$PERSIST_LOC/stations.txt"
     fi
 
+    # shellcheck disable=2034
     read -r srch query <<< "$arg"
     echo ":m $1 $(grep -F -m 1 -i "$query" "$PERSIST_LOC/stations.txt" | cut -c 4-24)"
     exit 0

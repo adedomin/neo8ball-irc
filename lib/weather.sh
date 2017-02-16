@@ -25,6 +25,7 @@ if [ -z "$arg" ] && [ -n "$PERSIST_LOC" ]; then
         exit 0
     fi
 
+    # shellcheck disable=2034
     IFS=$':' read -r USR arg < <( grep "^$3:" "$WEATHER_DB" )
     if [ -z "$arg" ]; then
         echo ":mn $3 You have to set a default location first," \
