@@ -34,14 +34,14 @@ while read -r url title; do
     fi
     echo -e ":m $1 \002${title}\002 :: $(URI_DECODE "$url")"
 done < <(
-    curl "${SEARCH_ENGINE}$(URI_ENCODE "$4")" 2>/dev/null |
-    sed 's@<\([^/a]\|/[^a]\)[^>]*>@@g' |
-    grep -F 'class="result__a"' |
-    html2 |
-    sed '/@class\|@rel\|^\/html\/body=/d' |
-    grep -Po '(?<=\/a(=|\/)).*' |
-    paste -d " " - - |
-    cut -c 22- |
-    sed '/r.search.yahoo/d' |
-    head -n 3
+    curl "${SEARCH_ENGINE}$(URI_ENCODE "$4")" 2>/dev/null \
+    | sed 's@<\([^/a]\|/[^a]\)[^>]*>@@g' \
+    | grep -F 'class="result__a"' \
+    | html2 \
+    | sed '/@class\|@rel\|^\/html\/body=/d' \
+    | grep -Po '(?<=\/a(=|\/)).*' \
+    | paste -d " " - - \
+    | cut -c 22- \
+    | sed '/r.search.yahoo/d' \
+    | head -n 3
 )

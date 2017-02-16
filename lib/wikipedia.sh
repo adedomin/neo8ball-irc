@@ -22,4 +22,11 @@ WIKI="https://en.wikipedia.org/w/api.php?action=opensearch&format=json&formatver
 
 while read -r link name; do
     echo -e ":m $1 \002${name}\002 :: $link"
-done < <( curl -f "$WIKI" 2>/dev/null | jq -r '[.[1],.[3]] // empty | transpose | map(.[1] + " " + .[0]) | .[]' )
+done < <( 
+    curl -f "$WIKI" 2>/dev/null \
+    | jq -r '[.[1],.[3]] // empty 
+        | transpose 
+        | map(.[1] + " " + .[0]) 
+        | .[]
+    ' 
+)

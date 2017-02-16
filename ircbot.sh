@@ -55,6 +55,7 @@ fi
 
 # load configuration
 if [ -f "$CONFIG_PATH" ]; then
+    # shellcheck disable=SC1090
     . "$CONFIG_PATH"
 else
     echo "*** CRITICAL *** no configuration"
@@ -63,6 +64,7 @@ fi
 
 # set up IPC mechanisms
 # named pipes to connect ncat to message loop
+# shellcheck disable=SC2154
 [ -d "$temp_dir/bash-ircbot" ] && rm -r "$temp_dir/bash-ircbot"
 infile="$temp_dir/bash-ircbot/in"
 outfile="$temp_dir/bash-ircbot/out"
@@ -102,8 +104,10 @@ contains_chan() {
 #       reload all other variables, like COMMANDS, etc
 reload_config() {
     local _NICK="$NICK"
+    # shellcheck disable=SC2153
     local _NICKSERV="$NICKSERV"
     local _CHANNELS=("${CHANNELS[@]}")
+    # shellcheck disable=SC1090
     . "$CONFIG_PATH"
     # NICK changed
     if [ "$NICK" != "$_NICK" ]; then
@@ -130,7 +134,7 @@ trap 'reload_config' SIGHUP SIGWINCH
 # fail hard if user wanted tls and ncat not found
 if [ -z "$(which ncat 2>/dev/null)" ]; then
     [ -n "$LOG_INFO" ] &&
-        echo "*** INFO *** ncat not found; using bash tcp"
+        echo "*** WARNING *** ncat not found; using bash tcp"
     [ -n "$TLS" ] && 
         die "*** CRITICAL *** tls does not work with bash tcp"
     BASH_TCP=a
@@ -149,7 +153,7 @@ if [ -z "$BASH_TCP" ]; then
         die "unknown failure mapping named pipe to fd"
     exec 4<> "$outfile" ||
         die "unknown failure mapping named pipe to fd"
-    ( ncat $SERVER $PORT $TLS <&3 >&4
+    ( ncat "$SERVER" "$PORT" "$TLS" <&3 >&4
       kill -TERM $$ ) &
 else
     infile="/dev/tcp/${SERVER}/${PORT}"
@@ -170,7 +174,8 @@ fi
 #       nickserv is available
 post_ident() {
     # join chans
-    local CHANNELS_=$(printf ",%s" "${CHANNELS[@]}")
+    local CHANNELS_
+    CHANNELS_=$(printf ",%s" "${CHANNELS[@]}")
     # channels are repopulated on JOIN commands
     # to better reflect joined channel realities
     CHANNELS=()
@@ -252,7 +257,7 @@ handle_privmsg() {
         fi
 
         [ -x "$LIB_PATH/$PRIVATE" ] || return
-        $LIB_PATH/$PRIVATE \
+        "$LIB_PATH/$PRIVATE" \
             "$3" "$2" "$3" "$4" "$LIB_PATH"
         echo ":li PRIV_MSG EVENT -> $3 <$3> $4"
         return
@@ -262,8 +267,9 @@ handle_privmsg() {
     # 5th argument is the $LIB_PATH
     local highlight="$NICK.? (.*)"
     if [[ "$4" =~ $highlight ]]; then
+        # shellcheck disable=SC2153
         [ -x "$LIB_PATH/$HIGHLIGHT" ] || return
-        $LIB_PATH/$HIGHLIGHT \
+        "$LIB_PATH/$HIGHLIGHT" \
             "$1" "$2" "$3" "${BASH_REMATCH[1]}" "$LIB_PATH"
         echo ":li HIGHLIGHT EVENT -> $1 <$3> $4"
         return
@@ -278,7 +284,7 @@ handle_privmsg() {
         cmd="${cmd:1}"
         [ -n "${COMMANDS[$cmd]}" ] || return
         [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
-        $LIB_PATH/${COMMANDS[$cmd]} \
+        "$LIB_PATH/${COMMANDS[$cmd]}" \
             "$1" "$2" "$3" "$args" "$cmd"
         echo ":li COMMAND EVENT -> $cmd: $1 <$3> $args"
     fi
@@ -288,7 +294,7 @@ handle_privmsg() {
     for reg in "${!REGEX[@]}"; do
         if [[ "$4" =~ $reg ]]; then
             [ -x "$LIB_PATH/${REGEX[$reg]}" ] || return
-            $LIB_PATH/${REGEX[$reg]} \
+            "$LIB_PATH/${REGEX[$reg]}" \
                 "$1" "$2" "$3" "$4" "${BASH_REMATCH[0]}"
             echo ":li REGEX EVENT -> $reg: $1 <$3> $4"
             return
@@ -331,6 +337,7 @@ while read -r user command channel message; do
 
     # if ignore list is defined
     # check if nick is in ignore list
+    # shellcheck disable=SC2153
     for nick in "${IGNORE[@]}"; do
         [ "$nick" = "$user" ] && ignore=a
     done
@@ -397,10 +404,10 @@ while read -r user command channel message; do
         ;;
         # PASS command failed
         464)
-            die '*** NOTICE *** INVALID PASSWORD'
+            die '*** CRITICAL *** INVALID PASSWORD'
         ;;
         465)
-            die '*** NOTICE *** YOU ARE BANNED'
+            die '*** CRITICAL *** YOU ARE BANNED'
         ;;
         # Nickname is already in use
         # add crap and try the new nick

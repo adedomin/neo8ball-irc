@@ -19,14 +19,16 @@ if [ -z "$arg" ] && \
 
     WEATHER_DB="$PERSIST_LOC/weather-defaults.db"
     if [ ! -f "$WEATHER_DB" ]; then
-        echo ":mn $3 You have to set a default location first, use .nwsd <station> or .nwsl <station>"
+        echo ":mn $3 You have to set a default location first,"\
+             "use .nwsd <station> or .nwsl <station>"
         echo ":mn $3 find a station: .nws search <city or airport>"
         exit 0
     fi
 
     IFS=$':' read -r USR arg < <( grep "^NWS~$3:" "$WEATHER_DB" )
     if [ -z "$arg" ]; then
-        echo ":mn $3 You have to set a default location first, use .nwsd <station> or .nwsl <station>"
+        echo ":mn $3 You have to set a default location first," \
+             "use .nwsd <station> or .nwsl <station>"
         echo ":mn $3 find a station: .nws search <city or airport>"
         exit 0
     fi

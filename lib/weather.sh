@@ -20,13 +20,15 @@ if [ -z "$arg" ] && [ -n "$PERSIST_LOC" ]; then
 
     WEATHER_DB="$PERSIST_LOC/weather-defaults.db"
     if [ ! -f "$WEATHER_DB" ]; then
-        echo ":mn $3 You have to set a default location first, use .location <location> or .wd <location>"
+        echo ":mn $3 You have to set a default location first," \
+             "use .location <location> or .wd <location>"
         exit 0
     fi
 
     IFS=$':' read -r USR arg < <( grep "^$3:" "$WEATHER_DB" )
     if [ -z "$arg" ]; then
-        echo ":mn $3 You have to set a default location first, use .location <location> or .wd <location>"
+        echo ":mn $3 You have to set a default location first," \
+             "use .location <location> or .wd <location>"
         exit 0
     fi
 fi

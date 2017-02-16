@@ -103,5 +103,4 @@ URI_ENCODE() {
     cut -c 3- |
     sed 's/%0A$//g'
 }
-
 export -f URI_ENCODE

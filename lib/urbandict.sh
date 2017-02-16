@@ -24,13 +24,13 @@ URBAN="http://www.urbandictionary.com/define.php?term=$(URI_ENCODE "$4")"
 while read -r definition; do
     (( ${#definition} > 400 )) && 
         definition="${definition:0:400}..."
-    echo ":m $1 $definition"
+    echo -e ":m $1 \002${4}\002 :: $definition"
 done < <(
   curl "$URBAN" -L -f 2>/dev/null \
-   | grep -A 2 -m 3 "<div class='meaning'>" \
-   | sed '/^--/d;/<\/*div/d' \
-   | sed 's/<[^>]*>//g' \
-   | recode html..UTF-8
+  | grep -A 2 -m 3 "<div class='meaning'>" \
+  | sed '/^--/d;/<\/*div/d' \
+  | sed 's/<[^>]*>//g' \
+  | recode html..UTF-8
 )
 
 echo ":mn $3 See More: $URBAN"

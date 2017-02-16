@@ -25,6 +25,7 @@ while read -r id title; do
 done < <(
     curl "${youtube}" -f 2>/dev/null |
     jq -r '.items[0],.items[1],.items[2] //empty |
-        .id.videoId + " " + .snippet.title                
+        .id.videoId + " " + 
+        .snippet.title                
     '
 )
