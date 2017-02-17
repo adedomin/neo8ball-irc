@@ -21,6 +21,7 @@ fi
 NPM="https://www.npmjs.com/-/search?text=$(URI_ENCODE "$4")&from=0&size=3"
  
 while read -r name link desc; do
+    [ -z "$desc" ] && [ -z "$link" ] && exit 0
     if [ -n "$desc" ]; then
         desc=" $desc ::"
     fi 
