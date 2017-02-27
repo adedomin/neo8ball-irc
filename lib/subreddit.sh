@@ -38,6 +38,7 @@ while read -r key value; do
             HREF="$value"
         ;;
         *entry/title)
+            (( ${#value} > 200 )) && value="${value:0:200}..."
             echo -e ":m $1 \002${value}\002 :: $HREF"
         ;;
     esac
