@@ -23,7 +23,7 @@ usage() {
 }
 
 die() {
-    echo "$1" >&2
+    echo "*** CRITICAL *** $1" >&2
     exit 1
 }
 
@@ -133,10 +133,9 @@ trap 'reload_config' SIGHUP SIGWINCH
 # check for ncat, use bash tcp otherwise
 # fail hard if user wanted tls and ncat not found
 if [ -z "$(which ncat 2>/dev/null)" ]; then
-    [ -n "$LOG_INFO" ] &&
         echo "*** WARNING *** ncat not found; using bash tcp"
     [ -n "$TLS" ] && 
-        die "*** CRITICAL *** tls does not work with bash tcp"
+        die "tls does not work with bash tcp"
     BASH_TCP=a
 fi
 
@@ -382,8 +381,7 @@ while read -r user command channel message; do
                 channel="${channel%$'\r'}"
                 # channel joined add to list or channels
                 CHANNELS+=("$channel")
-                [ -n "$LOG_INFO" ] && \
-                    echo "*** JOIN *** $channel"
+                echo "*** JOIN *** $channel"
             fi
         ;;
         # when a user leaves a channel
@@ -395,8 +393,7 @@ while read -r user command channel message; do
                         unset CHANNELS["$i"]
                     fi
                 done
-                [ -n "$LOG_INFO" ] && \
-                    echo "*** PART *** $channel"
+                echo "*** PART *** $channel"
             fi
         ;;
         # only other way for the bot to be removed
@@ -408,8 +405,7 @@ while read -r user command channel message; do
                         unset CHANNELS["$i"]
                     fi
                 done
-                [ -n "$LOG_INFO" ] && \
-                    echo "*** KICK *** $channel"
+                echo "*** KICK *** $channel"
             fi
         ;;
         # Server confirms we are "identified"
@@ -420,18 +416,17 @@ while read -r user command channel message; do
         ;;
         # PASS command failed
         464)
-            die '*** CRITICAL *** INVALID PASSWORD'
+            die 'INVALID PASSWORD'
         ;;
         465)
-            die '*** CRITICAL *** YOU ARE BANNED'
+            die 'YOU ARE BANNED'
         ;;
         # Nickname is already in use
         # add crap and try the new nick
         433)
             NICK="${NICK}_"
             send_msg "NICK $NICK"
-            [ -n "$LOG_INFO" ] && \
-                echo "*** INFO *** NICK CHANGED TO $NICK"
+            echo "*** NICK *** NICK CHANGED TO $NICK"
         ;;
     esac
 done <&4
