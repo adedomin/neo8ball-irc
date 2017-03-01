@@ -68,11 +68,11 @@ fi
 [ -d "$temp_dir/bash-ircbot" ] && rm -r "$temp_dir/bash-ircbot"
 infile="$temp_dir/bash-ircbot/in"
 outfile="$temp_dir/bash-ircbot/out"
-mkdir "$temp_dir/bash-ircbot" || \
+mkdir "$temp_dir/bash-ircbot" ||
     die "failed to make temp directory, check your config"
-mkfifo "$infile" || \
+mkfifo "$infile" ||
     die "couldn't make named pipe"
-mkfifo "$outfile" || \
+mkfifo "$outfile" ||
     die "couldn't make named pipe"
 
 # handler to terminate bot
@@ -191,7 +191,7 @@ post_ident() {
 # must be a valid IRC command string
 send_msg() {
     printf "%s\r\n" "$*" >&3
-    [ -n "$LOG_INFO" ] && \
+    [ -n "$LOG_INFO" ] &&
         echo "*** SENT *** $*"
 }
 
@@ -225,7 +225,7 @@ send_cmd() {
                 send_msg "$arg $other"
                 ;;
             :li|:log)
-                [ -n "$LOG_INFO" ] && \
+                [ -n "$LOG_INFO" ] &&
                     echo "*** INFO *** $arg $other"
                 ;;
             *)
@@ -338,6 +338,7 @@ send_msg "NICK $NICK"
 send_msg "USER $NICK +i * :$NICK"
 # IRC event loop
 while read -r user command channel message; do
+    # if ping request
     if [ "$user" = "PING" ]; then
         # unless you like seing *** SENT *** PONG :blah in the log
         printf "%s\r\n" "PONG $command" >&3
@@ -350,9 +351,8 @@ while read -r user command channel message; do
     datetime=$(date +"%Y-%m-%d %H:%M:%S")
     message=${message:1}
     message=${message%$'\r'}
-    # if ping request
 
-    [ -n "$LOG_STDOUT" ] && \
+    [ -n "$LOG_STDOUT" ] &&
         echo "$channel $datetime $command <$user> $message"
 
     # handle commands here
