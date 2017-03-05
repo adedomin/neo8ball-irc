@@ -72,6 +72,7 @@ COMMANDS=(
 ["youtube"]="youtube.sh"
 ["u"]="urbandict.sh"
 ["urban"]="urbandict.sh"
+["bible"]="bible.sh"
 )
 
 # regex patterns
@@ -95,6 +96,8 @@ export OWM_KEY="your owm key here"
 export PERSIST_LOC="/tmp"
 # for youtube.sh
 export YOUTUBE_KEY=""
+
+export BIBLE_SOURCE="$(dirname "$0")/static/king-james.txt"
 
 # common function used in plugins
 URI_ENCODE() {

@@ -11,3 +11,4 @@ echo -e ":m $1 \0028ball\002 .8ball <question>?|<choice1> or <choice2>? ::" \
     "\002Reddit\002 .reddit [sub] [new|hot|best|top|controversial] ::" \
     "\002Youtube\002 .you <query> ::" \
     "\002Urban Dictionary\002 .urban <query>"
+    "\002King James Bible\002 .bible [<query>]"
