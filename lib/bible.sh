@@ -30,9 +30,11 @@ if [ -z "$4" ]; then
 fi
 
 q="${4//\'/\'\'}"
-if [[ "$q" =~ [.:] ]]; then
+if [[ "$q" =~ [-.:\{\}] ]]; then
     q="\"$q\""
 fi
+
+echo "$q"
 
 printf ":m $1 %s\n" "$(sqlite3 "$BIBLE_SOURCE" << EOF
 SELECT * FROM $table 
