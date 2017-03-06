@@ -34,8 +34,6 @@ if [[ "$q" =~ [-.:\{\}] ]]; then
     q="\"$q\""
 fi
 
-echo "$q"
-
 printf ":m $1 %s\n" "$(sqlite3 "$BIBLE_SOURCE" << EOF
 SELECT * FROM $table 
   WHERE $table 
