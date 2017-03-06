@@ -97,10 +97,10 @@ export OWM_KEY="your owm key here"
 export PERSIST_LOC="/tmp"
 # for youtube.sh
 export YOUTUBE_KEY=""
-
+# you have to generate bible_db yourself, see create-db.sh in ./static
+#export BIBLE_DB="$(dirname "$0")/static/kjbible-quran.db"
 export BIBLE_SOURCE="$(dirname "$0")/static/king-james.txt"
-
-export QURAN_SORUCE="$(dirname "$0")/static/kjbible-quran.db"
+export QURAN_SORUCE="$(dirname "$0")/static/quran-allah-ver.txt"
 
 # common function used in plugins
 URI_ENCODE() {
