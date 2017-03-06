@@ -29,10 +29,13 @@ if [ -z "$4" ]; then
     exit 0
 fi
 
+q="${4//\'/\'\'}"
+q="$(sed 's/[.:]/"&"/g' <<< "$q")"
+
 printf ":m $1 %s\n" "$(sqlite3 "$BIBLE_SOURCE" << EOF
 SELECT * FROM $table 
   WHERE $table 
-  MATCH '${4//\'/\'\'}' 
+  MATCH '$q' 
   ORDER BY rank 
   LIMIT 1;
 EOF
