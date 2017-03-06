@@ -13,8 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+if [ "$5" = 'quran' ]; then
+    BIBLE_SOURCE="$QURAN_SOURCE"
+fi
+
 if [ -z "$BIBLE_SOURCE" ] || [ ! -f "$BIBLE_SOURCE" ]; then
-    echo ":m $1 No bible available" 
+    echo ":m $1 No bible or quran available." 
     exit 0
 fi
 
