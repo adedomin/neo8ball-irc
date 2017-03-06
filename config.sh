@@ -100,7 +100,7 @@ export YOUTUBE_KEY=""
 
 export BIBLE_SOURCE="$(dirname "$0")/static/king-james.txt"
 
-export QURAN_SORUCE="$(dirname "$0")/static/quran-allah-ver.txt"
+export QURAN_SORUCE="$(dirname "$0")/static/kjbible-quran.db"
 
 # common function used in plugins
 URI_ENCODE() {

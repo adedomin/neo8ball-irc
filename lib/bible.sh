@@ -14,7 +14,9 @@
 # limitations under the License.
 
 if [ "$5" = 'quran' ]; then
-    BIBLE_SOURCE="$QURAN_SOURCE"
+    table='quran'
+else
+    table='king_james'
 fi
 
 if [ -z "$BIBLE_SOURCE" ] || [ ! -f "$BIBLE_SOURCE" ]; then
@@ -23,8 +25,15 @@ if [ -z "$BIBLE_SOURCE" ] || [ ! -f "$BIBLE_SOURCE" ]; then
 fi
 
 if [ -z "$4" ]; then
-    printf ":m $1 %s\n" "$(shuf -n1 "$BIBLE_SOURCE")"
+    printf ":m $1 %s\n" "$(sqlite3 "$BIBLE_SOURCE" <<< "SELECT * FROM $table ORDER BY RANDOM() LIMIT 1;")"
     exit 0
 fi
 
-printf ":m $1 %s\n" "$(grep -F -m 1 -i "$4" "$BIBLE_SOURCE")"
+printf ":m $1 %s\n" "$(sqlite3 "$BIBLE_SOURCE" << EOF
+SELECT * FROM $table 
+  WHERE $table 
+  MATCH '${4//\'/\'\'}' 
+  ORDER BY rank 
+  LIMIT 1;
+EOF
+)"
