@@ -15,30 +15,39 @@
 
 if [ "$5" = 'quran' ]; then
     table='quran'
+    BIBLE_SOURCE="$QURAN_SOURCE"
 else
     table='king_james'
 fi
 
-if [ -z "$BIBLE_SOURCE" ] || [ ! -f "$BIBLE_SOURCE" ]; then
-    echo ":m $1 No bible or quran available." 
-    exit 0
-fi
+if [ -n "$BIBLE_DB" ] && [ -f "$BIBLE_DB" ]; then
 
-if [ -z "$4" ]; then
-    printf ":m $1 %s\n" "$(sqlite3 "$BIBLE_SOURCE" <<< "SELECT * FROM $table ORDER BY RANDOM() LIMIT 1;")"
-    exit 0
-fi
+    if [ -z "$4" ]; then
+        printf ":m $1 %s\n" "$(sqlite3 "$BIBLE_DB" <<< "SELECT * FROM $table ORDER BY RANDOM() LIMIT 1;")"
+        exit 0
+    fi
 
-q="${4//\'/\'\'}"
-if [[ "$q" =~ [-.:\{\}] ]]; then
-    q="\"$q\""
-fi
+    q="${4//\'/\'\'}"
+    if [[ "$q" =~ [-.:\{\}] ]]; then
+        q="\"$q\""
+    fi
 
-printf ":m $1 %s\n" "$(sqlite3 "$BIBLE_SOURCE" << EOF
+    printf ":m $1 %s\n" "$(sqlite3 "$BIBLE_DB" << EOF
 SELECT * FROM $table 
-  WHERE $table 
-  MATCH '$q' 
-  ORDER BY rank 
-  LIMIT 1;
+WHERE $table 
+MATCH '$q' 
+ORDER BY rank 
+LIMIT 1;
 EOF
-)"
+    )"
+elif [ -n "$BIBLE_SOURCE" ] && [ -f "$BIBLE_SOURCE" ]; then
+    
+    if [ -z "$4" ]; then
+        printf ":m $1 %s\n" "$(shuf -n1 "$BIBLE_SOURCE")"
+        exit 0
+    fi
+
+    printf ":m $1 %s\n" "$(grep -F -m 1 "$4" "$BIBLE_SOURCE")"
+else
+    echo ":m $1 No bible available"
+fi

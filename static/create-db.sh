@@ -18,6 +18,7 @@
 qtemp='.qinserts.sql'
 btemp='.kjinserts.sql'
 
+echo '--- creating insert statements ---'
 while IFS='|' read -r book verse; do
     echo "INSERT INTO king_james VALUES ('$book', '${verse//\'/\'\'}');"
 done < 'king-james.txt' > "$btemp"
@@ -26,12 +27,15 @@ while IFS='|' read -r vid verse; do
     echo "INSERT INTO quran VALUES ('$vid', '${verse//\'/\'\'}');"
 done < 'quran-allah-ver.txt' > "$qtemp"
 
+echo '--- creating db ---'
 sqlite3 'kjbible-quran.db' << EOF
-CREATE VIRTUAL TABLE king_james USING fts5(book, verse);
-CREATE VIRTUAL TABLE quran USING fts5(vid, verse);
+CREATE VIRTUAL TABLE king_james USING fts5(book, verse, tokenize = 'porter unicode61');
+CREATE VIRTUAL TABLE quran USING fts5(vid, verse, tokenize = 'porter unicode61');
 EOF
 
-echo 'inserting bible verses'
+echo '--- inserting bible verses ---'
 sqlite3 'kjbible-quran.db' < "$btemp"
-echo 'inserting quran verses'
+echo '--- inserting quran verses ---'
 sqlite3 'kjbible-quran.db' < "$qtemp"
+echo '--- deleting temp inserts ---'
+rm "$qtemp" "$btemp"
