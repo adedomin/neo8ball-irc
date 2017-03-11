@@ -266,8 +266,10 @@ check_ignore() {
     # if ignore list is defined
     # shellcheck disable=SC2153
     for nick in "${IGNORE[@]}"; do
-        [ "$nick" = "$1" ] && 
-            send_log "DEBUG" "IGNORED -> $nick"; return 1
+        if [ "$nick" = "$1" ]; then
+            send_log "DEBUG" "IGNORED -> $nick"
+            return 1
+        fi
     done
     return 0
 }
