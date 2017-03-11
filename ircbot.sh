@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v1.4.4-RC1"
+VERSION="bash-ircbot: v1.4.6"
 
 usage() {
     echo "usage: $0 [-c config]"
@@ -58,7 +58,7 @@ if [ -f "$CONFIG_PATH" ]; then
     # shellcheck disable=SC1090
     . "$CONFIG_PATH"
 else
-    send_log "CRITICAL" "no configuration"
+    echo "*** CRITICAL *** no configuration"
     usage
 fi
 
@@ -133,15 +133,15 @@ trap 'reload_config' SIGHUP SIGWINCH
 # check for ncat, use bash tcp otherwise
 # fail hard if user wanted tls and ncat not found
 if [ -z "$(which ncat 2>/dev/null)" ]; then
-        send_log "WARNING" "ncat not found; using bash tcp"
+        echo "*** NOTICE *** ncat not found; using bash tcp"
     [ -n "$TLS" ] && 
-        die "tls does not work with bash tcp"
+        die "TLS does not work with bash tcp"
     BASH_TCP=a
 fi
 
 # use default nick if not set, should be set
 if [ -z "$NICK" ]; then
-    send_log "ERROR" "Nick was not specified; using ircbashbot"
+    echo "*** NOTICE *** nick was not specified; using ircbashbot"
     NICK="ircbashbot"
 fi
 
@@ -149,17 +149,17 @@ fi
 [ -n "$TLS" ] && TLS="--ssl"
 if [ -z "$BASH_TCP" ]; then
     exec 3<> "$infile" ||
-        die "unknown failure mapping named pipe to fd"
+        die "unknown failure mapping named pipe ($infile) to fd"
     exec 4<> "$outfile" ||
-        die "unknown failure mapping named pipe to fd"
+        die "unknown failure mapping named pipe ($outfile) to fd"
     ( ncat "$SERVER" "$PORT" "$TLS" <&3 >&4
       kill -TERM $$ ) &
 else
     infile="/dev/tcp/${SERVER}/${PORT}"
     exec 3<> "$infile" ||
-        die "Cannot connect to $SERVER on port $PORT"
+        die "Cannot connect to ($SERVER) on port ($PORT)"
     exec 4<&3 ||
-        die "unknown failure mapping named pipe to fd"
+        die "unknown failure mapping named pipe ($infile) to fd"
 fi
 
 #################
@@ -187,19 +187,11 @@ post_ident() {
     fi
 }
 
-# any literal argument/s will be sent
-# must be a valid IRC command string
-send_msg() {
-    printf "%s\r\n" "$*" >&3
-    send_log "DEBUG" "SENT -> $*"
-}
-
 # logger function that checks log level
 # $1 - log level of message
 # $2 - the message
 send_log() {
     local log_lvl
-    local log_str
     case $1 in
         STDOUT)
             [ -n "$LOG_STDOUT" ] &&
@@ -216,12 +208,18 @@ send_log() {
         echo "*** $1 *** $2"
 }
 
+# any literal argument/s will be sent
+# must be a valid IRC command string
+send_msg() {
+    printf "%s\r\n" "$*" >&3
+    send_log "DEBUG" "SENT -> $*"
+}
+
 # function which converts bash-ircbot
 # commands to IRC messages
 # must be piped or heredoc; no arguments
 send_cmd() {
     while read -r cmd arg other; do
-
         case $cmd in
             :j|:join)
                 send_msg "JOIN $arg"
@@ -245,6 +243,9 @@ send_cmd() {
             :r|:raw)
                 send_msg "$arg $other"
                 ;;
+            :le|:loge)
+                send_log "ERROR" "$arg $other"
+                ;;
             :lw|:logw)
                 send_log "WARNING" "$arg $other"
                 ;;
@@ -265,7 +266,8 @@ check_ignore() {
     # if ignore list is defined
     # shellcheck disable=SC2153
     for nick in "${IGNORE[@]}"; do
-        [ "$nick" = "$1" ] && return 1
+        [ "$nick" = "$1" ] && 
+            send_log "DEBUG" "IGNORED -> $nick"; return 1
     done
     return 0
 }
@@ -288,6 +290,7 @@ handle_privmsg() {
         # tell them what we are
         if [ "$message" = $'\001VERSION\001' ]; then
             echo -e ":mn $3 \001VERSION $VERSION\001"
+            echo ":ld CTCP VERSION -> $3 <$3> $4"
             return
         fi
 
@@ -349,11 +352,13 @@ handle_privmsg() {
 # so no race condition
 if [ -z "$BASH_TCP" ]; then
     while sleep 10m; do
+        send_log "DEBUG" "Testing Connection..."
         echo -ne '\r\n' >&3
         echo -ne '\r\n' >&3
     done &
 fi
 
+send_log "DEBUG" "COMMUNICATION START"
 # pass if server is private
 # this is likely not required
 if [ -n "$PASS" ]; then
@@ -366,8 +371,7 @@ send_msg "USER $NICK +i * :$NICK"
 while read -r user command channel message; do
     # if ping request
     if [ "$user" = "PING" ]; then
-        # unless you like seing *** SENT *** PONG :blah in the log
-        printf "%s\r\n" "PONG $command" >&3
+        send_msg "PONG $command"
         continue
     fi
     # needs to be here, prior to pruning
@@ -406,7 +410,7 @@ while read -r user command channel message; do
                 channel="${channel%$'\r'}"
                 # channel joined add to list or channels
                 CHANNELS+=("$channel")
-                echo "*** JOIN *** $channel"
+                send_log "JOIN" "$channel"
             fi
         ;;
         # when a user leaves a channel
@@ -438,6 +442,7 @@ while read -r user command channel message; do
         004)
             # this should only happen once?
             post_ident
+            send_log "DEBUG" "POST-IDENT PHASE, BOT READY"
         ;;
         # PASS command failed
         464)
