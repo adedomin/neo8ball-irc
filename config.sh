@@ -22,10 +22,14 @@ temp_dir=/tmp
 READ_NOTICE=
 
 # LOGGING
+# log levels
+# 1 - DEBUG
+# 2 - INFO
+# 3 - WARN
+# 4 - ERR/CRIT
+LOG_LEVEL=1
 # leave blank to not write messages to stdout
-LOG_STDOUT=yes
-# leave blank to ignore sent and nick changes
-LOG_INFO=yes
+LOG_STDOUT=
 
 ## DECLARE IRC events here ##
 

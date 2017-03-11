@@ -58,7 +58,7 @@ if [ -f "$CONFIG_PATH" ]; then
     # shellcheck disable=SC1090
     . "$CONFIG_PATH"
 else
-    echo "*** CRITICAL *** no configuration"
+    send_log "CRITICAL" "no configuration"
     usage
 fi
 
@@ -133,7 +133,7 @@ trap 'reload_config' SIGHUP SIGWINCH
 # check for ncat, use bash tcp otherwise
 # fail hard if user wanted tls and ncat not found
 if [ -z "$(which ncat 2>/dev/null)" ]; then
-        echo "*** WARNING *** ncat not found; using bash tcp"
+        send_log "WARNING" "ncat not found; using bash tcp"
     [ -n "$TLS" ] && 
         die "tls does not work with bash tcp"
     BASH_TCP=a
@@ -141,7 +141,7 @@ fi
 
 # use default nick if not set, should be set
 if [ -z "$NICK" ]; then
-    echo "*** ERROR *** Nick was not specified; using ircbashbot"
+    send_log "ERROR" "Nick was not specified; using ircbashbot"
     NICK="ircbashbot"
 fi
 
@@ -191,8 +191,29 @@ post_ident() {
 # must be a valid IRC command string
 send_msg() {
     printf "%s\r\n" "$*" >&3
-    [ -n "$LOG_INFO" ] &&
-        echo "*** SENT *** $*"
+    send_log "DEBUG" "SENT -> $*"
+}
+
+# logger function that checks log level
+# $1 - log level of message
+# $2 - the message
+send_log() {
+    local log_lvl
+    local log_str
+    case $1 in
+        STDOUT)
+            [ -n "$LOG_STDOUT" ] &&
+                echo "$2"
+            return
+        ;;
+        WARNING) log_lvl=3 ;;
+        INFO)    log_lvl=2 ;;
+        DEBUG)   log_lvl=1 ;;
+        *)       log_lvl=4 ;;
+    esac
+    
+    (( $log_lvl >= $LOG_LEVEL )) &&
+        echo "*** $1 *** $2"
 }
 
 # function which converts bash-ircbot
@@ -224,9 +245,14 @@ send_cmd() {
             :r|:raw)
                 send_msg "$arg $other"
                 ;;
+            :lw|:logw)
+                send_log "WARNING" "$arg $other"
+                ;;
             :li|:log)
-                [ -n "$LOG_INFO" ] &&
-                    echo "*** INFO *** $arg $other"
+                send_log "INFO" "$arg $other"
+                ;;
+            :ld|:logd)
+                send_log "DEBUG" "$arg $other"
                 ;;
             *)
                 ;;
@@ -268,7 +294,7 @@ handle_privmsg() {
         [ -x "$LIB_PATH/$PRIVATE" ] || return
         "$LIB_PATH/$PRIVATE" \
             "$3" "$2" "$3" "$4" "$LIB_PATH"
-        echo ":li PRIV_MSG EVENT -> $3 <$3> $4"
+        echo ":ld PRIV_MSG EVENT -> $3 <$3> $4"
         return
     fi
 
@@ -280,7 +306,7 @@ handle_privmsg() {
         [ -x "$LIB_PATH/$HIGHLIGHT" ] || return
         "$LIB_PATH/$HIGHLIGHT" \
             "$1" "$2" "$3" "${BASH_REMATCH[1]}" "$LIB_PATH"
-        echo ":li HIGHLIGHT EVENT -> $1 <$3> $4"
+        echo ":ld HIGHLIGHT EVENT -> $1 <$3> $4"
         return
     fi
 
@@ -295,7 +321,7 @@ handle_privmsg() {
         [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
         "$LIB_PATH/${COMMANDS[$cmd]}" \
             "$1" "$2" "$3" "$args" "$cmd"
-        echo ":li COMMAND EVENT -> $cmd: $1 <$3> $args"
+        echo ":ld COMMAND EVENT -> $cmd: $1 <$3> $args"
     fi
 
     # fallback regex check on message
@@ -305,7 +331,7 @@ handle_privmsg() {
             [ -x "$LIB_PATH/${REGEX[$reg]}" ] || return
             "$LIB_PATH/${REGEX[$reg]}" \
                 "$1" "$2" "$3" "$4" "${BASH_REMATCH[0]}"
-            echo ":li REGEX EVENT -> $reg: $1 <$3> $4"
+            echo ":ld REGEX EVENT -> $reg: $1 <$3> $4"
             return
         fi
     done
@@ -352,8 +378,7 @@ while read -r user command channel message; do
     message=${message:1}
     message=${message%$'\r'}
 
-    [ -n "$LOG_STDOUT" ] &&
-        echo "$channel $datetime $command <$user> $message"
+    send_log "STDOUT" "$channel $datetime $command <$user> $message"
 
     # handle commands here
     case $command in
@@ -393,7 +418,7 @@ while read -r user command channel message; do
                         unset CHANNELS["$i"]
                     fi
                 done
-                echo "*** PART *** $channel"
+                send_log "PART" "$channel"
             fi
         ;;
         # only other way for the bot to be removed
@@ -405,7 +430,7 @@ while read -r user command channel message; do
                         unset CHANNELS["$i"]
                     fi
                 done
-                echo "*** KICK *** $channel"
+                send_log "KICK" "$channel"
             fi
         ;;
         # Server confirms we are "identified"
@@ -426,7 +451,7 @@ while read -r user command channel message; do
         433)
             NICK="${NICK}_"
             send_msg "NICK $NICK"
-            echo "*** NICK *** NICK CHANGED TO $NICK"
+            send_log "NICK" "NICK CHANGED TO $NICK"
         ;;
     esac
 done <&4
