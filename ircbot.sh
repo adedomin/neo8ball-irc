@@ -354,7 +354,6 @@ handle_privmsg() {
 # so no race condition
 if [ -z "$BASH_TCP" ]; then
     while sleep 10m; do
-        send_log "DEBUG" "Testing Connection..."
         echo -ne '\r\n' >&3
         echo -ne '\r\n' >&3
     done &
