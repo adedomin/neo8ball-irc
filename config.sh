@@ -7,7 +7,7 @@ NICKSERV=
 # irc server
 SERVER="irc.rizon.net"
 # channels to join
-CHANNELS=("#prussian")
+CHANNELS=("#pigeonhole,#prussian")
 
 # port number
 PORT="6697"
@@ -78,6 +78,7 @@ COMMANDS=(
 ["urban"]="urbandict.sh"
 ["bible"]="bible.sh"
 ["quran"]="bible.sh"
+["fap"]="fap.sh"
 )
 
 # regex patterns
