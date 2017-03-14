@@ -38,6 +38,11 @@ for i in $benis; do
   stayMad=$(($stayMad+1))
 done
 
+if [ -z ${titles[0]} ]; then
+  echo ":m $1 Didn't find any results!"
+  exit
+fi
+
 for i in $(seq 0 $(($AMT_RESULTS-1))); do
   echo -e ":m $1 \002${titles[$i]}\002 :: ${urls[$i]}"
 done
