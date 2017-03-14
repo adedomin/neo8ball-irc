@@ -49,6 +49,6 @@ read -rd '' title < <(
           }
           $! b next
         }' | 
-    recode -d utf8..html | recode html..utf8
+    recode -d utf8..html | recode html..utf8 | tr $'\n' ' '
 )
 echo -e ":m $1 ↑ \002Title\002 :: $title"
