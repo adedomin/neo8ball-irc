@@ -34,13 +34,19 @@ if [[ ! "$mime" =~ text/html|application/xhtml+xml ]]; then
 fi
 
 
-curl -L --max-redirs 2 -m 10 "$5" 2>/dev/null \
-| html2 2>/dev/null \
-| while IFS=$'=' read -r key val; do
-    case $key in
-        /html/head/title)
-            echo -e ":m $1 ↑ \002Title\002 :: $val"
-            exit 0
-        ;;
-    esac
-done
+echo -e ":m $1 ↑ \002Title\002 :: $(
+    curl --compressed -L --max-redirs 2 -m 10 "$5" 2>/dev/null | sed -n '
+        /<title>.*<\/title>/I {
+          s@.*<title>\(.*\)</title>.*@\1@Ip
+          d
+        }
+        /<title>/I {
+          : next
+          N
+          /<\/title>/I {
+            s@^[^\n]<title>\(.*\)</title>[^\n]*@\1@Ip
+            d
+          }
+          $! b next
+        }' | recode -d utf8..html | recode html..utf8 | tr $'\n' ' '
+)"
