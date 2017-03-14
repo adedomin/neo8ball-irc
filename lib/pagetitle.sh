@@ -33,9 +33,10 @@ if [[ ! "$mime" =~ text/html|application/xhtml+xml ]]; then
     exit 0
 fi
 
-
 echo -e ":m $1 ↑ \002Title\002 :: $(
-    curl --compressed -L --max-redirs 2 -m 10 "$5" 2>/dev/null | sed -n '
+    curl --compressed -L --max-redirs 2 -m 10 "$5" 2>/dev/null \
+    | tr -d $'\r' \
+    | sed -n '
         /<title>.*<\/title>/I {
           s@.*<title>\(.*\)</title>.*@\1@Ip
           d
