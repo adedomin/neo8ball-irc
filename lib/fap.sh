@@ -13,15 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [ -z "$4" ]; then
-    echo ":mn $3 This command requires a search query"
-    exit 0
+q="$4"
+if [ -z "$q" ]; then
+    q="$(curl 'http://www.pornmd.com/randomwords?orientation=straight' 2>/dev/null | tr -d '"' )"
 fi
 
 AMT_RESULTS=3
 
 PORN_MD="http://www.pornmd.com"
-PORN_MD_SRCH=$PORN_MD"/straight/$(URI_ENCODE "${4,,}")"
+PORN_MD_SRCH=$PORN_MD"/straight/$(URI_ENCODE "${q,,}")"
 benis=$(curl "$PORN_MD_SRCH" 2>/dev/null | grep -A 2 -m $AMT_RESULTS '<h2 class="title-video">' | html2 2>/dev/null | grep "/html/body/h2/a/@href=\|/html/body/h2/a/@title=")
 
 IFS=$'\n'
