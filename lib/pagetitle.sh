@@ -38,7 +38,6 @@ read -rd '' title < <(
     curl --compressed -L --max-redirs 2 -m 10 "$5" 2>/dev/null | sed -n '
         /<title[^>]*>.*<\/title>/I {
           s@.*<title[^>]*>\(.*\)</title>.*@\1@Ip
-          d
           q
         }
         /<title[^>]*>/I {
@@ -46,7 +45,6 @@ read -rd '' title < <(
           N
           /<\/title>/I {
             s@.*<title[^>]*>\(.*\)</title>.*@\1@Ip
-            d
             q
           }
           $! b next
