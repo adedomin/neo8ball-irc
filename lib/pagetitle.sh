@@ -35,7 +35,7 @@ fi
 
 
 read -rd '' title < <(
-    curl --compressed -L --max-redirs 2 -m 10 "$5" 2>/dev/null | tr -d $'\r' |sed -n '
+    curl --compressed -L --max-redirs 2 -m 10 "$5" 2>/dev/null | sed -n '
         /<title[^>]*>.*<\/title>/I {
           s@.*<title[^>]*>\(.*\)</title>.*@\1@Ip
           d
@@ -51,6 +51,6 @@ read -rd '' title < <(
           }
           $! b next
         }' | 
-    recode -d utf8..html | recode html..utf8 | tr $'\n' ' '
+    recode -d utf8..html | recode html..utf8 | tr -d '\n\r'
 )
 echo -e ":m $1 ↑ \002Title\002 :: $title"
