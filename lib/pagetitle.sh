@@ -39,6 +39,7 @@ read -rd '' title < <(
         /<title>.*<\/title>/I {
           s@.*<title>\(.*\)</title>.*@\1@Ip
           d
+          q
         }
         /<title>/I {
           :next
@@ -46,6 +47,7 @@ read -rd '' title < <(
           /<\/title>/I {
             s@.*<title>\(.*\)</title>.*@\1@Ip
             d
+            q
           }
           $! b next
         }' | 
