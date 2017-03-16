@@ -51,4 +51,4 @@ read -rd '' title < <(
         }' | 
     recode -d utf8..html | recode html..utf8 | tr -d '\n\r'
 )
-echo -e ":m $1 ↑ \002Title\002 :: $title"
+echo -e ":m $1 ↑ \002Title\002 :: ${title:0:400}"
