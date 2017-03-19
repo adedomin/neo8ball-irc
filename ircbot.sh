@@ -204,7 +204,7 @@ send_log() {
         *)       log_lvl=4 ;;
     esac
     
-    (( $log_lvl >= $LOG_LEVEL )) &&
+    (( log_lvl >= LOG_LEVEL )) &&
         echo "*** $1 *** $2"
 }
 
