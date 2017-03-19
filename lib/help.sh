@@ -13,4 +13,4 @@ echo -e ":m $1 \0028ball\002 .8ball <question>?|<choice1> or <choice2>? ::" \
     "\002Urban Dictionary\002 .urban <query>"
 echo -e ":m $1 \002King James Bible\002 .bible [<query>] ::" \
     "\002Quran\002 .quran [<query>] ::" \
-    "\002PornMD Search\002 .fap [<query>]"
+    "\002PornMD Search\002 .(fap|gay|straight) [<query>]"
