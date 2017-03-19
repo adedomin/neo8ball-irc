@@ -79,6 +79,7 @@ COMMANDS=(
 ["bible"]="bible.sh"
 ["quran"]="bible.sh"
 ["fap"]="fap.sh"
+["gay"]="fap.sh"
 )
 
 # regex patterns
