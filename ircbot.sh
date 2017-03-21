@@ -383,7 +383,6 @@ fi
 # remove a nick from antispam list every x seconds
 if [ -n "$ANTISPAM" ]; then
     exec 5<> "$antispam"
-    trap 'require_fd' SIGUSR1
     while sleep "${ANTISPAM_TIMEOUT:-5s}"; do
         echo -n '' > "$antispam"
     done &
