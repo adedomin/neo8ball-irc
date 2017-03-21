@@ -316,15 +316,14 @@ handle_privmsg() {
         read -r cmd args <<< "$4"
         # if invalid command
         if [ -z "${COMMANDS[$cmd]}" ]; then
-            echo ":m $3 --- Invalid Command [BEG] ---"
+            echo ":m $3 --- Invalid Command ---"
             cmd="$PRIVMSG_DEFAULT_CMD"
         fi
         [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
         [ -n "$ANTISPAM" ] && echo "$3" >&5
         "$LIB_PATH/${COMMANDS[$cmd]}" \
             "$3" "$2" "$3" "$args" "$cmd"
-        echo ":m $3 --- Invalid Command [END] ---"
-        echo ":ld PRIV_MSG COMMAND EVENT -> $cmd: $3 <$3> $args"
+        echo ":ld PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $args"
         return
     fi
 
