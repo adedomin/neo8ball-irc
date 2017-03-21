@@ -438,6 +438,12 @@ while read -r user command channel message; do
             handle_privmsg "$channel" "$datetime" "$user" "$message" \
             | send_cmd &
         ;;
+        # bot was invited to channel
+        # so join channel
+        INVITE)
+            send_cmd <<< ":j $message"
+            send_log "INVITE" "<$user> $message "
+        ;;
         # when the bot joins a channel
         # or a regular user
         # bot only cares about when it joins
@@ -471,7 +477,7 @@ while read -r user command channel message; do
                         unset CHANNELS["$i"]
                     fi
                 done
-                send_log "KICK" "$channel"
+                send_log "KICK" "<$user> $channel [Reason: ${message#*:}]"
             fi
         ;;
         # Server confirms we are "identified"
