@@ -95,6 +95,15 @@ REGEX=(
 IGNORE=(
 )
 
+# anti spam feature
+# prevent users from abusing your bot
+# set to blank to disable
+ANTISPAM=yes
+# interval to clear antispam list
+ANTISPAM_TIMEOUT=10s
+# number of times user called command
+ANTISPAM_COUNT=3
+
 # variables for plugins
 # comment out if you don't want 
 # to use OpenWeatherMap plugin
