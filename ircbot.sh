@@ -312,11 +312,19 @@ handle_privmsg() {
             return
         fi
 
-        [ -x "$LIB_PATH/$PRIVATE" ] || return
+        # similar to command, but no prefix
+        read -r cmd args <<< "$4"
+        # if invalid command
+        if [ -z "${COMMANDS[$cmd]}" ]; then
+            echo ":m $3 --- Invalid Command [BEG] ---"
+            cmd="$PRIVMSG_DEFAULT_CMD"
+        fi
+        [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
         [ -n "$ANTISPAM" ] && echo "$3" >&5
-        "$LIB_PATH/$PRIVATE" \
-            "$3" "$2" "$3" "$4" "$LIB_PATH"
-        echo ":ld PRIV_MSG EVENT -> $3 <$3> $4"
+        "$LIB_PATH/${COMMANDS[$cmd]}" \
+            "$3" "$2" "$3" "$args" "$cmd"
+        echo ":m $3 --- Invalid Command [END] ---"
+        echo ":ld PRIV_MSG COMMAND EVENT -> $cmd: $3 <$3> $args"
         return
     fi
 
@@ -383,7 +391,7 @@ fi
 # remove a nick from antispam list every x seconds
 if [ -n "$ANTISPAM" ]; then
     exec 5<> "$antispam"
-    while sleep "${ANTISPAM_TIMEOUT:-5s}"; do
+    while sleep "${ANTISPAM_TIMEOUT:-30s}"; do
         echo -n '' > "$antispam"
     done &
 fi

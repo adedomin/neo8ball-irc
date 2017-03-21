@@ -37,8 +37,9 @@ LIB_PATH="$(dirname "$0")/lib/"
 
 # on highlight, call the following script/s
 HIGHLIGHT="8ball.sh"
-# on private message, as in query
-PRIVATE="invite.sh"
+# default command to execute if no valid command matches
+# in a private message context
+PRIVMSG_DEFAULT_CMD='help'
 
 # prefix that commands should start with
 CMD_PREFIX=".,!"
