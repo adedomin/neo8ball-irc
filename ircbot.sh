@@ -313,10 +313,10 @@ handle_privmsg() {
         fi
 
         [ -x "$LIB_PATH/$PRIVATE" ] || return
+        [ -n "$ANTISPAM" ] && echo "$3" >&5
         "$LIB_PATH/$PRIVATE" \
             "$3" "$2" "$3" "$4" "$LIB_PATH"
         echo ":ld PRIV_MSG EVENT -> $3 <$3> $4"
-        [ -n "$ANTISPAM" ] && echo "$3" >&5
         return
     fi
 
@@ -326,10 +326,10 @@ handle_privmsg() {
     if [[ "$4" =~ $highlight ]]; then
         # shellcheck disable=SC2153
         [ -x "$LIB_PATH/$HIGHLIGHT" ] || return
+        [ -n "$ANTISPAM" ] && echo "$3" >&5
         "$LIB_PATH/$HIGHLIGHT" \
             "$1" "$2" "$3" "${BASH_REMATCH[1]}" "$LIB_PATH"
         echo ":ld HIGHLIGHT EVENT -> $1 <$3> $4"
-        [ -n "$ANTISPAM" ] && echo "$3" >&5
         return
     fi
 
@@ -342,10 +342,10 @@ handle_privmsg() {
         cmd="${cmd:1}"
         [ -n "${COMMANDS[$cmd]}" ] || return
         [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
+        [ -n "$ANTISPAM" ] && echo "$3" >&5
         "$LIB_PATH/${COMMANDS[$cmd]}" \
             "$1" "$2" "$3" "$args" "$cmd"
         echo ":ld COMMAND EVENT -> $cmd: $1 <$3> $args"
-        [ -n "$ANTISPAM" ] && echo "$3" >&5
         return
     fi
 
@@ -354,10 +354,10 @@ handle_privmsg() {
     for reg in "${!REGEX[@]}"; do
         if [[ "$4" =~ $reg ]]; then
             [ -x "$LIB_PATH/${REGEX[$reg]}" ] || return
+            [ -n "$ANTISPAM" ] && echo "$3" >&5
             "$LIB_PATH/${REGEX[$reg]}" \
                 "$1" "$2" "$3" "$4" "${BASH_REMATCH[0]}"
             echo ":ld REGEX EVENT -> $reg: $1 <$3> $4"
-            [ -n "$ANTISPAM" ] && echo "$3" >&5
             return
         fi
     done
