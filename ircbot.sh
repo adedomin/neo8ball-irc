@@ -131,7 +131,7 @@ reload_config() {
     fi
     # pass change for nickserv
     if [ "$NICKSERV" != "$_NICKSERV" ]; then
-        printf "%s\r\n" "PRIVMSG NickServ :IDENTIFY $NICKSERV" >&3
+        printf "%s\r\n" "NICKSERV IDENTIFY $NICKSERV" >&3
     fi
     
     # join or part channels based on new channel list
@@ -195,8 +195,8 @@ fi
 # After server "identifies" the bot
 # joins all channels
 # identifies with nickserv
-# NOTE: does not determine if 
-#       nickserv is available
+# NOTE: ircd must implement NICKSERV command
+#       This command is not technically a standard
 post_ident() {
     # join chans
     local CHANNELS_
@@ -209,7 +209,7 @@ post_ident() {
     # ident with nickserv
     if [ -n "$NICKSERV" ]; then
         # bypass logged send_cmd/send_msg
-        printf "%s\r\n" "PRIVMSG NickServ :IDENTIFY $NICKSERV" >&3
+        printf "%s\r\n" "NICKSERV IDENTIFY $NICKSERV" >&3
     fi
 }
 
