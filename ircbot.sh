@@ -86,15 +86,22 @@ fi
 # handler to terminate bot
 # can not trap SIGKILL
 # make sure you kill with SIGTERM or SIGINT
+EXIT_STATUS=0
 quit_prg() {
     pkill -P $$
     exec 3>&-
     exec 4>&-
     exec 5>&-
     rm -rf "$temp_dir/bash-ircbot"
-    exit 0
+    exit "$EXIT_STATUS"
 }
 trap 'quit_prg' SIGINT SIGTERM
+
+exit_failure() {
+    EXIT_STATUS=1
+    quit_prg
+}
+trap 'exit_failure' SIGUSR1
 
 # helper for channel config reload
 # determine if chan is in channel list
@@ -128,7 +135,11 @@ reload_config() {
     fi
     
     # join or part channels based on new channel list
-    uniq_chan_list="$(printf '%s\n' "${_CHANNELS[@]}" "${CHANNELS[@]}" | sort | uniq -u)"
+    uniq_chan_list="$(
+        printf '%s\n' "${_CHANNELS[@]}" "${CHANNELS[@]}" \
+        | sort \
+        | uniq -u
+    )"
     for uniq_chan in $uniq_chan_list; do
         if contains_chan "$uniq_chan" "${_CHANNELS[@]}"; then
             send_cmd <<< ":l $uniq_chan"
@@ -154,6 +165,11 @@ if [ -z "$NICK" ]; then
     NICK="ircbashbot"
 fi
 
+# fail if no server
+if [ -z "$SERVER" ]; then
+    die "A server must be defined; check the configuration."
+fi
+
 # Connect to server
 [ -n "$TLS" ] && TLS="--ssl"
 if [ -z "$BASH_TCP" ]; then
@@ -161,8 +177,9 @@ if [ -z "$BASH_TCP" ]; then
         die "unknown failure mapping named pipe ($infile) to fd"
     exec 4<> "$outfile" ||
         die "unknown failure mapping named pipe ($outfile) to fd"
-    ( ncat "$SERVER" "$PORT" "$TLS" <&3 >&4
-      kill -TERM $$ ) &
+    ( ncat "$SERVER" "${PORT:-6667}" "$TLS" <&3 >&4
+      echo "*** CRITICAL *** ncat closed unexpectedly" >&2
+      kill -USR1 $$ ) &
 else
     infile="/dev/tcp/${SERVER}/${PORT}"
     exec 3<> "$infile" ||
