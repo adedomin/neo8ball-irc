@@ -37,11 +37,8 @@ done < <(
     curl "${SEARCH_ENGINE}$(URI_ENCODE "$4")" 2>/dev/null \
     | sed 's@<\([^/a]\|/[^a]\)[^>]*>@@g' \
     | grep -F 'class="result__a"' \
-    | html2 \
-    | sed '/@class\|@rel\|^\/html\/body=/d' \
-    | grep -Po '(?<=\/a(=|\/)).*' \
-    | paste -d " " - - \
-    | cut -c 22- \
+    | grep -Po '(?<=uddg=).*' \
+    | sed 's/">/ /;s/<\/a>//' \
     | sed '/r.search.yahoo/d' \
     | head -n 3
 )
