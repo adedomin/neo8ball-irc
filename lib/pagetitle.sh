@@ -20,7 +20,7 @@ while read -r key val; do
             mime="${mime%%;*}"
         ;;
         content-length:)
-            sizeof="$(numfmt --to=iec-i "${val%$'\r'}")"
+            sizeof="$(numfmt --suffix='B' --to=iec-i "${val%$'\r'}")"
         ;;
     esac
 done < <(
@@ -29,7 +29,7 @@ done < <(
 
 [ -z "$mime" ] && exit 0 
 if [[ ! "$mime" =~ text/html|application/xhtml+xml ]]; then
-    echo -e ":m $1 ↑ \002File\002 :: $mime (${sizeof}B)"
+    echo -e ":m $1 ↑ \002File\002 :: $mime (${sizeof:-Unknown})"
     exit 0
 fi
 
@@ -49,6 +49,6 @@ read -rd '' title < <(
           }
           $! b next
         }' | 
-    recode -d utf8..html | recode html..utf8 | tr -d '\n\r'
+    recode -d utf8..html | recode html..utf8 | tr '\r\n' ' '
 )
 echo -e ":m $1 ↑ \002Title\002 :: ${title:0:400}"
