@@ -24,10 +24,11 @@ youtube="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=
 while read -r id title; do
     [ -z "$title" ] && exit
     stats="https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${id}&key=${YOUTUBE_KEY}"
+    echo stats
     while read -r likes dislikes views; do
-        echo -e ":m $1 "$'\002'"${title}\002 :: https://youtu.be/${id} ::" \
-                      $'\003'"03\u25B2 $(numfmt --grouping "$likes")\003 ::" \
-                      $'\003'"04\u25BC $(numfmt --grouping "$dislikes")\003 ::" \
+        echo -e ":m $1 "$'\002'"${title}\002 "$'\003'"03::\003 https://youtu.be/${id} "$'\003'"03::\003" \
+                      $'\003'"09\u25B2 $(numfmt --grouping "$likes")\003 "$'\003'"03::\003" \
+                      $'\003'"04\u25BC $(numfmt --grouping "$dislikes")\003 "$'\003'"03::\003" \
                       "\002Views\002 $(numfmt --grouping "$views")"
 	done < <(
 	    curl "${stats}" -f 2>/dev/null |
