@@ -28,7 +28,7 @@ while read -r id title; do
         echo -e ":m $1 "$'\002'"${title}\002 :: https://youtu.be/${id} ::" \
                       "\u25B2 "$'\003'"03$(numfmt --grouping "$likes")\003 ::" \
                       "\u25BC "$'\003'"04$(numfmt --grouping "$dislikes")\003 ::" \
-                      "VIEWS: $(numfmt --grouping "$views")"
+                      "\002Views\002 $(numfmt --grouping "$views")"
 	done < <(
 	    curl "${stats}" -f 2>/dev/null |
 	    jq -r '.items[0] //empty |
