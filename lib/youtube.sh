@@ -18,12 +18,12 @@ if [ -z "$4" ]; then
     exit 0
 fi
 
-youtube="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=$(URI_ENCODE "$3")&maxResults=3&key=${key}"
+youtube="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=$(URI_ENCODE "$3")&maxResults=3&key=${YOUTUBE_KEY}"
 
 
 while read -r id title; do
     [ -z "$title" ] && exit
-    stats="https://www.googleapis.com/youtube/v3/videos?part=statistics&id="${id}"&key=${key}"
+    stats="https://www.googleapis.com/youtube/v3/videos?part=statistics&id="${id}"&key=${YOUTUBE_KEY}"
     echo -e ":m Stats URL: ${stats}"
     while read -r likes dislikes views; do
 	commalikes=$( echo $likes | sed 's/\B[0-9]\{3\}\>/,&/' )
