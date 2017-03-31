@@ -23,15 +23,15 @@ youtube="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=
 
 while read -r id title; do
     [ -z "$title" ] && exit
-    stats="https://www.googleapis.com/youtube/v3/videos?part=statistics&id="${id}"&key=${YOUTUBE_KEY}"
+    stats="https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${id}&key=${YOUTUBE_KEY}"
     while read -r likes dislikes views; do
-	commalikes=$( echo $likes | sed 's/\B[0-9]\{3\}\>/,&/' )
-	commadislikes=$( echo $dislikes | sed 's/\B[0-9]\{3\}\>/,&/' )
-	commaviews=$( echo $views | sed 's/\B[0-9]\{3\}\>/,&/' )
-    	echo -e ":m $1 \002${title}\002 :: https://youtu.be/${id} :: \u25B2 ${commalikes} | \u25BC ${commadislikes} | VIEWS: ${commaviews}"
+        echo -e ":m $1 \002${title}\002 :: https://youtu.be/${id} ::" \
+                      "\u25B2 \00303$(numfmt --grouping "$likes")\003 ::" \
+                      "\u25BC \00304$(numfmt --grouping "$dislikes") ::" \
+                      "VIEWS: $(numfmt --grouping "$views")"
 	done < <(
 	    curl "${stats}" -f 2>/dev/null |
-	    jq -r '.items[0],.items[1] //empty |
+	    jq -r '.items[0] //empty |
 		.statistics.likeCount + " " + 
 		.statistics.dislikeCount + " " +
 		.statistics.viewCount
