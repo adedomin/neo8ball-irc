@@ -36,7 +36,7 @@ while read -r url title; do
         echo ":m $1 No more results"
         exit 0
     fi
-    echo -e ":m $1 \002$(HTML_DECODE "$title")\002 :: $(URI_DECODE "$url")"
+    echo -e ":m $1 "$'\002'"$(HTML_DECODE "$title")\002 :: $(URI_DECODE "$url")"
 done < <(
     curl "${SEARCH_ENGINE}$(URI_ENCODE "$4")" 2>/dev/null \
     | sed 's@<\([^/a]\|/[^a]\)[^>]*>@@g' \

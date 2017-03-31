@@ -33,7 +33,7 @@ echo "$DICTIONARY" |
 while read -r definition; do
     (( ${#definition} > 400 )) && 
         definition="${definition:0:400}..."
-    echo -e ":m $1 \002${4}\002 :: $definition"
+    echo -e ":m $1 "$'\002'"${4}\002 :: $definition"
 done
 
 echo ":mn $3 See More: $DICTIONARY"

@@ -50,7 +50,7 @@ fi
 
 for i in $(seq 0 $((AMT_RESULTS-1))); do
   [ -z "${titles[$i]}" ] && exit 0 
-  echo -e ":m $1 \002${titles[$i]}\002 :: ${urls[$i]}"
+  echo -e ":m $1 "$'\002'"${titles[$i]}\002 :: ${urls[$i]}"
 done
 
 

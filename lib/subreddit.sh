@@ -39,7 +39,7 @@ while read -r key value; do
         ;;
         *entry/title)
             (( ${#value} > 200 )) && value="${value:0:200}..."
-            echo -e ":m $1 \002${value}\002 :: $HREF"
+            echo -e ":m $1 "$'\002'"${value}\002 :: $HREF"
         ;;
     esac
 done < <(

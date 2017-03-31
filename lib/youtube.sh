@@ -25,9 +25,9 @@ while read -r id title; do
     [ -z "$title" ] && exit
     stats="https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${id}&key=${YOUTUBE_KEY}"
     while read -r likes dislikes views; do
-        echo -e ":m $1 \002${title}\002 :: https://youtu.be/${id} ::" \
-                      "\u25B2 \00303$(numfmt --grouping "$likes")\003 ::" \
-                      "\u25BC \00304$(numfmt --grouping "$dislikes") ::" \
+        echo -e ":m $1 "$'\002'"${title}\002 :: https://youtu.be/${id} ::" \
+                      "\u25B2 "$'\003'"03$(numfmt --grouping "$likes")\003 ::" \
+                      "\u25BC "$'\003'"04$(numfmt --grouping "$dislikes")\003 ::" \
                       "VIEWS: $(numfmt --grouping "$views")"
 	done < <(
 	    curl "${stats}" -f 2>/dev/null |

@@ -67,7 +67,7 @@ else
     CURR_CELS=$'\003'"03$CURR_CELS"$'\003'
 fi
 
-echo -e ":m $1 \002${loc}\002 ::" \
+echo -e ":m $1 "$'\002'"${loc}\002 ::" \
     "\002Conditions\002 $COND ::" \
     "\002Temp\002 $CURR_CELS °C | $CURR_FAHR °F ::" \
     "\002Humidity\002 $HUMIDITY% ::" \
