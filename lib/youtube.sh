@@ -27,8 +27,8 @@ while read -r id title; do
     echo stats
     while read -r likes dislikes views; do
         echo -e ":m $1 "$'\002'"${title}\002 :: https://youtu.be/${id} ::" \
-                      $'\003'"\u25B2 03$(numfmt --grouping "$likes")\003 ::" \
-                      $'\003'"\u25BC 04$(numfmt --grouping "$dislikes")\003 ::" \
+                      $'\003'"03\u25B2 $(numfmt --grouping "$likes")\003 ::" \
+                      $'\003'"04\u25BC $(numfmt --grouping "$dislikes")\003 ::" \
                       "\002Views\002 $(numfmt --grouping "$views")"
 	done < <(
 	    curl "${stats}" -f 2>/dev/null |

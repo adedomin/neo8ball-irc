@@ -7,7 +7,7 @@ NICKSERV=
 # irc server
 SERVER="irc.rizon.net"
 # channels to join
-CHANNELS=("#papi")
+CHANNELS=("#ghetty")
 
 # port number
 PORT="6697"
@@ -113,7 +113,7 @@ export OWM_KEY=""
 # comment out to disabable weatherdb.sh
 export PERSIST_LOC="/tmp"
 # for youtube.sh
-export YOUTUBE_KEY="AIzaSyCH_e2jrzdM7jGjkX2mrMkWWzapJD8wkZ4"
+export YOUTUBE_KEY=""
 # you have to generate bible_db yourself, see create-db.sh in ./static
 #export BIBLE_DB="$(dirname "$0")/static/kjbible-quran.db"
 export BIBLE_SOURCE="$(dirname "$0")/static/king-james.txt"
