@@ -18,7 +18,7 @@ if [ -z "$4" ]; then
     exit 0
 fi
 
-youtube="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=$(URI_ENCODE "$3")&maxResults=3&key=${YOUTUBE_KEY}"
+youtube="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=$(URI_ENCODE "$4")&maxResults=3&key=${YOUTUBE_KEY}"
 
 
 while read -r id title; do
