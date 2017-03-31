@@ -1,13 +1,13 @@
 # shellcheck disable=2034
 # nickname, also username
-NICK="neo8ball-dev"
+NICK="neo8ball"
 # NickServ password
 # blank for unreg
 NICKSERV=
 # irc server
 SERVER="irc.rizon.net"
 # channels to join
-CHANNELS=("#ghetty")
+CHANNELS=("#prussian")
 
 # port number
 PORT="6697"
@@ -108,7 +108,7 @@ ANTISPAM_COUNT=3
 # variables for plugins
 # comment out if you don't want 
 # to use OpenWeatherMap plugin
-export OWM_KEY=""
+export OWM_KEY="your owm key here"
 # your persistant storage here, 
 # comment out to disabable weatherdb.sh
 export PERSIST_LOC="/tmp"
