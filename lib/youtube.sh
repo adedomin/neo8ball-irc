@@ -24,7 +24,6 @@ youtube="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=
 while read -r id title; do
     [ -z "$title" ] && exit
     stats="https://www.googleapis.com/youtube/v3/videos?part=statistics&id="${id}"&key=${YOUTUBE_KEY}"
-    echo -e ":m Stats URL: ${stats}"
     while read -r likes dislikes views; do
 	commalikes=$( echo $likes | sed 's/\B[0-9]\{3\}\>/,&/' )
 	commadislikes=$( echo $dislikes | sed 's/\B[0-9]\{3\}\>/,&/' )
