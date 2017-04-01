@@ -303,16 +303,17 @@ check_ignore() {
             return 1
         fi
     done
-    if [ -n "$ANTISPAM" ] &&
-        [ -f "$antispam/$1" ] && 
-        [ "$(wc -l < "$antispam/$1")" -ge "${ANTISPAM_COUNT:-3}" ] &&
-        (( ($(date +"%s") - $(date -r "$antispam/$1" +"%s")) <= ${ANTISPAM_TIMEOUT:-30} ))
-    then
-        return 1
-    elif [ -f "$antispam/$1" ] && 
-        (( ($(date +"%s") - $(date -r "$antispam/$1" +"%s")) > ${ANTISPAM_TIMEOUT:-30} ))
-    then
-        rm "$antispam/$1"
+    if [ -n "$ANTISPAM" ]; then
+        if [ -f "$antispam/$1" ] && 
+            [ "$(wc -l < "$antispam/$1")" -ge "${ANTISPAM_COUNT:-3}" ] &&
+            (( ($(date +"%s") - $(date -r "$antispam/$1" +"%s")) <= ${ANTISPAM_TIMEOUT:-30} ))
+        then
+            return 1
+        elif [ -f "$antispam/$1" ] && 
+            (( ($(date +"%s") - $(date -r "$antispam/$1" +"%s")) > ${ANTISPAM_TIMEOUT:-30} ))
+        then
+            rm "$antispam/$1"
+        fi
     fi
     return 0
 }
