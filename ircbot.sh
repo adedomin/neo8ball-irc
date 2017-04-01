@@ -308,6 +308,7 @@ check_ignore() {
             [ "$(wc -l < "$antispam/$1")" -ge "${ANTISPAM_COUNT:-3}" ] &&
             (( ($(date +"%s") - $(date -r "$antispam/$1" +"%s")) <= ${ANTISPAM_TIMEOUT:-30} ))
         then
+            send_log "INFO" "SPAMMER -> $1"
             return 1
         elif [ -f "$antispam/$1" ] && 
             (( ($(date +"%s") - $(date -r "$antispam/$1" +"%s")) > ${ANTISPAM_TIMEOUT:-30} ))
