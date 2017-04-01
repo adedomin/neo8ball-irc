@@ -100,9 +100,10 @@ IGNORE=(
 # prevent users from abusing your bot
 # set to blank to disable
 ANTISPAM=yes
-# interval to clear antispam list
-ANTISPAM_TIMEOUT=10s
-# number of times user called command
+# time in seconds to timeout users
+ANTISPAM_TIMEOUT=30
+# number of times user called command 
+# within the timeout period
 ANTISPAM_COUNT=3
 
 # variables for plugins

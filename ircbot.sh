@@ -62,6 +62,11 @@ else
     usage
 fi
 
+# set default temp dir path if not set
+if [ -z "$temp_dir" ]; then
+    temp_dir=/tmp
+fi
+
 # set up IPC mechanisms
 # named pipes to connect ncat to message loop
 # shellcheck disable=SC2154
@@ -79,8 +84,8 @@ mkfifo "$outfile" ||
 # shellcheck disable=SC2153
 if [ -n "$ANTISPAM" ]; then
     antispam="$temp_dir/bash-ircbot/antispam"
-    touch "$antispam" ||
-        die "couldn't make file"
+    mkdir "$antispam" ||
+        die "couldn't make antispam directory"
 fi
 
 # handler to terminate bot
@@ -299,9 +304,15 @@ check_ignore() {
         fi
     done
     if [ -n "$ANTISPAM" ] &&
-        [ "$(grep -Fxc "$1" "$antispam")" -ge "${ANTISPAM_COUNT:-3}" ]
+        [ -f "$antispam/$1" ] && 
+        [ "$(wc -l < "$antispam/$1")" -ge "${ANTISPAM_COUNT:-3}" ] &&
+        (( ($(date +"%s") - $(date -r "$antispam/$1" +"%s")) <= ${ANTISPAM_TIMEOUT:-30} ))
     then
         return 1
+    elif [ -f "$antispam/$1" ] && 
+        (( ($(date +"%s") - $(date -r "$antispam/$1" +"%s")) > ${ANTISPAM_TIMEOUT:-30} ))
+    then
+        rm "$antispam/$1"
     fi
     return 0
 }
@@ -325,7 +336,7 @@ handle_privmsg() {
         if [ "$message" = $'\001VERSION\001' ]; then
             echo -e ":mn $3 \001VERSION $VERSION\001"
             echo ":ld CTCP VERSION -> $3 <$3> $4"
-            [ -n "$ANTISPAM" ] && echo "$3" >&5
+            [ -n "$ANTISPAM" ] && echo "1" >> "$antispam/$3"
             return
         fi
 
@@ -337,7 +348,7 @@ handle_privmsg() {
             cmd="$PRIVMSG_DEFAULT_CMD"
         fi
         [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
-        [ -n "$ANTISPAM" ] && echo "$3" >&5
+        [ -n "$ANTISPAM" ] && echo "1" >> "$antispam/$3"
         "$LIB_PATH/${COMMANDS[$cmd]}" \
             "$3" "$2" "$3" "$args" "$cmd"
         echo ":ld PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $args"
@@ -350,7 +361,7 @@ handle_privmsg() {
     if [[ "$4" =~ $highlight ]]; then
         # shellcheck disable=SC2153
         [ -x "$LIB_PATH/$HIGHLIGHT" ] || return
-        [ -n "$ANTISPAM" ] && echo "$3" >&5
+        [ -n "$ANTISPAM" ] && echo "1" >> "$antispam/$3"
         "$LIB_PATH/$HIGHLIGHT" \
             "$1" "$2" "$3" "${BASH_REMATCH[1]}" "$LIB_PATH"
         echo ":ld HIGHLIGHT EVENT -> $1 <$3> $4"
@@ -366,7 +377,7 @@ handle_privmsg() {
         cmd="${cmd:1}"
         [ -n "${COMMANDS[$cmd]}" ] || return
         [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
-        [ -n "$ANTISPAM" ] && echo "$3" >&5
+        [ -n "$ANTISPAM" ] && echo "1" >> "$antispam/$3"
         "$LIB_PATH/${COMMANDS[$cmd]}" \
             "$1" "$2" "$3" "$args" "$cmd"
         echo ":ld COMMAND EVENT -> $cmd: $1 <$3> $args"
@@ -378,7 +389,7 @@ handle_privmsg() {
     for reg in "${!REGEX[@]}"; do
         if [[ "$4" =~ $reg ]]; then
             [ -x "$LIB_PATH/${REGEX[$reg]}" ] || return
-            [ -n "$ANTISPAM" ] && echo "$3" >&5
+            [ -n "$ANTISPAM" ] && echo "1" >> "$antispam/$3"
             "$LIB_PATH/${REGEX[$reg]}" \
                 "$1" "$2" "$3" "$4" "${BASH_REMATCH[0]}"
             echo ":ld REGEX EVENT -> $reg: $1 <$3> $4"
@@ -401,14 +412,6 @@ if [ -z "$BASH_TCP" ]; then
     while sleep 10m; do
         echo -ne '\r\n' >&3
         echo -ne '\r\n' >&3
-    done &
-fi
-
-# remove a nick from antispam list every x seconds
-if [ -n "$ANTISPAM" ]; then
-    exec 5<> "$antispam"
-    while sleep "${ANTISPAM_TIMEOUT:-30s}"; do
-        echo -n '' > "$antispam"
     done &
 fi
 
