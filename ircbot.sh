@@ -427,11 +427,14 @@ fi
 send_msg "NICK $NICK"
 send_msg "USER $NICK +i * :$NICK"
 # IRC event loop
+# Link: 2017-04-02 19:47:10 :Closing <ERROR> edominic.pw (Banned)
 while read -r user command channel message; do
     # if ping request
     if [ "$user" = "PING" ]; then
         send_msg "PONG $command"
         continue
+    elif [ "$user" = 'ERROR' ]; then # probably banned?
+        die "${command:1} $channel $message"
     fi
     # needs to be here, prior to pruning
     kick="${message% :*}"
