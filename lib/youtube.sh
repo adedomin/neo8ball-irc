@@ -20,27 +20,34 @@ fi
 
 youtube="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=$(URI_ENCODE "$4")&maxResults=3&key=${YOUTUBE_KEY}"
 
+while read -r id; do
+    if [ -z "$ids" ]; then
+        ids=$id
+    else
+        ids=$ids,$id
+    fi
 
-while read -r id title; do
-    [ -z "$title" ] && exit
-    stats="https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${id}&key=${YOUTUBE_KEY}"
-    while read -r likes dislikes views; do
-        echo -e ":m $1 "$'\002'"${title}\002 "$'\003'"03::\003 https://youtu.be/${id} "$'\003'"03::\003" \
-                      $'\003'"09\u25B2 $(numfmt --grouping "$likes")\003 "$'\003'"03::\003" \
-                      $'\003'"04\u25BC $(numfmt --grouping "$dislikes")\003 "$'\003'"03::\003" \
-                      "\002Views\002 $(numfmt --grouping "$views")"
-	done < <(
-	    curl "${stats}" -f 2>/dev/null |
-	    jq -r '.items[0] //empty |
-		.statistics.likeCount + " " + 
-		.statistics.dislikeCount + " " +
-		.statistics.viewCount
-   	    '
-	)
 done < <(
     curl "${youtube}" -f 2>/dev/null |
     jq -r '.items[0],.items[1],.items[2] //empty |
-        .id.videoId + " " + 
-        .snippet.title                
-    '
+        .id.videoId
+        '
+)
+
+stats="https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${ids}&key=${YOUTUBE_KEY}"
+
+while read -r id2 likes dislikes views title; do
+    echo -e ":m $1 "$'\002'"${title}\002 "$'\003'"09::\003 https://youtu.be/${id2} "$'\003'"09::\003" \
+                    $'\003'"03\u25B2 $(numfmt --grouping "$likes")\003 "$'\003'"09::\003" \
+                    $'\003'"04\u25BC $(numfmt --grouping "$dislikes")\003 "$'\003'"09::\003" \
+                    "\002Views\002 $(numfmt --grouping "$views")"
+done < <(
+    curl "${stats}" |
+    jq -r '.items[0],.items[1],.items[2] //empty |
+        .id + " " +
+        .statistics.likeCount + " " +
+        .statistics.dislikeCount + " " +
+        .statistics.viewCount + " " +
+        .snippet.title
+        '
 )
