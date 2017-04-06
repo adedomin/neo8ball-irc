@@ -47,7 +47,7 @@ while read -r id2 likes dislikes views title; do
                     $'\003'"04\u25BC $(numfmt --grouping "$dislikes")\003 "$'\003'"09::\003" \
                     "\002Views\002 $(numfmt --grouping "$views")"
 done < <(
-    curl "${stats}" |
+    curl "${stats}" 2>/dev/null |
     jq -r '.items[0],.items[1],.items[2] //empty |
         .id + " " +
         .statistics.likeCount + " " +
