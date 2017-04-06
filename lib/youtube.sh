@@ -18,25 +18,30 @@ if [ -z "$4" ]; then
     exit 0
 fi
 
-youtube="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=$(URI_ENCODE "$4")&maxResults=3&key=${YOUTUBE_KEY}"
+if [ "$5" = 'youtu.be' ] || [ "$5" = 'youtube.com' ]; then
+    ids="$(grep -Po '(?<=watch?v=)[^&?]*|(?<=youtu\.be/[^?&]*)' <<< "$4")"
+fi
 
-while read -r id; do
-    if [ -z "$ids" ]; then
-        ids=$id
-    else
-        ids=$ids,$id
-    fi
+if [ -z "$ids" ]; then
+    youtube="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=$(URI_ENCODE "$4")&maxResults=3&key=${YOUTUBE_KEY}"
+    while read -r id; do
+        if [ -z "$ids" ]; then
+            ids=$id
+        else
+            ids=$ids,$id
+        fi
 
-done < <(
-    curl "${youtube}" -f 2>/dev/null |
-    jq -r '.items[0],.items[1],.items[2] //empty |
-        .id.videoId
-        '
-)
+    done < <(
+        curl "${youtube}" -f 2>/dev/null |
+        jq -r '.items[0],.items[1],.items[2] //empty |
+               .id.videoId'
+    )
+fi
 
 stats="https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${ids}&key=${YOUTUBE_KEY}"
 
 while read -r id2 likes dislikes views title; do
+    [ -z "$title" ] && exit 0
     echo -e ":m $1 "$'\002'"${title}\002 "$'\003'"09::\003 https://youtu.be/${id2} "$'\003'"09::\003" \
                     $'\003'"03\u25B2 $(numfmt --grouping "$likes")\003 "$'\003'"09::\003" \
                     $'\003'"04\u25BC $(numfmt --grouping "$dislikes")\003 "$'\003'"09::\003" \
@@ -48,6 +53,5 @@ done < <(
         .statistics.likeCount + " " +
         .statistics.dislikeCount + " " +
         .statistics.viewCount + " " +
-        .snippet.title
-        '
+        .snippet.title'
 )
