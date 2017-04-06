@@ -89,7 +89,7 @@ COMMANDS=(
 # uses bash regex language
 declare -gA REGEX
 REGEX=(
-['(https?)://(www.)?(youtube.com|youtu.be)']='youtube.sh'
+['youtube.com|youtu.be']='youtube.sh'
 ['(https?)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]']="pagetitle.sh"
 )
 
