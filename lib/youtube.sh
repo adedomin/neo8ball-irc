@@ -19,7 +19,7 @@ if [ -z "$4" ]; then
 fi
 
 if [ "$5" = 'youtu.be' ] || [ "$5" = 'youtube.com' ]; then
-    ids="$(grep -Po '(?<=watch?v=)[^&?]*|(?<=youtu\.be/[^?&]*)' <<< "$4")"
+    ids="$(grep -Po '(?<=watch\?v=)[^&?]*|(?<=youtu\.be/)[^?&]*' <<< "$4")"
 fi
 
 if [ -z "$ids" ]; then
