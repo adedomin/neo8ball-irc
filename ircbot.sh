@@ -175,26 +175,9 @@ if [ -z "$SERVER" ]; then
     die "A server must be defined; check the configuration."
 fi
 
+[ -n "$TLS" ] && TLS="--ssl"
 # this mode should be used for testing only
-if [ -z "$MOCK_CONN_TEST" ]; then
-    # Connect to server
-    [ -n "$TLS" ] && TLS="--ssl"
-    if [ -z "$BASH_TCP" ]; then
-        exec 3<> "$infile" ||
-            die "unknown failure mapping named pipe ($infile) to fd"
-        exec 4<> "$outfile" ||
-            die "unknown failure mapping named pipe ($outfile) to fd"
-        ( ncat "$SERVER" "${PORT:-6667}" "$TLS" <&3 >&4
-          echo "*** CRITICAL *** ncat closed unexpectedly" >&2
-          kill -USR1 $$ ) &
-    else
-        infile="/dev/tcp/${SERVER}/${PORT}"
-        exec 3<> "$infile" ||
-            die "Cannot connect to ($SERVER) on port ($PORT)"
-        exec 4<&3 ||
-            die "unknown failure mapping named pipe ($infile) to fd"
-    fi
-else
+if [ -n "$MOCK_CONN_TEST" ]; then
     # send irc communication to
     exec 4>&0 # from server stdin
     exec 3<&1 # to   server stdout
@@ -202,6 +185,25 @@ else
     exec 1<&2 # remap stdout to err for logs
     # full logging
     LOG_LEVEL=1
+    # we ARE stdout in this case
+    LOG_STDOUT=
+    # disable ncat half close check
+    BASH_TCP=1
+# Connect to server otherwise
+elif [ -z "$BASH_TCP" ]; then
+    exec 3<> "$infile" ||
+        die "unknown failure mapping named pipe ($infile) to fd"
+    exec 4<> "$outfile" ||
+        die "unknown failure mapping named pipe ($outfile) to fd"
+    ( ncat "$SERVER" "${PORT:-6667}" "$TLS" <&3 >&4
+      echo "*** CRITICAL *** ncat closed unexpectedly" >&2
+      kill -USR1 $$ ) &
+else
+    infile="/dev/tcp/${SERVER}/${PORT}"
+    exec 3<> "$infile" ||
+        die "Cannot connect to ($SERVER) on port ($PORT)"
+    exec 4<&3 ||
+        die "unknown failure mapping named pipe ($infile) to fd"
 fi
 
 #################
