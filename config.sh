@@ -107,6 +107,10 @@ ANTISPAM_TIMEOUT=30
 # within the timeout period
 ANTISPAM_COUNT=3
 
+# time in minutes to check for closed socket
+# this is applicable if you use ncat
+HALFCLOSE_CHECK=3
+
 # variables for plugins
 # comment out if you don't want 
 # to use OpenWeatherMap plugin

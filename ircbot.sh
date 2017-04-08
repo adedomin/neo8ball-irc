@@ -424,7 +424,7 @@ handle_privmsg() {
 # fd's on linux should be buffered
 # so no race condition
 if [ -z "$BASH_TCP" ]; then
-    while sleep 10m; do
+    while sleep "${HALFCLOSE_CHECK:-3}m"; do
         echo -ne '\r\n' >&3
         echo -ne '\r\n' >&3
     done &
