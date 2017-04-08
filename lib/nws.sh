@@ -49,13 +49,18 @@ if [[ "$arg" =~ ^search ]]; then
 
     if [ ! -f "$PERSIST_LOC/stations.txt" ]; then
         curl 'http://weather.rap.ucar.edu/surface/stations.txt' \
-        -L 2>/dev/null | \
-            sed '/^!/d' > "$PERSIST_LOC/stations.txt"
+            -L 2>/dev/null \
+        | sed '/^!/d' > "$PERSIST_LOC/stations.txt"
     fi
 
     # shellcheck disable=2034
     read -r srch query <<< "$arg"
-    echo ":m $1 $(grep -F -m 1 -i "$query" "$PERSIST_LOC/stations.txt" | cut -c 4-24)"
+    while read -r line; do
+        echo ":m $1 $line"
+    done < <(
+        grep -F -m 3 -i "$query" "$PERSIST_LOC/stations.txt" \
+        | cut -c 4-24
+    )
     exit 0
 fi
 

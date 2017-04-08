@@ -157,7 +157,7 @@ trap 'reload_config' SIGHUP SIGWINCH
 
 # check for ncat, use bash tcp otherwise
 # fail hard if user wanted tls and ncat not found
-if [ -z "$(which ncat 2>/dev/null)" ]; then
+if ! which ncat >/dev/null 2>&1; then
         echo "*** NOTICE *** ncat not found; using bash tcp"
     [ -n "$TLS" ] && 
         die "TLS does not work with bash tcp"
@@ -252,8 +252,8 @@ send_log() {
         echo "*** $1 *** $2"
 }
 
-# any literal argument/s will be sent
-# must be a valid IRC command string
+# any literal argument/s will be sent as their own line
+# must be valid IRC command string or strings
 send_msg() {
     printf "%s\r\n" "$*" >&3
     send_log "DEBUG" "SENT -> $*"

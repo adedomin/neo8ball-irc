@@ -110,12 +110,12 @@ ANTISPAM_COUNT=3
 # variables for plugins
 # comment out if you don't want 
 # to use OpenWeatherMap plugin
-export OWM_KEY="your owm key here"
+export OWM_KEY="your owm key"
 # your persistant storage here, 
 # comment out to disabable weatherdb.sh
 export PERSIST_LOC="/tmp"
 # for youtube.sh
-export YOUTUBE_KEY=""
+export YOUTUBE_KEY="your youtube api key"
 # you have to generate bible_db yourself, see create-db.sh in ./static
 #export BIBLE_DB="$(dirname "$0")/static/kjbible-quran.db"
 export BIBLE_SOURCE="$(dirname "$0")/static/king-james.txt"
@@ -131,5 +131,5 @@ URI_ENCODE() {
 }
 export -f URI_ENCODE
 
-# DO NOT ENABLE THIS UNLESS YOU'RE UNIT TESTING
+# DO NOT ENABLE THIS UNLESS YOU'RE TESTING
 #MOCK_CONN_TEST=yes
