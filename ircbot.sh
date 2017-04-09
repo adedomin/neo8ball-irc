@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v2.0.0-RC1"
+VERSION="bash-ircbot: v2.3.0"
 
 usage() {
     echo "usage: $0 [-c config]"
