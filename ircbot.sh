@@ -401,11 +401,13 @@ handle_privmsg() {
 
     # fallback regex check on message
     # 5th arguemnt is the fully matched string
-    for reg in "${!REGEX[@]}"; do
-        if [[ "$4" =~ $reg ]]; then
-            [ -x "$LIB_PATH/${REGEX[$reg]}" ] || return
+    # odd number index should be the plugin
+    # even should be command
+    for (( i=0; i<${#REGEX[@]}; i=i+2 )); do
+        if [[ "$4" =~ ${REGEX[$i]} ]]; then
+            [ -x "$LIB_PATH/${REGEX[((i+1))]}" ] || return
             [ -n "$ANTISPAM" ] && echo "1" >> "$antispam/$3"
-            "$LIB_PATH/${REGEX[$reg]}" \
+            "$LIB_PATH/${REGEX[((i+1))]}" \
                 "$1" "$2" "$3" "$4" "${BASH_REMATCH[0]}"
             echo ":ld REGEX EVENT -> $reg: $1 <$3> $4"
             return
@@ -440,7 +442,6 @@ fi
 send_msg "NICK $NICK"
 send_msg "USER $NICK +i * :$NICK"
 # IRC event loop
-# Link: 2017-04-02 19:47:10 :Closing <ERROR> edominic.pw (Banned)
 while read -r user command channel message; do
     # if ping request
     if [ "$user" = "PING" ]; then

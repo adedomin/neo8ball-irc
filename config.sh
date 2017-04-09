@@ -87,10 +87,19 @@ COMMANDS=(
 # regex patterns
 # if you need more fine grained control
 # uses bash regex language
-declare -gA REGEX
+#
+# NOTE: as of the latest version
+# regex is changed to an array
+# this is to ensure strict ordering.
+# the program expects the array to order
+# them in the format of
+# 'REGEX' 'command'
+# or in other words, every even index (first index is 0) 
+# should be a regex and every uneven index should be 
+# the plugin to execute
 REGEX=(
-['youtube.com|youtu.be']='youtube.sh'
-['(https?)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]']="pagetitle.sh"
+'youtube.com|youtu.be' 'youtube.sh'
+'(https?)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]' 'pagetitle.sh'
 )
 
 # list of nicks to ignore from, such as other bots
