@@ -19,18 +19,21 @@ if [ -z "$4" ]; then
     exit 0
 fi
 
+# kept for advert
 URBAN="http://www.urbandictionary.com/define.php?term=$(URI_ENCODE "$4")"
+NEW_URBAN="http://api.urbandictionary.com/v0/define?term=$(URI_ENCODE "$4")"
 
 while read -r definition; do
     (( ${#definition} > 400 )) && 
         definition="${definition:0:400}..."
     echo -e ":m $1 "$'\002'"${4}\002 :: $definition"
 done < <(
-  curl "$URBAN" -L -f 2>/dev/null \
-  | grep -A 2 -m 3 "<div class='meaning'>" \
-  | sed '/^--/d;/<\/*div/d' \
-  | sed 's/<[^>]*>//g' \
-  | recode html..UTF-8
+  curl "$NEW_URBAN" -L -f 2>/dev/null \
+  | jq -r '.list[0],.list[1],.list[2] //empty 
+        | .definition
+        | sub("\r|\n"; " "; "g")
+        | sub("  +"; " "; "g")
+    '
 )
 
 echo ":mn $3 See More: $URBAN"
