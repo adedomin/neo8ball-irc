@@ -43,7 +43,7 @@ stats="https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,cont
 while read -r id2 likes dislikes views duration title; do
     [ -z "$title" ] && exit 0
     duration="${duration:2}"
-    echo -e ":m $1 "$'\002'"${title}\002 "$'\003'"09::\003 https://youtu.be/${id2} (${duration,,}) "$'\003'"09::\003" \
+    echo -e ":m $1 "$'\002'"${title}\002 (${duration,,}) "$'\003'"09::\003 https://youtu.be/${id2} "$'\003'"09::\003" \
                     $'\003'"03\u25B2 $(numfmt --grouping "$likes")\003 "$'\003'"09::\003" \
                     $'\003'"04\u25BC $(numfmt --grouping "$dislikes")\003 "$'\003'"09::\003" \
                     "\002Views\002 $(numfmt --grouping "$views")"
