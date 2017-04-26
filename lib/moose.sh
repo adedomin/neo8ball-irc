@@ -50,6 +50,108 @@ COLOR=(
 
 # get moose and moose meta data
 MOOSE="$(curl "http://captmoose.club/moose/$(URI_ENCODE "$4")" 2>/dev/null)"
+# check for error status
+MOOSE_ERR="$(jq -r '.error' <<< "$MOOSE")"
+if [ "$MOOSE_ERR" = 'not found' ]; then
+    echo ":m $1 404 - no such moose"
+    rmdir "$MOOSE_LOCK" 2>/dev/null
+    exit 0
+fi
+# extract name
+MOOSE_NAME="$(jq -r '.name' <<< "$MOOSE")"
+MOOSE_IMAGE=()
+while read -r line; do
+    MOOSE_IMAGE+=("$line")
+done < <( 
+    jq -r '.moose[] | join(" ")' <<< "$MOOSE" 
+)
+
+# trim moose image
+#check from top down
+for (( i=0; i<${#MOOSE_IMAGE[@]}; i++ )); do
+    line="${MOOSE_IMAGE[$i]}"
+    line="${line//transparent}"
+    line="${line// }"
+    if [ -z "$line" ]; then
+        unset MOOSE_IMAGE["$i"]
+    else
+        break
+    fi
+done
+
+# have to rebuild array due to how unsetting deletes positions
+MOOSE_IMAGE=("${MOOSE_IMAGE[@]}")
+
+# trim moose image
+#check from down up
+for (( i=${#MOOSE_IMAGE[@]}; i>=0; i-- )); do
+    line="${MOOSE_IMAGE[$i]}"
+    line="${line//transparent}"
+    line="${line// }"
+    if [ -z "$line" ]; then
+        unset MOOSE_IMAGE["$i"]
+    else
+        break
+    fi
+done
+
+# have to rebuild array due to how unsetting deletes positions
+MOOSE_IMAGE=("${MOOSE_IMAGE[@]}")
+
+# trim from left to right
+for (( i=0; i<${#MOOSE_IMAGE}; i++ )); do
+    for (( j=0; j<${#MOOSE_IMAGE[@]}; j++ )); do
+        read -r first other <<< "${MOOSE_IMAGE[$j]}"
+        if [ "$first" != 'transparent' ]; then 
+            noleft=1
+            break
+        fi
+    done
+    [ -n "$noleft" ] && break
+    for (( j=0; j<${#MOOSE_IMAGE[@]}; j++ )); do
+        read -r first other <<< "${MOOSE_IMAGE[$j]}"
+        MOOSE_IMAGE[$j]="$other"
+    done
+done
+unset noleft
+
+# trim from right to left
+for (( i=0; i<${#MOOSE_IMAGE}; i++ )); do
+    for (( j=0; j<${#MOOSE_IMAGE[@]}; j++ )); do
+        read -r -a elements <<< "${MOOSE_IMAGE[$j]}"
+        if [ "${elements[-1]}" != 'transparent' ]; then 
+            noleft=1
+            break
+        fi
+    done
+    [ -n "$noleft" ] && break
+    for (( j=0; j<${#MOOSE_IMAGE[@]}; j++ )); do
+        read -r -a elements <<< "${MOOSE_IMAGE[$j]}"
+        unset elements[-1]
+        MOOSE_IMAGE[$j]="${elements[@]}"
+    done
+done
+
+sizeof=(${MOOSE_IMAGE[0]})
+echo ":m $1 $(top_border "${#sizeof[@]}")"
+for line in "${MOOSE_IMAGE[@]}"; do
+    out=''
+    line=($line)
+    for (( i=0; i<${#line[@]}; i++ )); do
+        if [ "${line[$i]}" = 'transparent' ]; then
+            out+=' '
+        else
+            out+="${COLOR[${line[$i]}]}@${KCOL}"
+        fi
+    done
+    echo ":r PRIVMSG $1 :|$out|"
+    sleep "0.3s"
+done 
+echo ":m $1 $(top_border "${#sizeof[@]}")"
+echo ":m $1 Name -> $MOOSE_NAME"
+
+    exit 0
+fi
 MOOSE_NAME="$(jq -r '.name' <<< "$MOOSE")"
 MOOSE_IMAGE=()
 while read -r line; do
