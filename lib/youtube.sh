@@ -19,7 +19,7 @@ if [ -z "$4" ]; then
 fi
 
 if [ "$5" = 'youtu.be' ] || [ "$5" = 'youtube.com' ]; then
-    ids="$(grep -Po '(?<=watch\?v=)[^&?]*|(?<=youtu\.be/)[^?&]*' <<< "$4")"
+    ids="$(grep -Po '(?<=watch\?v=)[^&?\s]*|(?<=youtu\.be/)[^?&\s]*' <<< "$4")"
 fi
 
 if [ -z "$ids" ]; then
@@ -38,11 +38,12 @@ if [ -z "$ids" ]; then
     )
 fi
 
-stats="https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${ids}&key=${YOUTUBE_KEY}"
+stats="https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${ids}&key=${YOUTUBE_KEY}"
 
-while read -r id2 likes dislikes views title; do
+while read -r id2 likes dislikes views duration title; do
     [ -z "$title" ] && exit 0
-    echo -e ":m $1 "$'\002'"${title}\002 "$'\003'"09::\003 https://youtu.be/${id2} "$'\003'"09::\003" \
+    duration="${duration:2}"
+    echo -e ":m $1 "$'\002'"${title}\002 (${duration,,}) "$'\003'"09::\003 https://youtu.be/${id2} "$'\003'"09::\003" \
                     $'\003'"03\u25B2 $(numfmt --grouping "$likes")\003 "$'\003'"09::\003" \
                     $'\003'"04\u25BC $(numfmt --grouping "$dislikes")\003 "$'\003'"09::\003" \
                     "\002Views\002 $(numfmt --grouping "$views")"
@@ -53,5 +54,6 @@ done < <(
         .statistics.likeCount + " " +
         .statistics.dislikeCount + " " +
         .statistics.viewCount + " " +
+        .contentDetails.duration + " " +
         .snippet.title'
 )
