@@ -29,9 +29,9 @@ COLOR=(
 ['teal']=$'\003'"10,10"
 ['cyan']=$'\003'"11,11"
 ['blue']=$'\003'"12,12"
-['pink']=$'\003'"13,13"
-['gray']=$'\003'"14,14"
-['silver']=$'\003'"15,15"
+['fuchsia']=$'\003'"13,13"
+['grey']=$'\003'"14,14"
+['lightgrey']=$'\003'"15,15"
 )
 
 MOOSE="http://captmoose.club/moose/$(URI_ENCODE "$4")"
@@ -42,7 +42,6 @@ if ! mkdir "$MOOSE_LOCK"; then
 fi
 
 while read -r -a line; do
-    [ "${line/transparent}" = '' ] && continue
     out=''
     for (( i=0; i<${#line[@]}; i++ )); do
         if [ "${line[$i]}" = 'transparent' ]; then
@@ -51,7 +50,7 @@ while read -r -a line; do
             out+="${COLOR[${line[$i]}]}@${KCOL}"
         fi
     done
-    echo ":m $1 $out"
+    echo ":r PRIVMSG $1 :$out"
     sleep "0.3s"
 done < <( 
     curl "$MOOSE" -f 2>/dev/null \
