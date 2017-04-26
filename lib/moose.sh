@@ -13,6 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+if ! mkdir "$MOOSE_LOCK"; then
+    echo ":mn $3 Please wait for the current moose to finish."
+    exit 0
+fi
+
+# $1 - size of border
+top_border() {
+    echo -n '+'
+    for (( i=0; i<${1}; i++ )); do
+        echo -n '-'
+    done
+    echo '+'
+}
+
 declare -A COLOR
 KCOL=$'\003'
 COLOR=(
@@ -34,15 +48,49 @@ COLOR=(
 ['lightgrey']=$'\003'"15,15"
 )
 
-MOOSE="http://captmoose.club/moose/$(URI_ENCODE "$4")"
+# get moose and moose meta data
+MOOSE="$(curl "http://captmoose.club/moose/$(URI_ENCODE "$4")" 2>/dev/null)"
+MOOSE_NAME="$(jq -r '.name' <<< "$MOOSE")"
+MOOSE_IMAGE=()
+while read -r line; do
+    MOOSE_IMAGE+=("$line")
+done < <( 
+    jq -r '.moose[] | join(" ")' <<< "$MOOSE" 
+)
 
-if ! mkdir "$MOOSE_LOCK"; then
-    echo ":mn $3 Please wait for the current moose to finish."
-    exit 0
-fi
+# trim moose image
+#check from top down
+for (( i=0; i<${#MOOSE_IMAGE[@]}; i++ )); do
+    line="${MOOSE_IMAGE[$i]}"
+    line="${line//transparent}"
+    line="${line// }"
+    echo ":ld TOP -> $line - ${#line}"
+    if [ -z "$line" ]; then
+        unset MOOSE_IMAGE["$i"]
+    else
+        break
+    fi
+done
+# trim moose image
+#check from down up
+for (( i=${#MOOSE_IMAGE[@]}-1; i>=0; i-- )); do
+    line="${MOOSE_IMAGE[$i]}"
+    echo ":ld BOTTOM -> $line - $i"
+    line="${line//transparent}"
+    line="${line// }"
+    echo ":ld BOTTOM -> $line - ${#line} - $i"
+    if [ -z "$line" ]; then
+        unset MOOSE_IMAGE["$i"]
+    else
+        break
+    fi
+done
 
-while read -r -a line; do
+sizeof=(${MOOSE_IMAGE[0]})
+echo ":m $1 $(top_border "${#sizeof[@]}")"
+for line in "${MOOSE_IMAGE[@]}"; do
     out=''
+    line=($line)
     for (( i=0; i<${#line[@]}; i++ )); do
         if [ "${line[$i]}" = 'transparent' ]; then
             out+=' '
@@ -50,11 +98,10 @@ while read -r -a line; do
             out+="${COLOR[${line[$i]}]}@${KCOL}"
         fi
     done
-    echo ":r PRIVMSG $1 :$out"
+    echo ":r PRIVMSG $1 :|$out|"
     sleep "0.3s"
-done < <( 
-    curl "$MOOSE" -f 2>/dev/null \
-    | jq -r '.moose[] | join(" ")'
-)
+done 
+echo ":m $1 $(top_border "${#sizeof[@]}")"
+echo ":m $1 Name -> $MOOSE_NAME"
 
-rmdir "$MOOSE_LOCK"
+rmdir "$MOOSE_LOCK" 2>/dev/null
