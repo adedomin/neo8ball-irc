@@ -64,18 +64,21 @@ for (( i=0; i<${#MOOSE_IMAGE[@]}; i++ )); do
     line="${MOOSE_IMAGE[$i]}"
     line="${line//transparent}"
     line="${line// }"
-    echo ":ld TOP -> $line - ${#line}"
+    echo ":ld TOP -> $line - ${#line} - $i"
     if [ -z "$line" ]; then
         unset MOOSE_IMAGE["$i"]
     else
         break
     fi
 done
+
+# have to rebuild array due to how unsetting deletes positions
+MOOSE_IMAGE=("${MOOSE_IMAGE[@]}")
+
 # trim moose image
 #check from down up
-for (( i=${#MOOSE_IMAGE[@]}-1; i>=0; i-- )); do
+for (( i=${#MOOSE_IMAGE[@]}; i>=0; i-- )); do
     line="${MOOSE_IMAGE[$i]}"
-    echo ":ld BOTTOM -> $line - $i"
     line="${line//transparent}"
     line="${line// }"
     echo ":ld BOTTOM -> $line - ${#line} - $i"
