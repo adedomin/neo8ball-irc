@@ -134,10 +134,6 @@ export YOUTUBE_KEY="your youtube api key"
 #export BIBLE_DB="$(dirname "$0")/static/kjbible-quran.db"
 export BIBLE_SOURCE="$(dirname "$0")/static/king-james.txt"
 export QURAN_SORUCE="$(dirname "$0")/static/quran-allah-ver.txt"
-# moose lockfile
-export MOOSE_LOCK="$temp_dir/moose-locker"
-# remove lock just in case
-rmdir "$MOOSE_LOCK"
 
 # common function used in plugins
 URI_ENCODE() {

@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+MOOSE_LOCK="$PLUGIN_TEMP/moose-lock"
+
 if ! mkdir "$MOOSE_LOCK"; then
     echo ":mn $3 Please wait for the current moose to finish."
     exit 0
@@ -49,10 +51,12 @@ COLOR=(
 )
 
 # get moose and moose meta data
-MOOSE="$(curl "http://captmoose.club/moose/$(URI_ENCODE "$4")" 2>/dev/null)"
-# check for error status
-MOOSE_ERR="$(jq -r '.error' <<< "$MOOSE")"
-if [ "$MOOSE_ERR" = 'not found' ]; then
+MOOSE="$(
+    curl "http://captmoose.club/moose/$(URI_ENCODE "${4:-random}")" \
+    -f 2>/dev/null
+)"
+# check for error
+if [ -z "$MOOSE" ]; then
     echo ":m $1 404 - no such moose"
     rmdir "$MOOSE_LOCK" 2>/dev/null
     exit 0
@@ -128,7 +132,7 @@ for (( i=0; i<${#MOOSE_IMAGE}; i++ )); do
     for (( j=0; j<${#MOOSE_IMAGE[@]}; j++ )); do
         read -r -a elements <<< "${MOOSE_IMAGE[$j]}"
         unset elements[-1]
-        MOOSE_IMAGE[$j]="${elements[@]}"
+        MOOSE_IMAGE[$j]="${elements[*]}"
     done
 done
 

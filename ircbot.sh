@@ -12,8 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v2.3.0"
+VERSION="bash-ircbot: v2.5.0"
 
+# help info
 usage() {
     echo "usage: $0 [-c config]"
     echo "       -c --config - a config file"
@@ -27,6 +28,7 @@ die() {
     exit 1
 }
 
+# parse args
 while [ $# -gt 0 ]; do
     case "$1" in
         -c|--config)
@@ -43,9 +45,9 @@ while [ $# -gt 0 ]; do
     shift
 done
 
-########
-# INIT #
-########
+#################
+# Configuration #
+#################
 
 # find default configuration path
 # location script's directory
@@ -67,7 +69,34 @@ if [ -z "$temp_dir" ]; then
     temp_dir=/tmp
 fi
 
-# set up IPC mechanisms
+#######################
+# Configuration Tests #
+#######################
+
+# check for ncat, use bash tcp otherwise
+# fail hard if user wanted tls and ncat not found
+if ! which ncat >/dev/null 2>&1; then
+        echo "*** NOTICE *** ncat not found; using bash tcp"
+    [ -n "$TLS" ] && 
+        die "TLS does not work with bash tcp"
+    BASH_TCP=a
+fi
+
+# use default nick if not set, should be set
+if [ -z "$NICK" ]; then
+    echo "*** NOTICE *** nick was not specified; using ircbashbot"
+    NICK="ircbashbot"
+fi
+
+# fail if no server
+if [ -z "$SERVER" ]; then
+    die "A server must be defined; check the configuration."
+fi
+
+################
+# IPC and Temp #
+################
+
 # named pipes to connect ncat to message loop
 # shellcheck disable=SC2154
 [ -d "$temp_dir/bash-ircbot" ] && rm -r "$temp_dir/bash-ircbot"
@@ -88,6 +117,17 @@ if [ -n "$ANTISPAM" ]; then
         die "couldn't make antispam directory"
 fi
 
+# add temp dir for plugins
+PLUGIN_TEMP="$temp_dir/bash-ircbot/plugin"
+mkdir "$PLUGIN_TEMP" ||
+    die "failed to create plugin temp dir"
+# this is for plugins, so export it
+export PLUGIN_TEMP
+
+####################
+# Signal Listeners #
+####################
+
 # handler to terminate bot
 # can not trap SIGKILL
 # make sure you kill with SIGTERM or SIGINT
@@ -102,6 +142,7 @@ quit_prg() {
 }
 trap 'quit_prg' SIGINT SIGTERM
 
+# similar to above but with >0 exit code
 exit_failure() {
     EXIT_STATUS=1
     quit_prg
@@ -155,25 +196,9 @@ reload_config() {
 }
 trap 'reload_config' SIGHUP SIGWINCH
 
-# check for ncat, use bash tcp otherwise
-# fail hard if user wanted tls and ncat not found
-if ! which ncat >/dev/null 2>&1; then
-        echo "*** NOTICE *** ncat not found; using bash tcp"
-    [ -n "$TLS" ] && 
-        die "TLS does not work with bash tcp"
-    BASH_TCP=a
-fi
-
-# use default nick if not set, should be set
-if [ -z "$NICK" ]; then
-    echo "*** NOTICE *** nick was not specified; using ircbashbot"
-    NICK="ircbashbot"
-fi
-
-# fail if no server
-if [ -z "$SERVER" ]; then
-    die "A server must be defined; check the configuration."
-fi
+####################
+# Setup Connection #
+####################
 
 [ -n "$TLS" ] && TLS="--ssl"
 # this mode should be used for testing only
@@ -206,9 +231,9 @@ else
         die "unknown failure mapping named pipe ($infile) to fd"
 fi
 
-#################
-# Other Helpers #
-#################
+########################
+# IRC Helper Functions #
+########################
 
 # After server "identifies" the bot
 # joins all channels
@@ -231,7 +256,9 @@ post_ident() {
     fi
 }
 
-# logger function that checks log level
+# logger function that outputs to stdout
+# checks log level to determine 
+# if applicable to be written
 # $1 - log level of message
 # $2 - the message
 send_log() {
@@ -306,6 +333,7 @@ send_cmd() {
 }
 
 # check if nick is in ignore list
+# also check if nick is associated with spam, if enabled
 # $1 - nick to check
 check_ignore() {
     # if ignore list is defined
@@ -333,10 +361,10 @@ check_ignore() {
 }
 
 #######################
-# Bot Framework Logic #
+# Bot Message Handler #
 #######################
 
-# handle private messages and
+# handle PRIVMSGs and NOTICEs and
 # determine if the bot needs to react to message
 # $1: channel
 # $2: datetime
@@ -344,7 +372,7 @@ check_ignore() {
 # $4: msg
 handle_privmsg() {
     # private message to us
-    # 5th argument is the $LIB_PATH
+    # 5th argument is the command name
     if [ "$NICK" = "$1" ]; then
         # most servers require this "in spirit"
         # tell them what we are
@@ -360,7 +388,8 @@ handle_privmsg() {
         # if invalid command
         if [ -z "${COMMANDS[$cmd]}" ]; then
             echo ":m $3 --- Invalid Command ---"
-            cmd="$PRIVMSG_DEFAULT_CMD"
+            # basically your "help" command
+            cmd="${PRIVMSG_DEFAULT_CMD:-help}"        
         fi
         [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
         [ -n "$ANTISPAM" ] && echo "1" >> "$antispam/$3"
@@ -371,7 +400,7 @@ handle_privmsg() {
     fi
 
     # highlight event in message
-    # 5th argument is the $LIB_PATH
+    # 5th argument is the $LIB_PATH (deprecation risk)
     local highlight="$NICK.? (.*)"
     if [[ "$4" =~ $highlight ]]; then
         # shellcheck disable=SC2153
@@ -384,8 +413,9 @@ handle_privmsg() {
     fi
 
     # 5th argument is the command string that matched
-    # may be useful for scripts that are symlinked
-    # to multiple commands
+    # may be useful for scripts that are linked
+    # to multiple commands, allowing for different behavior
+    # by command name
     read -r cmd args <<< "$4"
     local reg="^[${CMD_PREFIX}]${cmd:1}"
     if [[ "$cmd" =~ $reg ]]; then
