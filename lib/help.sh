@@ -14,4 +14,5 @@ echo -e ":m $1 \0028ball\002 .8ball <question>?|<choice1> or <choice2>? ::" \
 echo -e ":m $1 \002King James Bible\002 .bible [<query>] ::" \
     "\002Quran\002 .quran [<query>] ::" \
     "\002PornMD Search\002 .(fap|gay|straight) [<query>] ::" \
+    "\002CaptMoose\002 .moose [<query>] ::" \
     "\002PRIVATE MESSAGE\002 commands are the same, sans prefix"
