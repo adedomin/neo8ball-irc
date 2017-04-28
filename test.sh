@@ -94,10 +94,30 @@ if [ "${BASH_SOURCE[0]}" != "${0}" ]; then
     return
 fi
 
+IFS+=$'\r' # remove carriage returns from reads
+EXIT_CODE=0
+RESTORE=$'\033[0m'
+FAIL='['$'\033[00;31m'"FAIL${RESTORE}]"
+PASS='['$'\033[00;32m'"PASS${RESTORE}]"
+
+fail() {
+    echo "$FAIL $*"
+    EXIT_CODE=1
+}
+
+pass() {
+    echo "$PASS $*"
+}
+
 cleanup() {
-   echo 'ERROR :done testing' >&3
-   rm ._TEST_IN ._TEST_OUT ._TEST_ERR
-   exit 0
+    echo 'ERROR :done testing' >&3
+    rm ._TEST_IN ._TEST_OUT
+    if kill "$TEST_PROC" 2>/dev/null; then
+        fail 'ERROR COMMAND'
+    else
+        pass 'ERROR COMMAND'
+    fi
+    exit "$EXIT_CODE"
 }
 trap 'cleanup' SIGINT SIGTERM
 
@@ -106,48 +126,116 @@ mkfifo ._TEST_IN
 exec 3<> ._TEST_IN
 mkfifo ._TEST_OUT
 exec 4<> ._TEST_OUT
-mkfifo ._TEST_ERR
-exec 5<> ._TEST_ERR
 
 ./ircbot.sh -c "$0" <&3 >&4 2>debug.log &
+TEST_PROC=$!
 
 # test nick cmd
-read -r cmd nick <&4
+read -u 4 -r cmd nick
 if [ "$cmd" = 'NICK' ] && [ "$nick" = 'testnick' ]; then
-    echo 'NICK COMMAND -> PASS'
+    pass 'NICK COMMAND'
 else
-    echo 'NICK COMMAND -> FAIL'
+    fail 'NICK COMMAND'
 fi
 
 # test user cmd
-read -r cmd user mode unused realname <&4
+read -u 4 -r cmd user mode unused realname
 if  [ "$cmd" = 'USER' ] &&
     [ "$user" = 'testnick' ] &&
-    [ "$realname" = 'testnick' ] 
+    [ "$mode" = '+i' ] &&
+    [ "$realname" = ':testnick' ] 
 then
-    echo 'USER COMMAND -> PASS'
+    pass 'USER COMMAND'
 else
-    echo 'USER COMMAND -> FAIL'
+    fail 'USER COMMAND'
 fi
 
 # send PING 
 echo 'PING :hello' >&3
-read -r pong string <&4
+read -u 4 -r pong string
 if [ "$pong" = 'PONG' ] && [ "$string" = ':hello' ]; then
-    echo 'PONG -> PASS'
+    pass 'PING/PONG COMMAND'
 else
-    echo 'PONG -> FAIL'
+    fail 'PING/PONG COMMAND'
 fi
 
 # send post ident
 echo ':doesnt@matter@user.host 004 doesntmatter :reg' >&3
-read -r join chanstring <&4
+read -u 4 -r join chanstring
 if  [ "$join" = 'JOIN' ] &&
     [ "$chanstring" = '#chan1,#chan2' ]
 then
-    echo 'post_ident -> PASS'
+    pass 'post_ident function'
 else
-    echo 'post_ident -> FAIL'
+    fail 'post_ident function'
+fi
+# test that the bot attempted to identify for its nick
+read -u 4 -r cmd ident pass
+if [ "$cmd" = 'NICKSERV' ] &&
+   [ "$ident" = 'IDENTIFY' ] &&
+   [ "$pass" = 'testpass' ]; then
+    pass 'nickserv identify'
+else
+    fail 'nickserv identify'
+fi
+
+# test nick change feature p.1
+# initial nick test
+echo ':testbot __DEBUG neo8ball :nickname' >&3
+read -u 4 -r nick
+if [ "$nick" = 'testnick' ]; then
+    pass "nick variable 1"
+else
+    fail "nick variable 1"
+fi
+
+# notify the user the nick is in use
+echo ':testbot 433 neo8ball :name in use' >&3
+read -u 4 -r cmd nick
+if [ "$cmd" = 'NICK' ] && [ "$nick" = 'testnick_' ]; then
+    pass '433 COMMAND (nick conflict)'
+else
+    fail '433 COMMAND (nick conflict)'
+fi
+
+# verify nick variable is what it reported
+echo ':testbot __DEBUG neo8ball :nickname' >&3
+read -u 4 -r nick
+if [ "$nick" = 'testnick_' ]; then
+    pass "nick variable 1"
+else
+    fail "nick variable 1"
+fi
+
+# channel joining
+echo ':testnick_!blah@blah JOIN :#chan1 ' >&3
+echo ':testnick_!blah@blah JOIN :#chan2 ' >&3
+echo ':testbot __DEBUG neo8ball :channels' >&3
+read -u 4 -r channel
+if [ "$channel" = '#chan1 #chan2' ]; then
+    pass "JOIN test"
+else
+    fail 'JOIN test'
+fi
+
+# channel PART test
+echo ':testnick_!blah@blah PART #chan2 :bye' >&3
+echo ':testbot __DEBUG neo8ball :channels' >&3
+read -u 4 -r channel
+if [ "$channel" = '#chan1' ]; then
+    pass "JOIN test"
+else
+    fail 'JOIN test'
+fi
+
+# channel KICK test
+echo ':testserv KICK #chan1 testnick_ :test message' >&3
+echo ':testbot __DEBUG neo8ball :channels' >&3
+read -u 4 -r channel
+if [ "$channel" = '' ]; then
+    pass 'KICK test'
+else
+    fail 'KICK test'
 fi
 
 cleanup
