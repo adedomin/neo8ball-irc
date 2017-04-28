@@ -20,12 +20,12 @@ fi
 
 q="$4"
 if [ -z "$q" ]; then
-    q="$(curl "http://www.pornmd.com/randomwords?orientation=$orientation" 2>/dev/null | tr -d '"' )"
+    q="$(curl "https://www.pornmd.com/randomwords?orientation=$orientation" 2>/dev/null | tr -d '"' )"
 fi
 
 AMT_RESULTS=3
 
-PORN_MD="http://www.pornmd.com"
+PORN_MD="https://www.pornmd.com"
 PORN_MD_SRCH="$PORN_MD/$orientation/$(URI_ENCODE "${q,,}")"
 benis=$(curl "$PORN_MD_SRCH" 2>/dev/null | grep -A 2 -m $AMT_RESULTS '<h2 class="title-video">' | html2 2>/dev/null | grep "/html/body/h2/a/@href=\|/html/body/h2/a/@title=")
 
