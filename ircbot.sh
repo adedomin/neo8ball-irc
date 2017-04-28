@@ -471,8 +471,6 @@ fi
 # "Ident" information
 send_msg "NICK $NICK"
 send_msg "USER $NICK +i * :$NICK"
-# remove trailing Carriage return, line endings are CRLF
-IFS+=$'\r' # 
 # IRC event loop
 while read -r user command channel message; do
     # if ping request
@@ -488,6 +486,7 @@ while read -r user command channel message; do
     user=$(sed 's/^:\([^!]*\).*/\1/' <<< "$user")
     datetime=$(date +"%Y-%m-%d %H:%M:%S")
     message=${message:1}
+    message=${message%$'\r'}
 
     send_log "STDOUT" "$channel $datetime $command <$user> $message"
 
@@ -520,6 +519,7 @@ while read -r user command channel message; do
         JOIN)
             if [ "$user" = "$NICK" ]; then
                 channel="${channel:1}"
+                channel="${channel%$'\r'}"
                 # channel joined add to list or channels
                 CHANNELS+=("$channel")
                 send_log "JOIN" "$channel"
