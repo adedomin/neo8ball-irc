@@ -439,7 +439,7 @@ handle_privmsg() {
             [ -n "$ANTISPAM" ] && echo "1" >> "$antispam/$3"
             "$LIB_PATH/${REGEX[((i+1))]}" \
                 "$1" "$2" "$3" "$4" "${BASH_REMATCH[0]}"
-            echo ":ld REGEX EVENT -> $reg: $1 <$3> $4"
+            echo ":ld REGEX EVENT -> ${REGEX[$i]}: $1 <$3> $4"
             return
         fi
     done
