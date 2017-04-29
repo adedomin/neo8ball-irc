@@ -78,9 +78,10 @@ cleanup() {
     rm ._TEST_IN ._TEST_OUT
     echo '[****] Waiting on bot to exit'
     ( sleep 3s && fail 'ERROR COMMAND'; kill -TERM $$ ) &
+    sleep_pid=$!
     wait "$TEST_PROC"
+    kill -PIPE "$sleep_pid"
     pass 'ERROR COMMAND'
-    pkill -PIPE -P $$
     exit "$EXIT_CODE"
 }
 trap 'cleanup' SIGINT
@@ -107,6 +108,7 @@ read -u 4 -r cmd user mode unused realname
 if  [ "$cmd" = 'USER' ] &&
     [ "$user" = 'testnick' ] &&
     [ "$mode" = '+i' ] &&
+    [ "$unused" = '*' ] &&
     [ "$realname" = ':testnick' ] 
 then
     pass 'USER COMMAND'
@@ -187,9 +189,9 @@ echo ':testnick_!blah@blah PART #chan2 :bye' >&3
 echo ':testbot __DEBUG neo8ball :channels' >&3
 read -u 4 -r channel
 if [ "$channel" = '#chan1' ]; then
-    pass "JOIN test"
+    pass 'PART test'
 else
-    fail 'JOIN test'
+    fail 'PART test'
 fi
 
 # channel KICK test
