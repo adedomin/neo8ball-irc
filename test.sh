@@ -231,22 +231,22 @@ fi
 # antispam test
 echo -e ':testbot2 PRIVMSG testnick_ :\001VERSION\001' >&3
 read -t 1 -u 4 -r line
-[ -z "$line" ] && fail 'antispam test'
+[ -z "$line" ] && aspam=1
 echo -e ':testbot2 PRIVMSG testnick_ :\001VERSION\001' >&3
 read -t 1 -u 4 -r line
-[ -z "$line" ] && fail 'antispam test'
+[ -z "$line" ] && aspam=1
 echo -e ':testbot2 PRIVMSG testnick_ :\001VERSION\001' >&3
 read -t 1 -u 4 -r line
-[ -z "$line" ] && fail 'antispam test'
+[ -z "$line" ] && aspam=1
 
 # now test the bot properly ignores testbot2
 echo -e ':testbot2 PRIVMSG testnick_ :\001VERSION\001' >&3
 echo '[****] Waiting for antispam timeout'
 read -t 2 -u 4 -r line
-[ -n "$line" ] && fail 'antispam test'
+[ -n "$line" ] && aspam=1
 echo -e ':testbot2 PRIVMSG testnick_ :\001VERSION\001' >&3
 read -t 1 -u 4 -r line
-if [ -n "$line" ]; then
+if [ -n "$line" ] && [ -z "$aspam" ]; then
     pass 'antispam test'
 else
     fail 'antispam test'
