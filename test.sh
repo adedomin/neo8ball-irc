@@ -25,7 +25,7 @@ if [ "${BASH_SOURCE[0]}" != "${0}" ]; then
     temp_dir=/tmp
     READ_NOTICE=
     LOG_LEVEL=1
-    LOG_STDOUT=
+    LOG_STDOUT=y
     LIB_PATH="$(dirname "$0")/lib/"
     HIGHLIGHT="testplugin.sh"
     CMD_PREFIX=".,!"
@@ -251,5 +251,51 @@ if [ -n "$line" ]; then
 else
     fail 'antispam test'
 fi
+
+# reload config test
+# join some bs channels first to see if the bot parts them correctly
+echo ':testnick_!blah@blah JOIN :#chan3' >&3
+echo ':testnick_!blah@blah JOIN :#chan4' >&3
+echo ':testbot __DEBUG neo8ball :channels' >&3
+read -t 1 -u 4 -r channel
+# should emit nick since current nick != config nick
+kill -SIGHUP "$TEST_PROC"
+read -t 1 -u 4 -r cmd nick
+if [ "$cmd" = 'NICK' ] &&
+   [ "$nick" = 'testnick' ]
+then
+    pass 'config reload 1 (nick change)'
+else
+    fail 'config reload 1 (nick change)'
+fi
+
+# should part all channels not in config
+# should join channels that are in the config
+# but are not joined to
+for itr in $(seq 4); do
+    read -t 1 -u 4 -r cmd channel unused
+    if [ "$cmd" = 'JOIN' ]; then
+        if [ ! "$channel" = '#chan1' ] &&
+           [ ! "$channel" = '#chan2' ]
+        then
+            fail 'config reload 2 (channel part/join)'
+            config_fail=2
+            break
+        fi
+    elif [ "$cmd" = 'PART' ]; then
+        if [ ! "$channel" = '#chan3' ] &&
+           [ ! "$channel" = '#chan4' ]
+        then
+            fail 'config reload 2 (channel part/join)'
+            config_fail=2
+            break
+        fi
+    else
+        fail 'config reload 2 (channel part/join)'
+        config_fail=2
+        break
+    fi
+done
+[ -z "$config_fail" ] && pass 'config reload 2 (channel part/join)'
 
 cleanup

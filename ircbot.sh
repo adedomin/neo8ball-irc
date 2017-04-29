@@ -165,6 +165,7 @@ contains_chan() {
 #       join/part new or removed channels
 #       reload all other variables, like COMMANDS, etc
 reload_config() {
+    send_log 'DEBUG' 'CONFIG RELOAD TRIGGERED'
     local _NICK="$NICK"
     # shellcheck disable=SC2153
     local _NICKSERV="$NICKSERV"
@@ -210,8 +211,6 @@ if [ -n "$MOCK_CONN_TEST" ]; then
     exec 1<&2 # remap stdout to err for logs
     # full logging
     LOG_LEVEL=1
-    # we ARE stdout in this case
-    LOG_STDOUT=
     # disable ncat half close check
     BASH_TCP=1
 # Connect to server otherwise
