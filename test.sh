@@ -166,9 +166,9 @@ fi
 echo ':testbot __DEBUG neo8ball :nickname' >&3
 read -u 4 -r nick
 if [ "$nick" = 'testnick_' ]; then
-    pass "nick variable 1"
+    pass "nick variable 2"
 else
-    fail "nick variable 1"
+    fail "nick variable 2"
 fi
 
 # channel joining
