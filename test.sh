@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=2034
 # Copyright 2017 prussian <genunrest@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,9 +37,10 @@ if [ "${BASH_SOURCE[0]}" != "${0}" ]; then
     'regex' 'testplugin.sh'
     )
     IGNORE=(
+    'ignorebot'
     )
     ANTISPAM=yes
-    ANTISPAM_TIMEOUT=30
+    ANTISPAM_TIMEOUT=1
     ANTISPAM_COUNT=3
     HALFCLOSE_CHECK=3
     export OWM_KEY="your owm key"
@@ -214,6 +216,40 @@ then
     pass 'CTCP VERSION'
 else
     fail 'CTCP VERSION'
+fi
+
+# ignore user test
+echo -e ':ignorebot PRIVMSG testnick_ :\001VERSION\001' >&3
+echo '[****] Waiting for ingore user test timeout'
+read -t 0.2 -u 4 -r line
+if [ -z "$line" ]; then  
+    pass 'ignore nick test'
+else
+    fail 'ignore nick test'
+fi
+
+# antispam test
+echo -e ':testbot2 PRIVMSG testnick_ :\001VERSION\001' >&3
+read -t 1 -u 4 -r line
+[ -z "$line" ] && fail 'antispam test'
+echo -e ':testbot2 PRIVMSG testnick_ :\001VERSION\001' >&3
+read -t 1 -u 4 -r line
+[ -z "$line" ] && fail 'antispam test'
+echo -e ':testbot2 PRIVMSG testnick_ :\001VERSION\001' >&3
+read -t 1 -u 4 -r line
+[ -z "$line" ] && fail 'antispam test'
+
+# now test the bot properly ignores testbot2
+echo -e ':testbot2 PRIVMSG testnick_ :\001VERSION\001' >&3
+echo '[****] Waiting for antispam timeout'
+read -t 2 -u 4 -r line
+[ -n "$line" ] && fail 'antispam test'
+echo -e ':testbot2 PRIVMSG testnick_ :\001VERSION\001' >&3
+read -t 1 -u 4 -r line
+if [ -n "$line" ]; then
+    pass 'antispam test'
+else
+    fail 'antispam test'
 fi
 
 cleanup
