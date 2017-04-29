@@ -26,50 +26,14 @@ if [ "${BASH_SOURCE[0]}" != "${0}" ]; then
     LOG_LEVEL=1
     LOG_STDOUT=
     LIB_PATH="$(dirname "$0")/lib/"
-    HIGHLIGHT="8ball.sh"
-    PRIVMSG_DEFAULT_CMD='help'
+    HIGHLIGHT="testplugin.sh"
     CMD_PREFIX=".,!"
     declare -gA COMMANDS
     COMMANDS=(
-    ["8"]="8ball.sh" 
-    ["8ball"]="8ball.sh" 
-    ["define"]="define.sh"
-    ["decide"]="8ball.sh" 
-    ["duck"]="search.sh" 
-    ["ddg"]="search.sh" 
-    ["g"]="search.sh"
-    ["help"]="help.sh"
-    ["bots"]="bots.sh"
-    ["source"]="bots.sh"
-    ["v"]="vidme.sh"
-    ["vid"]="vidme.sh"
-    ["vidme"]="vidme.sh"
-    #["w"]="weather.sh"
-    ["owm"]="weather.sh"
-    ["weather"]="weather.sh"
-    ["wd"]="weatherdb.sh"
-    ["location"]="weatherdb.sh"
-    ["nws"]="nws.sh"
-    ["nwsl"]="weatherdb.sh"
-    ["nwsd"]="weatherdb.sh"
-    ["npm"]="npm.sh"
-    ["wiki"]="wikipedia.sh"
-    ["reddit"]="subreddit.sh"
-    ["sub"]="subreddit.sh"
-    ["yt"]="youtube.sh"
-    ["you"]="youtube.sh"
-    ["youtube"]="youtube.sh"
-    ["u"]="urbandict.sh"
-    ["urban"]="urbandict.sh"
-    ["bible"]="bible.sh"
-    ["quran"]="bible.sh"
-    ["fap"]="fap.sh"
-    ["gay"]="fap.sh"
-    ["straight"]="fap.sh"
+    ['cmd']='testplugin.sh'
     )
     REGEX=(
-    'youtube.com|youtu.be' 'youtube.sh'
-    '(https?)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]' 'pagetitle.sh'
+    'regex' 'testplugin.sh'
     )
     IGNORE=(
     )
@@ -112,14 +76,14 @@ pass() {
 cleanup() {
     echo 'ERROR :done testing' >&3
     rm ._TEST_IN ._TEST_OUT
-    if kill "$TEST_PROC" 2>/dev/null; then
-        fail 'ERROR COMMAND'
-    else
-        pass 'ERROR COMMAND'
-    fi
+    echo '[****] Waiting on bot to exit'
+    ( sleep 3s && fail 'ERROR COMMAND'; kill -TERM $$ ) &
+    wait "$TEST_PROC"
+    pass 'ERROR COMMAND'
+    pkill -PIPE -P $$
     exit "$EXIT_CODE"
 }
-trap 'cleanup' SIGINT SIGTERM
+trap 'cleanup' SIGINT
 
 # IPC
 mkfifo ._TEST_IN
@@ -236,6 +200,18 @@ if [ "$channel" = '' ]; then
     pass 'KICK test'
 else
     fail 'KICK test'
+fi
+
+# test ctcp VERSION
+echo -e ':testbot PRIVMSG testnick_ :\001VERSION\001' >&3
+read -u 4 -r cmd channel message
+if [ "$cmd" = 'NOTICE' ] &&
+   [ "$channel" = 'testbot' ] &&
+   [[ "$message" =~ $'\001VERSION bash-ircbot' ]]
+then
+    pass 'CTCP VERSION'
+else
+    fail 'CTCP VERSION'
 fi
 
 cleanup

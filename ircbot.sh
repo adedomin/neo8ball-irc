@@ -478,7 +478,8 @@ while read -r user command channel message; do
         send_msg "PONG $command"
         continue
     elif [ "$user" = 'ERROR' ]; then # probably banned?
-        die "${command:1} $channel $message"
+       send_log "CRITICAL" "${command:1} $channel $message"
+       break
     fi
     # needs to be here, prior to pruning
     kick="${message% :*}"
@@ -558,10 +559,12 @@ while read -r user command channel message; do
         ;;
         # PASS command failed
         464)
-            die 'INVALID PASSWORD'
+            send_log 'CRITICAL' 'INVALID PASSWORD'
+            break
         ;;
         465)
-            die 'YOU ARE BANNED'
+            send_log 'CRITICAL' 'YOU ARE BANNED'
+            break
         ;;
         # Nickname is already in use
         # add crap and try the new nick
@@ -578,6 +581,11 @@ while read -r user command channel message; do
             case $message in
                 channels) echo "${CHANNELS[*]}" >&3 ;;
                 nickname) echo "$NICK" >&3 ;;
+                nickparse) echo "$user" >&3 ;; 
+                chanparse) echo "$channel" >&3 ;;
+                msgparse) echo "$message" >&3 ;;
             esac
     esac
 done <&4
+send_log 'CRITICAL' 'Exited Event loop, exiting'
+exit_failure
