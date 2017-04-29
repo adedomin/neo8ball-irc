@@ -58,7 +58,7 @@ if [ "${BASH_SOURCE[0]}" != "${0}" ]; then
     return
 fi
 
-IFS+=$'\r' # remove carriage returns from reads
+IFS+=$'\r' # remove carriage returns from read -t 1s
 EXIT_CODE=0
 RESTORE=$'\033[0m'
 FAIL='['$'\033[00;31m'"FAIL${RESTORE}]"
@@ -96,7 +96,7 @@ exec 4<> ._TEST_OUT
 TEST_PROC=$!
 
 # test nick cmd
-read -u 4 -r cmd nick
+read -t 1 -u 4 -r cmd nick
 if [ "$cmd" = 'NICK' ] && [ "$nick" = 'testnick' ]; then
     pass 'NICK COMMAND'
 else
@@ -104,7 +104,7 @@ else
 fi
 
 # test user cmd
-read -u 4 -r cmd user mode unused realname
+read -t 1 -u 4 -r cmd user mode unused realname
 if  [ "$cmd" = 'USER' ] &&
     [ "$user" = 'testnick' ] &&
     [ "$mode" = '+i' ] &&
@@ -118,7 +118,7 @@ fi
 
 # send PING 
 echo 'PING :hello' >&3
-read -u 4 -r pong string
+read -t 1 -u 4 -r pong string
 if [ "$pong" = 'PONG' ] && [ "$string" = ':hello' ]; then
     pass 'PING/PONG COMMAND'
 else
@@ -127,7 +127,7 @@ fi
 
 # send post ident
 echo ':doesnt@matter@user.host 004 doesntmatter :reg' >&3
-read -u 4 -r join chanstring
+read -t 1 -u 4 -r join chanstring
 if  [ "$join" = 'JOIN' ] &&
     [ "$chanstring" = '#chan1,#chan2' ]
 then
@@ -136,7 +136,7 @@ else
     fail 'post_ident function'
 fi
 # test that the bot attempted to identify for its nick
-read -u 4 -r cmd ident pass
+read -t 1 -u 4 -r cmd ident pass
 if [ "$cmd" = 'NICKSERV' ] &&
    [ "$ident" = 'IDENTIFY' ] &&
    [ "$pass" = 'testpass' ]; then
@@ -148,7 +148,7 @@ fi
 # test nick change feature p.1
 # initial nick test
 echo ':testbot __DEBUG neo8ball :nickname' >&3
-read -u 4 -r nick
+read -t 1 -u 4 -r nick
 if [ "$nick" = 'testnick' ]; then
     pass "nick variable 1"
 else
@@ -157,7 +157,7 @@ fi
 
 # notify the user the nick is in use
 echo ':testbot 433 neo8ball :name in use' >&3
-read -u 4 -r cmd nick
+read -t 1 -u 4 -r cmd nick
 if [ "$cmd" = 'NICK' ] && [ "$nick" = 'testnick_' ]; then
     pass '433 COMMAND (nick conflict)'
 else
@@ -166,7 +166,7 @@ fi
 
 # verify nick variable is what it reported
 echo ':testbot __DEBUG neo8ball :nickname' >&3
-read -u 4 -r nick
+read -t 1 -u 4 -r nick
 if [ "$nick" = 'testnick_' ]; then
     pass "nick variable 2"
 else
@@ -177,7 +177,7 @@ fi
 echo ':testnick_!blah@blah JOIN :#chan1 ' >&3
 echo ':testnick_!blah@blah JOIN :#chan2 ' >&3
 echo ':testbot __DEBUG neo8ball :channels' >&3
-read -u 4 -r channel
+read -t 1 -u 4 -r channel
 if [ "$channel" = '#chan1 #chan2' ]; then
     pass "JOIN test"
 else
@@ -187,7 +187,7 @@ fi
 # channel PART test
 echo ':testnick_!blah@blah PART #chan2 :bye' >&3
 echo ':testbot __DEBUG neo8ball :channels' >&3
-read -u 4 -r channel
+read -t 1 -u 4 -r channel
 if [ "$channel" = '#chan1' ]; then
     pass 'PART test'
 else
@@ -197,7 +197,7 @@ fi
 # channel KICK test
 echo ':testserv KICK #chan1 testnick_ :test message' >&3
 echo ':testbot __DEBUG neo8ball :channels' >&3
-read -u 4 -r channel
+read -t 1 -u 4 -r channel
 if [ "$channel" = '' ]; then
     pass 'KICK test'
 else
@@ -206,7 +206,7 @@ fi
 
 # test ctcp VERSION
 echo -e ':testbot PRIVMSG testnick_ :\001VERSION\001' >&3
-read -u 4 -r cmd channel message
+read -t 1 -u 4 -r cmd channel message
 if [ "$cmd" = 'NOTICE' ] &&
    [ "$channel" = 'testbot' ] &&
    [[ "$message" =~ $'\001VERSION bash-ircbot' ]]
