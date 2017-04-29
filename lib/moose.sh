@@ -29,30 +29,30 @@ top_border() {
     echo '+'
 }
 
-declare -A COLOR
 KCOL=$'\003'
 COLOR=(
-['white']=$'\003'"00,00"
-['black']=$'\003'"01,01"
-['navy']=$'\003'"02,02"
-['green']=$'\003'"03,03"
-['red']=$'\003'"04,04"
-['brown']=$'\003'"05,05"
-['purple']=$'\003'"06,06"
-['olive']=$'\003'"07,07"
-['yellow']=$'\003'"08,08"
-['lime']=$'\003'"09,09"
-['teal']=$'\003'"10,10"
-['cyan']=$'\003'"11,11"
-['blue']=$'\003'"12,12"
-['fuchsia']=$'\003'"13,13"
-['grey']=$'\003'"14,14"
-['lightgrey']=$'\003'"15,15"
+''
+$'\003'"00,00"
+$'\003'"01,01"
+$'\003'"02,02"
+$'\003'"03,03"
+$'\003'"04,04"
+$'\003'"05,05"
+$'\003'"06,06"
+$'\003'"07,07"
+$'\003'"08,08"
+$'\003'"09,09"
+$'\003'"10,10"
+$'\003'"11,11"
+$'\003'"12,12"
+$'\003'"13,13"
+$'\003'"14,14"
+$'\003'"15,15"
 )
 
 # get moose and moose meta data
 MOOSE="$(
-    curl "http://captmoose.club/moose/$(URI_ENCODE "${4:-random}")" \
+    curl "http://captmoose.club/view/$(URI_ENCODE "${4:-random}")" \
     -f 2>/dev/null
 )"
 # check for error
@@ -65,16 +65,20 @@ fi
 MOOSE_NAME="$(jq -r '.name' <<< "$MOOSE")"
 MOOSE_IMAGE=()
 while read -r line; do
+    echo "$line" >&2
     MOOSE_IMAGE+=("$line")
 done < <( 
-    jq -r '.moose[] | join(" ")' <<< "$MOOSE" 
+    # a special retard apparently thinks a string that
+    # represents a valid json array is somehow clever or something
+    jq -r '.image' <<< "$MOOSE" \
+        | jq -r '.[] | map(tostring) | join(" ")' # fucking STUPID
 )
 
 # trim moose image
 #check from top down
 for (( i=0; i<${#MOOSE_IMAGE[@]}; i++ )); do
     line="${MOOSE_IMAGE[$i]}"
-    line="${line//transparent}"
+    line="${line//0}"
     line="${line// }"
     if [ -z "$line" ]; then
         unset MOOSE_IMAGE["$i"]
@@ -90,7 +94,7 @@ MOOSE_IMAGE=("${MOOSE_IMAGE[@]}")
 #check from down up
 for (( i=${#MOOSE_IMAGE[@]}; i>=0; i-- )); do
     line="${MOOSE_IMAGE[$i]}"
-    line="${line//transparent}"
+    line="${line//0}"
     line="${line// }"
     if [ -z "$line" ]; then
         unset MOOSE_IMAGE["$i"]
@@ -106,7 +110,7 @@ MOOSE_IMAGE=("${MOOSE_IMAGE[@]}")
 for (( i=0; i<${#MOOSE_IMAGE}; i++ )); do
     for (( j=0; j<${#MOOSE_IMAGE[@]}; j++ )); do
         read -r first other <<< "${MOOSE_IMAGE[$j]}"
-        if [ "$first" != 'transparent' ]; then 
+        if [ "$first" != '0' ]; then 
             noleft=1
             break
         fi
@@ -123,7 +127,7 @@ unset noleft
 for (( i=0; i<${#MOOSE_IMAGE}; i++ )); do
     for (( j=0; j<${#MOOSE_IMAGE[@]}; j++ )); do
         read -r -a elements <<< "${MOOSE_IMAGE[$j]}"
-        if [ "${elements[-1]}" != 'transparent' ]; then 
+        if [ "${elements[-1]}" != '0' ]; then 
             noleft=1
             break
         fi
@@ -142,7 +146,7 @@ for line in "${MOOSE_IMAGE[@]}"; do
     out=''
     line=($line)
     for (( i=0; i<${#line[@]}; i++ )); do
-        if [ "${line[$i]}" = 'transparent' ]; then
+        if [ "${line[$i]}" = '0' ]; then
             out+=' '
         else
             out+="${COLOR[${line[$i]}]}@${KCOL}"
