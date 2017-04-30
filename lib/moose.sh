@@ -13,6 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+if [[ "$4" =~ ^search ]]; then
+    read -r srch q <<< "$4"
+    if [ -z "$q" ]; then
+        echo ":m $1 search command requires a query"
+        exit 0
+    fi
+    echo ":m $1 Moose Found: $(
+        curl "http://captmoose.club/gallery/view/0/0/$(URI_ENCODE "$q")" \
+            2>/dev/null \
+        | jq '.[] | .name' | tr '\n' ' ' )"
+    exit
+fi
+
 MOOSE_LOCK="$PLUGIN_TEMP/moose-lock"
 
 if ! mkdir "$MOOSE_LOCK"; then
@@ -153,7 +166,7 @@ for line in "${MOOSE_IMAGE[@]}"; do
     sleep "0.3s"
 done 
 if [ "$4" = 'latest' ] || [ "${4:-random}" = 'random' ]; then
-    echo ":m $1 moose -> $MOOSE_NAME"
+    echo ":m $1 Moose Name: $MOOSE_NAME"
 fi
 
 rmdir "$MOOSE_LOCK" 2>/dev/null
