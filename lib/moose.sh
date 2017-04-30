@@ -162,7 +162,7 @@ for line in "${MOOSE_IMAGE[@]}"; do
             out+="${COLOR[${line[$i]}]}@${KCOL}"
         fi
     done
-    echo ":r PRIVMSG $1 :$out"
+    echo ":m $1 |$out"
     sleep "0.3s"
 done 
 if [ "$4" = 'latest' ] || [ "${4:-random}" = 'random' ]; then
