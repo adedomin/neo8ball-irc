@@ -298,10 +298,14 @@ send_cmd() {
                 send_msg "PART $arg :$other"
                 ;;
             :m|:message)
-                send_msg "PRIVMSG $arg :$other"
+                # add space, assume enpty line is intentional
+                send_msg "PRIVMSG $arg :${other:- }"
                 ;;
             :mn|:notice)
                 send_msg "NOTICE $arg :$other"
+                ;;
+            :c|:ctcp)
+                send_msg "PRIVMSG $arg :"$'\001'"$other"$'\001'
                 ;;
             :n|:nick)
                 send_msg "NICK $arg"

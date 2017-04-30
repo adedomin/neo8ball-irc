@@ -65,7 +65,6 @@ fi
 MOOSE_NAME="$(jq -r '.name' <<< "$MOOSE")"
 MOOSE_IMAGE=()
 while read -r line; do
-    echo "$line" >&2
     MOOSE_IMAGE+=("$line")
 done < <( 
     # a special retard apparently thinks a string that
@@ -140,8 +139,6 @@ for (( i=0; i<${#MOOSE_IMAGE}; i++ )); do
     done
 done
 
-sizeof=(${MOOSE_IMAGE[0]})
-echo ":m $1 $(top_border "${#sizeof[@]}")"
 for line in "${MOOSE_IMAGE[@]}"; do
     out=''
     line=($line)
@@ -152,10 +149,11 @@ for line in "${MOOSE_IMAGE[@]}"; do
             out+="${COLOR[${line[$i]}]}@${KCOL}"
         fi
     done
-    echo ":r PRIVMSG $1 :|$out|"
+    echo ":m $1 $out"
     sleep "0.3s"
 done 
-echo ":m $1 $(top_border "${#sizeof[@]}")"
-echo ":m $1 Name -> $MOOSE_NAME"
+if [ "$4" = 'latest' ] || [ "${4:-random}" = 'random' ]; then
+    echo ":m $1 moose -> $MOOSE_NAME"
+fi
 
 rmdir "$MOOSE_LOCK" 2>/dev/null
