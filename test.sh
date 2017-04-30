@@ -298,4 +298,14 @@ for itr in $(seq 4); do
 done
 [ -z "$config_fail" ] && pass 'config reload 2 (channel part/join)'
 
+# forced rename
+echo ':testnick NICK :newnick' >&3
+echo ':blah __DEBUG blah :nickname' >&3
+read -t 1 -u 4 -r nick
+if [ "$nick" = 'newnick' ]; then
+    pass "NICK forced rename"
+else
+    fail "NICK forced rename"
+fi
+
 cleanup

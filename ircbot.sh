@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v2.5.0"
+VERSION="bash-ircbot: v2.6.0"
 
 # help info
 usage() {
@@ -265,7 +265,7 @@ send_log() {
     case $1 in
         STDOUT)
             [ -n "$LOG_STDOUT" ] &&
-                echo "$2"
+                echo "${2//$'\r'/}"
             return
         ;;
         WARNING) log_lvl=3 ;;
@@ -553,6 +553,13 @@ while read -r user command channel message; do
                 send_log "KICK" "<$user> $channel [Reason: ${message#*:}]"
             fi
         ;;
+        NICK)
+            if [ "$user" = "$NICK" ]; then
+                channel="${channel:1}"
+                NICK="${channel%$'\r'}"
+                send_log "NICK" "NICK CHANGED TO $NICK"
+            fi
+        ;;
         # Server confirms we are "identified"
         # we are ready to join channels and start
         004)
@@ -571,7 +578,7 @@ while read -r user command channel message; do
         ;;
         # Nickname is already in use
         # add crap and try the new nick
-        433)
+        433|432)
             NICK="${NICK}_"
             send_msg "NICK $NICK"
             send_log "NICK" "NICK CHANGED TO $NICK"
