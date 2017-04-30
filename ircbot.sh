@@ -299,7 +299,7 @@ send_cmd() {
                 ;;
             :m|:message)
                 # add space, assume enpty line is intentional
-                send_msg "PRIVMSG $arg :${other:- }"
+                send_msg "PRIVMSG $arg :$other"
                 ;;
             :mn|:notice)
                 send_msg "NOTICE $arg :$other"

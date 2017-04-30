@@ -52,11 +52,11 @@ $'\003'"15,15"
 
 # get moose and moose meta data
 MOOSE="$(
-    curl "http://captmoose.club/view/$(URI_ENCODE "${4:-random}")" \
-    -f 2>/dev/null
+    curl "http://captmoose.club/view/$(URI_ENCODE "${4:-random}")" 2>/dev/null
 )"
+MOOSE_ERR="$(jq -r '.error' <<< "$MOOSE")"
 # check for error
-if [ -z "$MOOSE" ]; then
+if [ "$MOOSE_ERR" != 'null' ]; then
     echo ":m $1 404 - no such moose"
     rmdir "$MOOSE_LOCK" 2>/dev/null
     exit 0
@@ -149,7 +149,7 @@ for line in "${MOOSE_IMAGE[@]}"; do
             out+="${COLOR[${line[$i]}]}@${KCOL}"
         fi
     done
-    echo ":m $1 $out"
+    echo ":m $1 |$out|"
     sleep "0.3s"
 done 
 if [ "$4" = 'latest' ] || [ "${4:-random}" = 'random' ]; then
