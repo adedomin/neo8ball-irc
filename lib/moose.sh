@@ -13,6 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+if [ -n "$MOOSE_IGNORE" ]; then
+    for channel in $MOOSE_IGNORE; do
+        if [ "$channel" = "$1" ]; then
+            echo ":mn $3 moose command disabled on $1"
+            exit 0
+        fi
+    done
+fi
+
 if [[ "$4" =~ ^search ]]; then
     read -r srch q <<< "$4"
     if [ -z "$q" ]; then
