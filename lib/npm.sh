@@ -19,9 +19,12 @@ if [ -z "$4" ]; then
 fi
 
 NPM="https://www.npmjs.com/-/search?text=$(URI_ENCODE "$4")&from=0&size=3"
+declare -i DEF_NUM
+DEF_NUM=0
  
 while read -r name link desc; do
-    [ -z "$desc" ] && [ -z "$link" ] && exit 0
+    [ -z "$desc" ] && [ -z "$link" ] && break
+    DEF_NUM+=1
     if [ -n "$desc" ]; then
         desc=" $desc ::"
     fi 
@@ -34,3 +37,5 @@ done < <(
         .description
     '
 )
+
+(( DEF_NUM < 1 )) && echo ":m $1 No npm module found"
