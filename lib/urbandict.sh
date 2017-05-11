@@ -22,8 +22,11 @@ fi
 # kept for advert
 URBAN="http://www.urbandictionary.com/define.php?term=$(URI_ENCODE "$4")"
 NEW_URBAN="http://api.urbandictionary.com/v0/define?term=$(URI_ENCODE "$4")"
+declare -i DEF_NUM
+DEF_NUM=0
 
 while read -r definition; do
+    DEF_NUM+=1
     (( ${#definition} > 400 )) && 
         definition="${definition:0:400}..."
     echo -e ":m $1 "$'\002'"${4}\002 :: $definition"
@@ -36,4 +39,8 @@ done < <(
     '
 )
 
-echo ":mn $3 See More: $URBAN"
+if (( DEF_NUM > 0 )); then
+    echo ":mn $3 See More: $URBAN"
+else
+    echo ":m $1 No definitions found"
+fi
