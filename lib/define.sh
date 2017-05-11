@@ -19,8 +19,16 @@ if [ -z "$4" ]; then
 fi
 
 DICTIONARY="http://www.dictionary.com/browse/$(URI_ENCODE "$4")"
+declare -i DEF_NUM
+DEF_NUM=0
 
-echo "$DICTIONARY" |
+while read -r definition; do
+    DEF_NUM+=1
+    (( ${#definition} > 400 )) && 
+        definition="${definition:0:400}..."
+    echo -e ":m $1 "$'\002'"${DEF_NUM}\002 :: $definition"
+done < <(
+    echo "$DICTIONARY" |
     wget -O- -i- --quiet | 
     hxnormalize -x 2>/dev/null | 
     hxselect -i "div.def-set" 2>/dev/null |  
@@ -29,11 +37,11 @@ echo "$DICTIONARY" |
     sed 's/[0-9]\./\n&/g' |
     head -n 4 |
     sed '/^$/d' |
-    sed '/file:\/\//d' |
-while read -r definition; do
-    (( ${#definition} > 400 )) && 
-        definition="${definition:0:400}..."
-    echo -e ":m $1 "$'\002'"${4}\002 :: $definition"
-done
+    sed '/file:\/\//d' 
+)
 
-echo ":mn $3 See More: $DICTIONARY"
+if (( DEF_NUM > 0 )); then
+    echo ":mn $3 See More: $DICTIONARY"
+else
+    echo ":m $1 No definition found"
+fi
