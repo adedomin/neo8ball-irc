@@ -26,7 +26,7 @@ while read -r definition; do
     DEF_NUM+=1
     (( ${#definition} > 400 )) && 
         definition="${definition:0:400}..."
-    echo -e ":m $1 "$'\002'"${DEF_NUM}\002 :: $definition"
+    echo -e ":m $1 "$'\002'"${4:0:100}\002 :: $definition"
 done < <(
     echo "$DICTIONARY" |
     wget -O- -i- --quiet | 
