@@ -32,7 +32,7 @@ HTML_DECODE() {
 SEARCH_ENGINE="https://duckduckgo.com/html/?q="
 
 while read -r url title; do
-    if [ -z "$title" ]; then
+    if [ "$title" = 'No' ]; then
         echo ":m $1 No more results"
         exit 0
     fi
