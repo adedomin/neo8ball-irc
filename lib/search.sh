@@ -33,7 +33,7 @@ SEARCH_ENGINE="https://duckduckgo.com/html/?q="
 
 while read -r url title; do
     if [ "$title" = 'results.' ] || [ -z "$title" ]; then
-        echo ":m $1 No more results"
+        echo ":m $1 No results found"
         exit 0
     fi
     echo -e ":m $1 "$'\002'"$(HTML_DECODE "$title")\002 :: $(URI_DECODE "$url")"
