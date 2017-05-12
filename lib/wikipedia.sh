@@ -19,8 +19,12 @@ if [ -z "$4" ]; then
 fi
 
 WIKI="https://en.wikipedia.org/w/api.php?action=opensearch&format=json&formatversion=2&search=$(URI_ENCODE "$4")&namespace=0&limit=3&suggest=false"
+declare -i DEF_NUM
+DEF_NUM=0
 
 while read -r link name; do
+    [ -z "$name" ] && break
+    DEF_NUM+=1
     echo -e ":m $1 "$'\002'"${name}\002 :: $link"
 done < <( 
     curl -f "$WIKI" 2>/dev/null \
@@ -30,3 +34,7 @@ done < <(
         | .[]
     ' 
 )
+
+if (( DEF_NUM < 1 )); then
+    echo ":m $1 No results"
+fi
