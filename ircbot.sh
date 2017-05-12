@@ -102,7 +102,7 @@ fi
 [ -d "$temp_dir/bash-ircbot" ] && rm -r "$temp_dir/bash-ircbot"
 infile="$temp_dir/bash-ircbot/in"
 outfile="$temp_dir/bash-ircbot/out"
-mkdir "$temp_dir/bash-ircbot" ||
+mkdir -m 0770 "$temp_dir/bash-ircbot" ||
     die "failed to make temp directory, check your config"
 mkfifo "$infile" ||
     die "couldn't make named pipe"
