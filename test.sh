@@ -18,10 +18,10 @@
 if [ "${BASH_SOURCE[0]}" != "${0}" ]; then
     NICK=testnick
     NICKSERV=testpass
-    SERVER="irc.rizon.net"
+    SERVER="localhost"
     CHANNELS=("#chan1" "#chan2")
-    PORT="6697"
-    TLS=yes
+    PORT="6667"
+    TLS=
     temp_dir=/tmp
     READ_NOTICE=
     LOG_LEVEL=1
@@ -31,10 +31,10 @@ if [ "${BASH_SOURCE[0]}" != "${0}" ]; then
     CMD_PREFIX=".,!"
     declare -gA COMMANDS
     COMMANDS=(
-    ['cmd']='testplugin.sh'
+    ['cmd']='bots.sh'
     )
     REGEX=(
-    'regex' 'testplugin.sh'
+    'regex' 'bots.sh'
     )
     IGNORE=(
     'ignorebot'
@@ -43,19 +43,6 @@ if [ "${BASH_SOURCE[0]}" != "${0}" ]; then
     ANTISPAM_TIMEOUT=1
     ANTISPAM_COUNT=3
     HALFCLOSE_CHECK=3
-    export OWM_KEY="your owm key"
-    export PERSIST_LOC="/tmp"
-    export YOUTUBE_KEY="your youtube api key"
-    export BIBLE_SOURCE="$(dirname "$0")/static/king-james.txt"
-    export QURAN_SORUCE="$(dirname "$0")/static/quran-allah-ver.txt"
-    URI_ENCODE() {
-        curl -Gso /dev/null \
-            -w '%{url_effective}' \
-            --data-urlencode @- '' <<< "$1" |
-        cut -c 3- |
-        sed 's/%0A$//g'
-    }
-    export -f URI_ENCODE
     MOCK_CONN_TEST=yes
     return
 fi
