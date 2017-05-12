@@ -26,6 +26,20 @@ if [ ! -f "$WEATHER_DB" ]; then
     touch "$WEATHER_DB"
 fi
 
+# prevent potential race condition
+if ! mkdir "$WEATHER_DB.lock"; then
+    # will fail after three lock attempts
+    if (( ${6:-0} > 1 )); then
+        echo ":loge Could not require weatherdb lock;" \
+             "please delete $WEATHER_DB.lock"
+        echo ":mn $3 Failed to save default location;" \
+             "try again later."
+        exit
+    fi
+    sleep 3s
+    exec "$0" "$1" "$2" "$3" "$4" "$5" "$(( ${6:-0} + 1 ))"
+fi
+
 USER="$3"
 if [ "$5" = 'nwsl' ] || [ "$5" = 'nwsd' ]; then
     USER="NWS~$3"
@@ -41,3 +55,5 @@ else
     echo "$USER:$4" >> "$WEATHER_DB"
     echo ":mn $3 You can now use the weather command without arguments"
 fi
+
+rmdir "$WEATHER_DB.lock"

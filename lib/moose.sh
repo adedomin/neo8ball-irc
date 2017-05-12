@@ -23,6 +23,7 @@ if [ -n "$MOOSE_IGNORE" ]; then
 fi
 
 if [[ "$4" =~ ^search ]]; then
+    # shellcheck disable=2034
     read -r srch q <<< "$4"
     if [ -z "$q" ]; then
         echo ":m $1 search command requires a query"

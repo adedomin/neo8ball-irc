@@ -21,9 +21,12 @@ if [ -z "$4" ]; then
 fi
 
 VIDME='https://vid.me/api/videos/search?order=score&query='
+declare -i DEF_NUM
+DEF_NUM=0
 
 while read -r url duration views likes title; do
-    [ -z "$title" ] && exit
+    [ -z "$title" ] && break
+    DEF_NUM+=1
     min="$(bc <<< "scale=0; $duration / 60")"
     sec="$(bc <<< "scale=0; ($duration % 60)/1")"
     echo -e ":m $1 "$'\002'"${title}\002 (${min}m${sec}s) ::" \
@@ -40,3 +43,7 @@ done < <(
         .title
     '
 )
+
+if (( DEF_NUM < 1 )); then
+    echo ":m $1 No results"
+fi
