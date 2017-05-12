@@ -205,14 +205,16 @@ trap 'reload_config' SIGHUP SIGWINCH
 # this mode should be used for testing only
 if [ -n "$MOCK_CONN_TEST" ]; then
     # send irc communication to
-    exec 4>&0 # from server stdin
-    exec 3<&1 # to   server stdout
+    exec 4>&0 # from server - stdin
+    exec 3<&1 # to   server - stdout
     exec 1>&-
     exec 1<&2 # remap stdout to err for logs
     # full logging
     LOG_LEVEL=1
     # disable ncat half close check
     BASH_TCP=1
+    # server is stdout
+    LOG_STDOUT=
 # Connect to server otherwise
 elif [ -z "$BASH_TCP" ]; then
     exec 3<> "$infile" ||
@@ -265,7 +267,7 @@ send_log() {
     case $1 in
         STDOUT)
             [ -n "$LOG_STDOUT" ] &&
-                echo "${2//$'\r'/}"
+                echo "$(date +"%Y-%m-%d %H:%M:%S") ${2//$'\r'/}"
             return
         ;;
         WARNING) log_lvl=3 ;;
@@ -370,7 +372,7 @@ check_ignore() {
 # handle PRIVMSGs and NOTICEs and
 # determine if the bot needs to react to message
 # $1: channel
-# $2: datetime
+# $2: datetime - DEPRECATED, GENERATE YOUR OWN TIME
 # $3: user
 # $4: msg
 handle_privmsg() {
@@ -487,12 +489,16 @@ while read -r user command channel message; do
     # needs to be here, prior to pruning
     kick="${message% :*}"
     # clean up information
-    user=$(sed 's/^:\([^!]*\).*/\1/' <<< "$user")
-    datetime=$(date +"%Y-%m-%d %H:%M:%S")
+    # user=$(sed 's/^:\([^!]*\).*/\1/' <<< "$user")
+    user="${user%%\!*}"
+    user="${user:1}"
+    # NOTE: datetime is deprecated
+    # datetime=$(date +"%Y-%m-%d %H:%M:%S")
+    datetime="disabled"
     message=${message:1}
     message=${message%$'\r'}
 
-    send_log "STDOUT" "$channel $datetime $command <$user> $message"
+    send_log "STDOUT" "$channel $command <$user> $message"
 
     # handle commands here
     case $command in
