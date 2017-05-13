@@ -213,8 +213,6 @@ if [ -n "$MOCK_CONN_TEST" ]; then
     LOG_LEVEL=1
     # disable ncat half close check
     BASH_TCP=1
-    # server is stdout
-    LOG_STDOUT=
 # Connect to server otherwise
 elif [ -z "$BASH_TCP" ]; then
     exec 3<> "$infile" ||
@@ -350,16 +348,15 @@ check_ignore() {
         fi
     done
     if [ -n "$ANTISPAM" ]; then
-        if [ -f "$antispam/$1" ] && 
-            [ "$(wc -l < "$antispam/$1")" -ge "${ANTISPAM_COUNT:-3}" ] &&
-            (( ($(date +"%s") - $(date -r "$antispam/$1" +"%s")) <= ${ANTISPAM_TIMEOUT:-30} ))
-        then
-            send_log "INFO" "SPAMMER -> $1"
-            return 1
-        elif [ -f "$antispam/$1" ] && 
-            (( ($(date +"%s") - $(date -r "$antispam/$1" +"%s")) > ${ANTISPAM_TIMEOUT:-30} ))
+        [ ! -f "$antispam/$1" ] && return 0
+        if (( $( printf "%(%s)T") - 
+                $(date -r "$antispam/$1" +"%s"
+            ) > ${ANTISPAM_TIMEOUT:-30} )) 
         then
             rm "$antispam/$1"
+        elif [ "$(wc -c < "$antispam/$1")" -ge "${ANTISPAM_COUNT:-3}" ]; then
+            send_log "INFO" "SPAMMER -> $1"
+            return 1
         fi
     fi
     return 0
@@ -384,7 +381,7 @@ handle_privmsg() {
         if [ "$message" = $'\001VERSION\001' ]; then
             echo -e ":mn $3 \001VERSION $VERSION\001"
             echo ":ld CTCP VERSION -> $3 <$3> $4"
-            [ -n "$ANTISPAM" ] && echo "1" >> "$antispam/$3"
+            [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
             return
         fi
 
@@ -397,7 +394,7 @@ handle_privmsg() {
             cmd="${PRIVMSG_DEFAULT_CMD:-help}"        
         fi
         [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
-        [ -n "$ANTISPAM" ] && echo "1" >> "$antispam/$3"
+        [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
         "$LIB_PATH/${COMMANDS[$cmd]}" \
             "$3" "$2" "$3" "$args" "$cmd"
         echo ":ld PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $args"
@@ -410,7 +407,7 @@ handle_privmsg() {
     if [[ "$4" =~ $highlight ]]; then
         # shellcheck disable=SC2153
         [ -x "$LIB_PATH/$HIGHLIGHT" ] || return
-        [ -n "$ANTISPAM" ] && echo "1" >> "$antispam/$3"
+        [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
         "$LIB_PATH/$HIGHLIGHT" \
             "$1" "$2" "$3" "${BASH_REMATCH[1]}" "$LIB_PATH"
         echo ":ld HIGHLIGHT EVENT -> $1 <$3> $4"
@@ -427,7 +424,7 @@ handle_privmsg() {
         cmd="${cmd:1}"
         [ -n "${COMMANDS[$cmd]}" ] || return
         [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
-        [ -n "$ANTISPAM" ] && echo "1" >> "$antispam/$3"
+        [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
         "$LIB_PATH/${COMMANDS[$cmd]}" \
             "$1" "$2" "$3" "$args" "$cmd"
         echo ":ld COMMAND EVENT -> $cmd: $1 <$3> $args"
@@ -441,7 +438,7 @@ handle_privmsg() {
     for (( i=0; i<${#REGEX[@]}; i=i+2 )); do
         if [[ "$4" =~ ${REGEX[$i]} ]]; then
             [ -x "$LIB_PATH/${REGEX[((i+1))]}" ] || return
-            [ -n "$ANTISPAM" ] && echo "1" >> "$antispam/$3"
+            [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
             "$LIB_PATH/${REGEX[((i+1))]}" \
                 "$1" "$2" "$3" "$4" "${BASH_REMATCH[0]}"
             echo ":ld REGEX EVENT -> ${REGEX[$i]}: $1 <$3> $4"
