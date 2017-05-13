@@ -265,7 +265,7 @@ send_log() {
     case $1 in
         STDOUT)
             [ -n "$LOG_STDOUT" ] &&
-                echo "$(date +"%Y-%m-%d %H:%M:%S") ${2//$'\r'/}"
+                printf "%(%Y-%m-%d %H:%M:%S)T %s\n" '-1' "${2//$'\r'/}"
             return
         ;;
         WARNING) log_lvl=3 ;;
@@ -275,7 +275,7 @@ send_log() {
     esac
     
     (( log_lvl >= LOG_LEVEL )) &&
-        echo "*** $1 *** $2"
+        printf "*** %s *** %s\n" "$1" "$2" 
 }
 
 # any literal argument/s will be sent as their own line
@@ -349,13 +349,14 @@ check_ignore() {
     done
     if [ -n "$ANTISPAM" ]; then
         [ ! -f "$antispam/$1" ] && return 0
-        if (( $( printf "%(%s)T") - 
-                $(date -r "$antispam/$1" +"%s"
-            ) > ${ANTISPAM_TIMEOUT:-30} )) 
+        if (( $(printf "%(%s)T") - $(date -r "$antispam/$1" +"%s") > 
+              ${ANTISPAM_TIMEOUT:-30} )) 
         then
             rm "$antispam/$1"
-        elif [ "$(wc -c < "$antispam/$1")" -ge "${ANTISPAM_COUNT:-3}" ]; then
-            send_log "INFO" "SPAMMER -> $1"
+        elif [ "$(wc -c < "$antispam/$1")" -ge \
+               "${ANTISPAM_COUNT:-3}" ]
+        then
+            send_log 'DEBUG' "SPAMMER -> $1"
             return 1
         fi
     fi
