@@ -209,8 +209,6 @@ if [ -n "$MOCK_CONN_TEST" ]; then
     exec 3<&1 # to   server - stdout
     exec 1>&-
     exec 1<&2 # remap stdout to err for logs
-    # full logging
-    LOG_LEVEL=1
     # disable ncat half close check
     BASH_TCP=1
 # Connect to server otherwise
