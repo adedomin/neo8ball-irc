@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v2.6.0"
+VERSION="bash-ircbot: v3.0.0"
 
 # help info
 usage() {
@@ -218,8 +218,7 @@ elif [ -z "$BASH_TCP" ]; then
     exec 4<> "$outfile" ||
         die "unknown failure mapping named pipe ($outfile) to fd"
     ( ncat "$SERVER" "${PORT:-6667}" "$TLS" <&3 >&4
-      echo "*** CRITICAL *** ncat closed unexpectedly" >&2
-      kill -USR1 $$ ) &
+      echo 'ERROR :ncat has terminated' >&4 ) &
 else
     infile="/dev/tcp/${SERVER}/${PORT}"
     exec 3<> "$infile" ||
