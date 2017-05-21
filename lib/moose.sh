@@ -55,6 +55,7 @@ top_border() {
 }
 
 KCOL=$'\003'
+declare -A COLOR
 COLOR=(
 ['t']=''
 ['0']=$'\003'"00,00"
@@ -163,10 +164,11 @@ done
 for line in "${MOOSE_IMAGE[@]}"; do
     out=''
     for (( i=0; i<${#line}; i++ )); do
+        echo ":ld ${line:$i:1}" 
         if [ "${line:$i:1}" = 't' ]; then
             out+=' '
         else
-            out+="${COLOR[${line:$i:1}]}@${KCOL}"
+            out+="${COLOR["${line:$i:1}"]}@${KCOL}"
         fi
     done
     echo ":m $1 |$out"

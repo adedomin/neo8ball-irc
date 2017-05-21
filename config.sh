@@ -29,7 +29,7 @@ READ_NOTICE=
 # 4 - ERR/CRIT
 LOG_LEVEL=1
 # leave blank to not write messages to stdout
-LOG_STDOUT=y
+LOG_STDOUT=
 
 ## DECLARE IRC events here ##
 
