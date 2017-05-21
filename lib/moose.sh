@@ -79,9 +79,9 @@ COLOR=(
 MOOSE="$(
     curl "$MOOSE_URL/moose/$(URI_ENCODE "${4:-random}")" 2>/dev/null
 )"
-MOOSE_ERR="$(jq -r '.error' <<< "$MOOSE")"
+MOOSE_ERR="$(jq -r '.status' <<< "$MOOSE")"
 # check for error
-if [ "$MOOSE_ERR" != 'null' ]; then
+if [ "$MOOSE_ERR" = 'error' ]; then
     echo ":m $1 404 - no such moose"
     rmdir "$MOOSE_LOCK" 2>/dev/null
     exit 0
