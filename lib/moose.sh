@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+MOOSE_URL='http://ghetty.space:7512'
+
 if [ -n "$MOOSE_IGNORE" ]; then
     for channel in $MOOSE_IGNORE; do
         if [ "$channel" = "$1" ]; then
@@ -30,7 +32,7 @@ if [[ "$4" =~ ^search ]]; then
         exit 0
     fi
     echo ":m $1 Moose Found: $(
-        curl "http://captmoose.club/gallery/view/0/0/$(URI_ENCODE "$q")" \
+        curl "$MOOSE_URL/gallery/newest?q=$(URI_ENCODE "$q")" \
             2>/dev/null \
         | jq '.[] | .name' | tr '\n' ' ' )"
     exit
@@ -75,7 +77,7 @@ COLOR=(
 
 # get moose and moose meta data
 MOOSE="$(
-    curl "http://ghetty.space:7512/moose/$(URI_ENCODE "${4:-random}")" 2>/dev/null
+    curl "$MOOSE_URL/moose/$(URI_ENCODE "${4:-random}")" 2>/dev/null
 )"
 MOOSE_ERR="$(jq -r '.error' <<< "$MOOSE")"
 # check for error

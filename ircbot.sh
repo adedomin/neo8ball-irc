@@ -309,7 +309,6 @@ send_cmd() {
                 ;;
             :q|:quit)
                 send_msg "QUIT :$arg $other"
-                kill -TERM $$
                 ;;
             :r|:raw)
                 send_msg "$arg $other"
@@ -580,6 +579,15 @@ while read -r user command channel message; do
         # Nickname is already in use
         # add crap and try the new nick
         433|432)
+            if [ "$command" = '432' ]; then
+                [ -z "$NICK_TRY" ] && NICK_TRY=0
+                NICK_TRY+=1
+                if (( NICK_TRY > 3 )); then
+                   send_log "CRITICAL" "Nickname is malformed"
+                   send_cmd <<< ':q'
+                   break
+                fi
+            fi
             NICK="${NICK}_"
             send_msg "NICK $NICK"
             send_log "NICK" "NICK CHANGED TO $NICK"
