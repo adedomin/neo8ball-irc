@@ -100,8 +100,8 @@ fi
 # named pipes to connect ncat to message loop
 # shellcheck disable=SC2154
 [ -d "$temp_dir/bash-ircbot" ] && rm -r "$temp_dir/bash-ircbot"
-infile="$temp_dir/bash-ircbot/in"
-outfile="$temp_dir/bash-ircbot/out"
+infile="$temp_dir/bash-ircbot/in" # in as in from the server
+outfile="$temp_dir/bash-ircbot/out" # out as in to the server
 mkdir -m 0770 "$temp_dir/bash-ircbot" ||
     die "failed to make temp directory, check your config"
 mkfifo "$infile" ||
@@ -213,10 +213,10 @@ if [ -n "$MOCK_CONN_TEST" ]; then
     BASH_TCP=1
 # Connect to server otherwise
 elif [ -z "$BASH_TCP" ]; then
-    exec 3<> "$infile" ||
-        die "unknown failure mapping named pipe ($infile) to fd"
-    exec 4<> "$outfile" ||
+    exec 3<> "$outfile" ||
         die "unknown failure mapping named pipe ($outfile) to fd"
+    exec 4<> "$infile" ||
+        die "unknown failure mapping named pipe ($infile) to fd"
     ( ncat "$SERVER" "${PORT:-6667}" "$TLS" <&3 >&4
       echo 'ERROR :ncat has terminated' >&4 ) &
 else
@@ -579,15 +579,6 @@ while read -r user command channel message; do
         # Nickname is already in use
         # add crap and try the new nick
         433|432)
-            if [ "$command" = '432' ]; then
-                [ -z "$NICK_TRY" ] && NICK_TRY=0
-                NICK_TRY+=1
-                if (( NICK_TRY > 3 )); then
-                   send_log "CRITICAL" "Nickname is malformed"
-                   send_cmd <<< ':q'
-                   break
-                fi
-            fi
             NICK="${NICK}_"
             send_msg "NICK $NICK"
             send_log "NICK" "NICK CHANGED TO $NICK"
