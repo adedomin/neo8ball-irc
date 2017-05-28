@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-MOOSE_URL='http://moose.ghetty.space'
+MOOSE_URL='https://moose.ghetty.space'
 
 if [ -n "$MOOSE_IGNORE" ]; then
     for channel in $MOOSE_IGNORE; do
