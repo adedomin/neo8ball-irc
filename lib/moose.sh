@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-MOOSE_URL='http://ghetty.space:7512'
+MOOSE_URL='http://moose.ghetty.space'
 
 if [ -n "$MOOSE_IGNORE" ]; then
     for channel in $MOOSE_IGNORE; do
@@ -22,6 +22,11 @@ if [ -n "$MOOSE_IGNORE" ]; then
             exit 0
         fi
     done
+fi
+
+if [ "$4" = 'help' ]; then
+    echo ":m $1 Make Moose @ $MOOSE_URL/#"
+    exit
 fi
 
 if [[ "$4" =~ ^search ]]; then
@@ -83,7 +88,7 @@ MOOSE="$(
 MOOSE_ERR="$(jq -r '.status' <<< "$MOOSE")"
 # check for error
 if [ "$MOOSE_ERR" = 'error' ] || [ -z "$MOOSE" ]; then
-    echo ":m $1 404 - no such moose"
+    echo ":m $1 404 - Make it @ $MOOSE_URL/#?edit=$(URI_ENCODE "$4")"
     rmdir "$MOOSE_LOCK" 2>/dev/null
     exit 0
 fi
