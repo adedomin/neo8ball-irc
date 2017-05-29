@@ -27,30 +27,18 @@ AMT_RESULTS=3
 
 PORN_MD="https://www.pornmd.com"
 PORN_MD_SRCH="$PORN_MD/$orientation/$(URI_ENCODE "${q,,}")"
-benis=$(curl "$PORN_MD_SRCH" 2>/dev/null | grep -A 2 -m $AMT_RESULTS '<h2 class="title-video">' | html2 2>/dev/null | grep "/html/body/h2/a/@href=\|/html/body/h2/a/@title=")
 
-IFS=$'\n'
-
-stayMad=0
-
-for i in $benis; do
-  values=$(sed 's/^[^=]*=//g' <<< "$i")
-  if [ $((stayMad%2)) -eq 0 ]; then
-    urls+=($(curl "$PORN_MD$values" -I 2>/dev/null | grep "Location" |  sed 's/^[^: ]*: //g'))
-  else
-    titles+=($values)
-  fi
-  stayMad=$((stayMad+1))
-done
-
-if [ -z "${titles[0]}" ]; then
-  echo ":m $1 Didn't find any results!"
-  exit
-fi
-
-for i in $(seq 0 $((AMT_RESULTS-1))); do
-  [ -z "${titles[$i]}" ] && exit 0 
-  echo -e ":m $1 "$'\002'"${titles[$i]}\002 :: ${urls[$i]}"
-done
-
-
+while read -r uri title; do
+    [ -z "$title" ] && exit
+    url="$(
+        curl "$PORN_MD$uri" -I 2>/dev/null \
+        | sed -ne 's/^Location: //ip' 
+    )"
+    echo -e ":m $1 "$'\002'"${title}\002 :: ${url}"
+done < <(
+    curl "$PORN_MD_SRCH" 2>/dev/null \
+    | sed 's@<\([^/a]\|/[^a]\)[^>]*>@@g'  \
+    | grep -Po '(?<=href=")[^"]*|(?<=title=")[^"]*' \
+    | grep -F -A 1 -m "$AMT_RESULTS" '/viewvideo' \
+    | sed -e '/--/d' -e 'N;s/\n/ /'
+)
