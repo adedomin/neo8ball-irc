@@ -34,6 +34,10 @@ while read -r uri title; do
         curl "$PORN_MD$uri" -I 2>/dev/null \
         | sed -ne 's/^Location: //ip' 
     )"
+    title="$(
+        recode -d utf8..html <<< "$title" \
+        | recode html..utf8
+    )"
     echo -e ":m $1 "$'\002'"${title}\002 :: ${url}"
 done < <(
     curl "$PORN_MD_SRCH" 2>/dev/null \
