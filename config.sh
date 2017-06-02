@@ -85,6 +85,19 @@ COMMANDS=(
 ["moose"]="moose.sh"
 )
 
+declare -gA API_WEIGHT
+# new API weight
+# allows you to mark some plugins as higher spam value
+# than others
+# thus allowing for more 8ball queries but less of others
+# api weight is a string
+# more characters = higher weight
+# e.g. ['moose']='11111' means this query has a weihht of 5
+API_WEIGHT=(
+[]
+)
+# if not in api weight, defaults to 1
+
 # regex patterns
 # if you need more fine grained control
 # uses bash regex language
@@ -101,6 +114,7 @@ COMMANDS=(
 REGEX=(
 'youtube.com|youtu.be' 'youtube.sh'
 '(https?)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]' 'pagetitle.sh'
+'^\^' 'this.sh'
 )
 
 # list of nicks to ignore from, such as other bots
