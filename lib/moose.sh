@@ -169,7 +169,6 @@ done
 for line in "${MOOSE_IMAGE[@]}"; do
     out=''
     for (( i=0; i<${#line}; i++ )); do
-        echo ":ld ${line:$i:1}" 
         if [ "${line:$i:1}" = 't' ]; then
             out+=' '
         else
