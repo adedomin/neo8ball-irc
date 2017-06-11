@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright 2017 prussian <genunrest@gmail.com>
+# Copyright 2017 prussian <genunrest@gmail.com>, underdoge
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -175,7 +175,7 @@ for line in "${MOOSE_IMAGE[@]}"; do
             out+="${COLOR["${line:$i:1}"]}@${KCOL}"
         fi
     done
-    echo ":m $1 |$out"
+    echo ":m $1 $out"
     sleep "0.3s"
 done 
 if [ "$4" = 'latest' ] || [ "${4:-random}" = 'random' ]; then
