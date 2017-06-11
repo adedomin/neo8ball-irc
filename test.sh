@@ -18,23 +18,21 @@
 if [ "${BASH_SOURCE[0]}" != "${0}" ]; then
     NICK=testnick
     NICKSERV=testpass
-    SERVER="localhost"
+    SERVER="irc.rizon.net"
     CHANNELS=("#chan1" "#chan2")
-    PORT="6667"
-    TLS=
+    PORT="6697"
+    TLS=yes
     temp_dir=/tmp
     READ_NOTICE=
     LOG_LEVEL=1
     LOG_STDOUT=y
     LIB_PATH="$(dirname "$0")/lib/"
-    HIGHLIGHT="testplugin.sh"
+    HIGHLIGHT=""
     CMD_PREFIX=".,!"
     declare -gA COMMANDS
     COMMANDS=(
-    ['cmd']='bots.sh'
     )
     REGEX=(
-    'regex' 'bots.sh'
     )
     IGNORE=(
     'ignorebot'
@@ -47,7 +45,7 @@ if [ "${BASH_SOURCE[0]}" != "${0}" ]; then
     return
 fi
 
-IFS+=$'\r' # remove carriage returns from read -t 1s
+IFS+=$'\r' # remove carriage returns from read
 EXIT_CODE=0
 RESTORE=$'\033[0m'
 FAIL='['$'\033[00;31m'"FAIL${RESTORE}]"
@@ -203,6 +201,34 @@ then
     pass 'CTCP VERSION'
 else
     fail 'CTCP VERSION'
+fi
+
+# message parsing tests
+# test nickname
+echo ':some!nick!lahblah!test@hostname __DEBUG #channel :nickparse' >&3
+read -t 1 -u 4 -r msgnick
+if [ "$msgnick" = 'some' ]; then
+    pass 'IRC-LINE nick parse'
+else
+    fail 'IRC-LINE nick parse'
+fi
+
+# hostname parsing test
+echo ':so@me!nick!lahblah!test@hostname __DEBUG #channel :hostparse' >&3
+read -t 1 -u 4 -r msghost
+if [ "$msghost" = 'hostname' ]; then
+    pass 'IRC-LINE host parse'
+else
+    fail 'IRC-LINE host parse'
+fi
+
+# chan parse
+echo ':some!nick@hostname __DEBUG #chan :chanparse' >&3
+read -t 1 -u 4 -r msgchan
+if [ "$msgchan" = '#chan' ]; then
+    pass 'IRC-LINE chan parse'
+else
+    fail 'IRC-LINE chan parse'
 fi
 
 # ignore user test
