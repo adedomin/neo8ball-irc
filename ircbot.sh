@@ -262,7 +262,7 @@ send_log() {
     case $1 in
         STDOUT)
             [ -n "$LOG_STDOUT" ] &&
-                printf "%(%Y-%m-%d %H:%M:%S)T %s\n" '-1' "${2//$'\r'/}"
+                printf "%(%Y-%m-%d %H:%M:%S)T %s\n" '-1' "${2//[$IFS$'\r']/}"
             return
         ;;
         WARNING) log_lvl=3 ;;
@@ -484,11 +484,11 @@ while read -r user command channel message; do
     kick="${message% :*}"
     # clean up information
     # user=$(sed 's/^:\([^!]*\).*/\1/' <<< "$user")
+    host="${user##*@}"
     user="${user%%\!*}"
     user="${user:1}"
     # NOTE: datetime is deprecated
     # datetime=$(date +"%Y-%m-%d %H:%M:%S")
-    datetime="disabled"
     message=${message:1}
     message=${message%$'\r'}
 
@@ -499,7 +499,7 @@ while read -r user command channel message; do
         # any channel message
         PRIVMSG) 
             check_ignore "$user" &&
-            handle_privmsg "$channel" "$datetime" "$user" "$message" \
+            handle_privmsg "$channel" "$host" "$user" "$message" \
             | send_cmd &
         ;;
         # any other channel message
@@ -508,7 +508,7 @@ while read -r user command channel message; do
         NOTICE)
             [ -z "$READ_NOTICE" ] && continue
             check_ignore "$user" &&
-            handle_privmsg "$channel" "$datetime" "$user" "$message" \
+            handle_privmsg "$channel" "$host" "$user" "$message" \
             | send_cmd &
         ;;
         # bot was invited to channel
@@ -592,6 +592,7 @@ while read -r user command channel message; do
                 channels) echo "${CHANNELS[*]}" >&3 ;;
                 nickname) echo "$NICK" >&3 ;;
                 nickparse) echo "$user" >&3 ;; 
+                hostparse) echo "$host" >&3 ;;
                 chanparse) echo "$channel" >&3 ;;
                 msgparse) echo "$message" >&3 ;;
             esac
