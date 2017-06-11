@@ -179,9 +179,10 @@ for line in "${MOOSE_IMAGE[@]}"; do
     echo -e ":m $1 \u200B$out"
     sleep "0.3s"
 done 
+outstring=""
 if [ "$4" = 'latest' ] || [ "${4:-random}" = 'random' ]; then
-    echo ":m $1 Moose Name: $MOOSE_NAME"
+    outstring+=$'\002'"$MOOSE_NAME"$'\002'" -"
 fi
-echo ":m $1 Created $(reladate "$MOOSE_DATE")"
+echo ":m $1 $outstring Created $(reladate "$MOOSE_DATE")"
 
 rmdir "$MOOSE_LOCK" 2>/dev/null
