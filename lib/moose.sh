@@ -175,7 +175,7 @@ for line in "${MOOSE_IMAGE[@]}"; do
             out+="${COLOR["${line:$i:1}"]}@${KCOL}"
         fi
     done
-    echo ":m $1 |$out"
+    echo -e ":m $1 \u200B$out"
     sleep "0.3s"
 done 
 if [ "$4" = 'latest' ] || [ "${4:-random}" = 'random' ]; then
