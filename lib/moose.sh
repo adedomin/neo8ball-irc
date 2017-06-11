@@ -94,6 +94,7 @@ if [ "$MOOSE_ERR" = 'error' ] || [ -z "$MOOSE" ]; then
 fi
 # extract name
 MOOSE_NAME="$(jq -r '.name' <<< "$MOOSE")"
+MOOSE_DATE="$(jq -r '.created' <<< "$MOOSE")"
 MOOSE_IMAGE=()
 while read -r line; do
     MOOSE_IMAGE+=("$line")
@@ -181,5 +182,6 @@ done
 if [ "$4" = 'latest' ] || [ "${4:-random}" = 'random' ]; then
     echo ":m $1 Moose Name: $MOOSE_NAME"
 fi
+echo ":m $1 Created: $(date -d "$MOOSE_DATE")"
 
 rmdir "$MOOSE_LOCK" 2>/dev/null
