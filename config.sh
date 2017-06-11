@@ -85,17 +85,16 @@ COMMANDS=(
 ["moose"]="moose.sh"
 )
 
-declare -gA API_WEIGHT
-# new API weight
+#declare -gA API_WEIGHT
+# new API weight - CURRENTLY NOT IMPL
 # allows you to mark some plugins as higher spam value
 # than others
 # thus allowing for more 8ball queries but less of others
 # api weight is a string
 # more characters = higher weight
 # e.g. ['moose']='11111' means this query has a weihht of 5
-API_WEIGHT=(
-[]
-)
+#API_WEIGHT=(
+#)
 # if not in api weight, defaults to 1
 
 # regex patterns
@@ -155,15 +154,9 @@ export MOOSE_IGNORE="
 #nomoose
 "
 
-# common function used in plugins
-URI_ENCODE() {
-    curl -Gso /dev/null \
-        -w '%{url_effective}' \
-        --data-urlencode @- '' <<< "$1" |
-    cut -c 3- |
-    sed 's/%0A$//g'
-}
-export -f URI_ENCODE
+# moved common functions in the lib path.
+# you can store them here or add your own below as before
+. "$LIB_PATH/common-functions.sh"
 
 # DO NOT ENABLE THIS UNLESS YOU'RE TESTING
 #MOCK_CONN_TEST=yes
