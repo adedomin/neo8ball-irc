@@ -14,7 +14,7 @@ export -f URI_ENCODE
 reladate() {
     local unit past_suffix
     declare -i thn now diff amt
-    thn=$(date --date "$1" +%s)
+    thn=$(TZ=UTC date --date "$1" +%s)
     now=$(date +%s)
 
     diff=$(( now - thn ))
