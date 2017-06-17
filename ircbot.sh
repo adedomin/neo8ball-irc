@@ -262,7 +262,7 @@ send_log() {
     case $1 in
         STDOUT)
             [ -n "$LOG_STDOUT" ] &&
-                printf "%(%Y-%m-%d %H:%M:%S)T %s\n" '-1' "${2//[$IFS$'\r']/}"
+                printf "%(%Y-%m-%d %H:%M:%S)T %s\n" '-1' "${2//[$'\n'$'\r']/}"
             return
         ;;
         WARNING) log_lvl=3 ;;
