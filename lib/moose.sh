@@ -36,10 +36,17 @@ if [[ "$4" =~ ^search ]]; then
         echo ":m $1 search command requires a query"
         exit 0
     fi
-    echo ":m $1 Moose Found: $(
+    MOOSE_SEARCH="$(
         curl "$MOOSE_URL/gallery/newest?q=$(URI_ENCODE "$q")" \
-            2>/dev/null \
-        | jq '.[] | .name' | tr '\n' ' ' )"
+            2>/dev/null
+    )"
+    if [ "$MOOSE_SEARCH" = '[]' ]; then
+        echo ":m $1 no moose found"
+        exit 0
+    fi
+    echo ":m $1 Moose Found: $(
+        jq '.[] | .name' <<< "$MOOSE_SEARCH" | tr '\n' ' '
+    )"
     exit
 fi
 
