@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v3.0.0"
+VERSION="bash-ircbot: v3.1.0-alpha1"
 
 # help info
 usage() {
@@ -387,9 +387,9 @@ trusted_gateway() {
     read -r newuser newmsg <<< "$message"
     # new msg without the gateway username
     message="$newmsg"
-    # delete any brackets and special chars
+    # delete any brackets and some special chars
     user=${newuser//[<>$'\002'$'\003']/}
-    # delete control char prepended numbers if applicable
+    # delete mIRC color prepended numbers if applicable
     user=${user##*[0-9]}
 }
 
