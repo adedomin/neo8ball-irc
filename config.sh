@@ -112,7 +112,8 @@ COMMANDS=(
 # the plugin to execute
 REGEX=(
 'youtube.com|youtu.be' 'youtube.sh'
-'(https?)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|()]' 'pagetitle.sh'
+# literally anything can be a url nowadays
+"(https?)://[^ ]+\.[^ ]*" 'pagetitle.sh'
 '^\^' 'this.sh'
 )
 
