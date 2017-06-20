@@ -120,6 +120,14 @@ REGEX=(
 IGNORE=(
 )
 
+# list of nicks considered to be trusted gateways
+# gateways are shared nicknames that prepend user info
+# to the front of the message in the format like <gateway> <user> msg
+# for an example of a gateway, see teleirc on npm which is a 
+# telegram <-> IRC gateway bot
+GATEWAY=(
+)
+
 # anti spam feature
 # prevent users from abusing your bot
 # set to blank to disable

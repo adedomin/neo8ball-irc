@@ -359,6 +359,40 @@ check_ignore() {
     return 0
 }
 
+# check if nick is a "trusted gateway" as in a a nick 
+# which is used by multiple individuals. 
+# this checks a configurable list of nicks. 
+#
+# if the nick is not a trusted gateway, this function returns without
+# doing anything
+#
+# Note that this function mutates message
+# inputs such as user and message.
+# gateway is assumed to prepend a nickname to the message
+# like <the_gateway> <user1> msg
+# if your gateway does not do this, please make an issue on github
+# $1 the nickname
+trusted_gateway() {
+    local trusted
+    for nick in "${GATEWAY[@]}"; do
+        if [ "$1" = "$nick" ]; then
+            trusted=1
+            break;
+        fi
+    done
+    [ -z "$trusted" ] && return 1
+    
+    # is a gateway user
+    # this a mutation
+    read -r newuser newmsg <<< "$message"
+    # new msg without the gateway username
+    message="$newmsg"
+    # delete any brackets and special chars
+    user=${newuser//[<>$'\002'$'\003']/}
+    # delete control char prepended numbers if applicable
+    user=${user##*[0-9]}
+}
+
 #######################
 # Bot Message Handler #
 #######################
@@ -492,6 +526,9 @@ while read -r user command channel message; do
     message=${message:1}
     message=${message%$'\r'}
 
+    # check if gateway nick
+    trusted_gateway "$user"
+
     send_log "STDOUT" "$channel $command <$user> $message"
 
     # handle commands here
@@ -595,6 +632,8 @@ while read -r user command channel message; do
                 hostparse) echo "$host" >&3 ;;
                 chanparse) echo "$channel" >&3 ;;
                 msgparse) echo "$message" >&3 ;;
+                # echo invalid debug commands
+                *) echo "$message" >&3 ;;
             esac
     esac
 done <&4

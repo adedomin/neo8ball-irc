@@ -37,6 +37,9 @@ if [ "${BASH_SOURCE[0]}" != "${0}" ]; then
     IGNORE=(
     'ignorebot'
     )
+    GATEWAY=(
+    'gateway'
+    )
     ANTISPAM=yes
     ANTISPAM_TIMEOUT=1
     ANTISPAM_COUNT=3
@@ -230,6 +233,25 @@ if [ "$msgchan" = '#chan' ]; then
 else
     fail 'IRC-LINE chan parse'
 fi
+
+# gateway user msg and username parse test
+echo ':gateway!a@a __DEBUG #channel :<actual_username> nickparse' >&3
+read -t 1 -u 4 -r msgnick
+if [ "$msgnick" = 'actual_username' ]; then
+    pass 'GATEWAY trusted nick parse'
+else
+    fail 'GATEWAY trusted nick parse'
+fi
+
+# gateway fail parse
+echo ':gateway2!a@a __DEBUG #channel :<actual_username> nickparse' >&3
+read -t 1 -u 4 -r msgnick
+if [ "$msgnick" == '<actual_username> nickparse' ]; then
+    pass 'GATEWAY untrusted nick parse'
+else
+    fail 'GATEWAY untrusted nick parse'
+fi
+
 
 # ignore user test
 echo -e ':ignorebot PRIVMSG testnick_ :\001VERSION\001' >&3
