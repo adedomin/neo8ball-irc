@@ -113,7 +113,7 @@ COMMANDS=(
 REGEX=(
 'youtube.com|youtu.be' 'youtube.sh'
 # literally anything can be a url nowadays
-"(https?)://[^ ]+\.[^ ]*" 'pagetitle.sh'
+"(https?)://[^ ]+" 'pagetitle.sh'
 '^\^' 'this.sh'
 )
 
