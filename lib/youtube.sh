@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+MAX_RESULTS=3
+
 if [ -z "$4" ]; then
     echo ":mn $3 This command requires a search query"
     exit 0
@@ -22,8 +24,16 @@ if [ "$5" = 'youtu.be' ] || [ "$5" = 'youtube.com' ]; then
     ids="$(grep -Po '(?<=watch\?v=)[^&?\s]*|(?<=youtu\.be/)[^?&\s]*' <<< "$4")"
 fi
 
+if [[ $4 == *"/"* ]]; then
+  MAX_RESULTS=$(cut -d "/" -f 2 <<< "$4")
+  QUERY=$(URI_ENCODE "$(cut -d "/" -f 1 <<< "$4")")
+else
+  QUERY=$(URI_ENCODE "$4")
+fi
+
+
 if [ -z "$ids" ]; then
-    youtube="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=$(URI_ENCODE "$4")&maxResults=3&key=${YOUTUBE_KEY}"
+    youtube="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=${QUERY}&maxResults=${MAX_RESULTS}&key=${YOUTUBE_KEY}"
     while read -r id; do
         if [ -z "$ids" ]; then
             ids=$id
