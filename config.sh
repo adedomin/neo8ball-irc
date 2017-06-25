@@ -162,6 +162,8 @@ export QURAN_SORUCE="$(dirname "$0")/static/quran-allah-ver.txt"
 export MOOSE_IGNORE="
 #nomoose
 "
+# sleep timeout to prevent moose spam
+export MOOSE_SLEEP_TIMER='5s'
 
 # moved common functions in the lib path.
 # you can store them here or add your own below as before

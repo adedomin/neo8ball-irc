@@ -192,4 +192,6 @@ if [ "$4" = 'latest' ] || [ "${4:-random}" = 'random' ]; then
 fi
 echo ":m $1 $outstring Created $(reladate "$MOOSE_DATE")"
 
+# prevent moose abuse
+sleep "${MOOSE_SLEEP_TIMER:-5s}"
 rmdir "$MOOSE_LOCK" 2>/dev/null
