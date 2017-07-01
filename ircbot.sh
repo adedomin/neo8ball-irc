@@ -390,8 +390,8 @@ trusted_gateway() {
     # delete any brackets and some special chars
     user=${newuser//[<>$'\002'$'\003']/}
     # delete mIRC color prepended numbers if applicable
-    # TODO: revisit. breaks usernames like Asd123
-    #user=${user##*[0-9]}
+    [[ "$user" =~ ^[0-9,]*(.*)$ ]] &&
+        user="${BASH_REMATCH[1]}"
 }
 
 #######################

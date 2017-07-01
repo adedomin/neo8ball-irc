@@ -235,7 +235,7 @@ else
 fi
 
 # gateway user msg and username parse test
-echo ':gateway!a@a __DEBUG #channel :<actual_username> nickparse' >&3
+echo ':gateway!a@a __DEBUG #channel :<'$'\003''12,32actual_username'$'\003''> nickparse' >&3
 read -t 1 -u 4 -r msgnick
 if [ "$msgnick" = 'actual_username' ]; then
     pass 'GATEWAY trusted nick parse'
