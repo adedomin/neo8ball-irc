@@ -100,7 +100,7 @@ SAVE_LOC() {
     fi
 
     if grep -q "^$1:" "$weatherdb"; then
-        sed -i'' 's/^'"$1"':.*$/'"$1"':'"$4"'/' "$weatherdb" || return 1
+        sed -i'' 's/^'"$1"':.*$/'"$1"':'"$2"'/' "$weatherdb" || return 1
     else
         echo "$1:$2" >> "$weatherdb" || return 1
     fi
