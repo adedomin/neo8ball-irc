@@ -26,7 +26,7 @@ while IFS='=' read -r key val; do
                 arg="$val"
         ;;
         -h|--help)
-            echo ":m $1 usage: $5 [--save=station] [query]"
+            echo ":m $1 usage: $5 [--save] [query]"
             echo ":m $1 This service uses https://openweathermap.org"
             exit 0
         ;;
@@ -37,7 +37,7 @@ if [ -z "$arg" ]; then
     arg=$(GET_LOC "$3")
     if [ -z "$arg" ]; then
         echo ":mn $3 you must set a default location first"
-        echo ":mn $3 use --save=STATION"
+        echo ":mn $3 use --save location"
         exit 0
     fi
 fi
