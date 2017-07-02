@@ -33,7 +33,7 @@ while IFS='=' read -r key val; do
     esac
 done <<< "$6"
 
-if [ -z "$4" ]; then
+if [ -z "$4" ] && [ -z "$MATCH" ]; then
     echo ":mn $3 This command requires a search query"
     exit 0
 fi
