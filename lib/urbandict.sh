@@ -25,11 +25,12 @@ while IFS='=' read -r key val; do
                 COUNT="$val"
         ;;
         -d|--definition)
-            echo ":m $1 --definition=# is currently not implemented"
-            exit 0
+            declare -i DEFINITION
+            [[ "$val" =~ ^(1[0-9]|[1-9])$ ]] &&
+                DEFINITION="$val"
         ;;
         -h|--help)
-            echo ":m $1 usage: $5 [--count=#-to-ret --definition=#] query"
+            echo ":m $1 usage: $5 [--count=#-to-ret|--definition=#] query"
             echo ":m $1 find a defintion for a word using the urban dictionary."
             exit 0
         ;;
@@ -44,23 +45,40 @@ fi
 # kept for advert
 URBAN="http://www.urbandictionary.com/define.php?term=$(URI_ENCODE "$4")"
 NEW_URBAN="http://api.urbandictionary.com/v0/define?term=$(URI_ENCODE "$4")"
+
 declare -i DEF_NUM
 DEF_NUM=0
 
-while read -r definition; do
-    DEF_NUM+=1
-    (( ${#definition} > 400 )) && 
-        definition="${definition:0:400}..."
-    echo -e ":m $1 "$'\002'"${4}\002 :: $definition"
-    (( DEF_NUM >= COUNT )) && break
-done < <(
-  curl "$NEW_URBAN" -L -f 2>/dev/null \
-  | jq -r '.list[0],.list[1],.list[2] //empty 
-        | .definition
-        | sub("\r|\n"; " "; "g")
-        | sub("  +"; " "; "g")
-    '
-)
+if [ -n "$DEFINITION" ]; then
+    while read -r definition; do
+        DEF_NUM+=1
+        (( ${#definition} > 400 )) && 
+            definition="${definition:0:400}..."
+        echo -e ":m $1 "$'\002'"${4}\002 :: $definition"
+    done < <(
+        curl "$NEW_URBAN" -L -f 2>/dev/null \
+        | jq -r '.list['"$(( DEFINITION - 1 ))"'] //empty
+            | .definition
+            | sub("\r|\n"; " "; "g")
+            | sub("  +"; " "; "g") 
+        '
+    )
+else
+    while read -r definition; do
+        DEF_NUM+=1
+        (( ${#definition} > 400 )) && 
+            definition="${definition:0:400}..."
+        echo -e ":m $1 "$'\002'"${4}\002 :: $definition"
+        (( DEF_NUM >= COUNT )) && break
+    done < <(
+      curl "$NEW_URBAN" -L -f 2>/dev/null \
+      | jq -r '.list[0],.list[1],.list[2] //empty 
+            | .definition
+            | sub("\r|\n"; " "; "g")
+            | sub("  +"; " "; "g")
+        '
+    )
+fi
 
 if (( DEF_NUM > 0 )); then
     echo ":mn $3 See More: $URBAN"
