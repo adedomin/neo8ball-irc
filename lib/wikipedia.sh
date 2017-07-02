@@ -13,12 +13,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+declare -i COUNT
+COUNT=3
+
+# parse args
+while IFS='=' read -r key val; do
+    case "$key" in
+        -c|--count)
+            [[ "$val" =~ ^[1-3]$ ]] &&
+                COUNT="$val"
+        ;;
+        -h|--help)
+            echo ":m $1 usage: $5 [--count=#-to-ret] query"
+            exit 0
+        ;;
+    esac
+done <<< "$6"
+
 if [ -z "$4" ]; then
     echo ":mn $3 This command requires a search query"
     exit 0
 fi
 
-WIKI="https://en.wikipedia.org/w/api.php?action=opensearch&format=json&formatversion=2&search=$(URI_ENCODE "$4")&namespace=0&limit=3&suggest=false"
+WIKI="https://en.wikipedia.org/w/api.php?action=opensearch&format=json&formatversion=2&search=$(URI_ENCODE "$4")&namespace=0&limit=${COUNT}&suggest=false"
 declare -i DEF_NUM
 DEF_NUM=0
 

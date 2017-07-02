@@ -24,14 +24,30 @@ if [ -n "$MOOSE_IGNORE" ]; then
     done
 fi
 
-if [ "$4" = 'help' ]; then
-    echo ":m $1 Make Moose @ $MOOSE_URL/#"
-    exit
-fi
+q="$4"
 
-if [[ "$4" =~ ^search ]]; then
+# parse args
+while IFS='=' read -r key val; do
+    case "$key" in
+        -l|--latest)
+            q='latest'
+        ;;
+        -r|--random)
+            q='random'
+        ;;
+        -s|--search)
+            SEARCH=1
+        ;;
+        -h|--help)
+            echo ":m $1 usage: $5 [--latest --random --search] [query]"
+            echo ":m $1 Make Moose @ $MOOSE_URL"
+            exit 0
+        ;;
+    esac
+done <<< "$6"
+
+if [ -n "$SEARCH" ]; then
     # shellcheck disable=2034
-    read -r srch q <<< "$4"
     if [ -z "$q" ]; then
         echo ":m $1 search command requires a query"
         exit 0
@@ -57,15 +73,6 @@ if ! mkdir "$MOOSE_LOCK"; then
     exit 0
 fi
 
-# $1 - size of border
-top_border() {
-    echo -n '+'
-    for (( i=0; i<${1}; i++ )); do
-        echo -n '-'
-    done
-    echo '+'
-}
-
 KCOL=$'\003'
 declare -A COLOR
 COLOR=(
@@ -90,7 +97,7 @@ COLOR=(
 
 # get moose and moose meta data
 MOOSE="$(
-    curl "$MOOSE_URL/moose/$(URI_ENCODE "${4:-random}")" 2>/dev/null
+    curl "$MOOSE_URL/moose/$(URI_ENCODE "${q:-random}")" 2>/dev/null
 )"
 MOOSE_ERR="$(jq -r '.status' <<< "$MOOSE")"
 # check for error
@@ -187,7 +194,7 @@ for line in "${MOOSE_IMAGE[@]}"; do
     sleep "0.3s"
 done 
 outstring=""
-if [ "$4" = 'latest' ] || [ "${4:-random}" = 'random' ]; then
+if [ "$q" = 'latest' ] || [ "${q:-random}" = 'random' ]; then
     outstring+=$'\002'"$MOOSE_NAME"$'\002'" -"
 fi
 echo ":m $1 $outstring Created $(reladate "$MOOSE_DATE")"

@@ -67,3 +67,44 @@ reladate() {
     echo "$amt $unit $past_suffix"
 }
 export -f reladate
+
+# get default location for user
+# $1     - user
+# return - location
+GET_LOC() {
+    [ -z "$PERSIST_LOC" ] && PERSIST_LOC="$PLUGIN_TEMP"
+    local weatherdb="$PERSIST_LOC/weather-defaults.db"
+    IFS=':' read -r USR arg < <( 
+        grep "^$1:" "$weatherdb" 
+    )
+    echo "$arg"
+}
+export -f GET_LOC
+
+# save location ($2) for user ($1) 
+# for weather plugins
+# $1: user
+# $2: location
+SAVE_LOC() {
+    [ -z "$PERSIST_LOC" ] && PERSIST_LOC="$PLUGIN_TEMP"
+    local weatherdb="$PERSIST_LOC/weather-defaults.db"
+    if [ ! -f "$weatherdb" ]; then
+        touch "$weatherdb"
+    fi
+
+    if ! mkdir "$weatherdb.lock"; then
+        (( ${3:-0} > 1 )) && return 1
+        sleep 1s
+        "$0" "$@"
+        return
+    fi
+
+    if grep -q "^$1:" "$weatherdb"; then
+        sed -i'' 's/^'"$USER"':.*$/'"$USER"':'"$4"'/' "$weatherdb" || return 1
+    else
+        echo "$1:$2" >> "$weatherdb" || return 1
+    fi
+
+    rmdir "$weatherdb.lock"
+}
+export -f SAVE_LOC

@@ -13,6 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+declare -i COUNT
+COUNT=3
+
+# parse args
+while IFS='=' read -r key val; do
+    case "$key" in
+        -c|--count)
+            [[ "$val" =~ ^[1-3]$ ]] &&
+                COUNT="$val"
+        ;;
+        -h|--help)
+            echo ":m $1 usage: $5 [--count=#-to-ret] query"
+            exit 0
+        ;;
+    esac
+done <<< "$6"
+
 if [ -z "$4" ]; then
     echo ":mn $3 This command requires a search query"
     exit 0
@@ -27,6 +44,7 @@ while read -r definition; do
     (( ${#definition} > 400 )) && 
         definition="${definition:0:400}..."
     echo -e ":m $1 "$'\002'"${4:0:100}\002 :: $definition"
+    (( DEF_NUM >= COUNT )) && break
 done < <(
     echo "$DICTIONARY" |
     wget -O- -i- --quiet | 

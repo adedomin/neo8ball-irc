@@ -15,6 +15,23 @@
 red=$'\003'"04"
 green=$'\003'"03"
 
+declare -i COUNT
+COUNT=3
+
+# parse args
+while IFS='=' read -r key val; do
+    case "$key" in
+        -c|--count)
+            [[ "$val" =~ ^[1-4]$ ]] &&
+                COUNT="$val"
+        ;;
+        -h|--help)
+            echo ":m $1 usage: $5 [--count=#-to-ret] query"
+            exit 0
+        ;;
+    esac
+done <<< "$6"
+
 if [ -z "$4" ]; then
     echo ":mn $3 This command requires a search query"
     exit 0
@@ -33,6 +50,7 @@ while read -r url duration views likes title; do
         "\002Views\002 ${red}$(printf "%'d" "$views")\003 ::" \
         "\002Likes\002 ${green}$(printf "%'d" "$likes")\003 ::" \
         "\002URL\002 $url"
+    (( DEF_NUM >= COUNT )) && break
 done < <(
     curl "${VIDME}$(URI_ENCODE "$4")" 2>/dev/null | \
     jq -r '.videos[0],.videos[1],.videos[2],.videos[3] // empty |

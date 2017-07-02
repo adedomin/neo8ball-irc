@@ -15,4 +15,5 @@ echo -e ":m $1 \002King James Bible\002 .bible [<query>] ::" \
     "\002Quran\002 .quran [<query>] ::" \
     "\002PornMD Search\002 .(fap|gay|straight) [<query>] ::" \
     "\002CaptMoose\002 .moose [<query>|search <query>] (\`.moose help\` for URL) ::" \
-    "\002PRIVATE MESSAGE\002 commands are the same, sans prefix"
+    "\002PRIVATE MESSAGE\002 commands are the same, sans prefix ::" \
+    "NOTE: most commands have a --help option"

@@ -23,7 +23,22 @@ if [ -z "$q" ]; then
     q="$(curl "https://www.pornmd.com/randomwords?orientation=$orientation" 2>/dev/null | tr -d '"' )"
 fi
 
+declare -i AMT_RESULTS
 AMT_RESULTS=3
+
+# parse args
+while IFS='=' read -r key val; do
+    case "$key" in
+        -c|--count)
+            [[ "$val" =~ ^[1-3]$ ]] &&
+                AMT_RESULTS="$val"
+        ;;
+        -h|--help)
+            echo ":m $1 usage: $5 [--count=#-to-ret] [query]"
+            exit 0
+        ;;
+    esac
+done <<< "$6"
 
 PORN_MD="https://www.pornmd.com"
 PORN_MD_SRCH="$PORN_MD/$orientation/$(URI_ENCODE "${q,,}")"

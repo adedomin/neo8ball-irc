@@ -16,20 +16,28 @@
 WEATHER="api.openweathermap.org/data/2.5/weather?APPID=${OWM_KEY}&q="
 
 arg="$4"
-if [ -z "$arg" ] && [ -n "$PERSIST_LOC" ]; then
 
-    WEATHER_DB="$PERSIST_LOC/weather-defaults.db"
-    if [ ! -f "$WEATHER_DB" ]; then
-        echo ":mn $3 You have to set a default location first," \
-             "use .location <location> or .wd <location>"
-        exit 0
-    fi
+# parse args
+while IFS='=' read -r key val; do
+    case "$key" in
+        -S|--save)
+            SAVE=1
+            [ -n "$val" ] &&
+                arg="$val"
+        ;;
+        -h|--help)
+            echo ":m $1 usage: $5 [--save=station] [query]"
+            echo ":m $1 This service uses https://openweathermap.org"
+            exit 0
+        ;;
+    esac
+done <<< "$6"
 
-    # shellcheck disable=2034
-    IFS=$':' read -r USR arg < <( grep "^$3:" "$WEATHER_DB" )
+if [ -z "$arg" ]; then
+    arg=$(GET_LOC "$3")
     if [ -z "$arg" ]; then
-        echo ":mn $3 You have to set a default location first," \
-             "use .location <location> or .wd <location>"
+        echo ":mn $3 you must set a default location first"
+        echo ":mn $3 use --save=STATION"
         exit 0
     fi
 fi
@@ -72,3 +80,11 @@ echo -e ":m $1 "$'\002'"${loc}\002 ::" \
     "\002Temp\002 $CURR_CELS °C | $CURR_FAHR °F ::" \
     "\002Humidity\002 $HUMIDITY% ::" \
     "\002More\002 http://openweathermap.org/city/$city_id"
+
+# valid station... so save it
+if [ -n "$SAVE" ]; then
+    if ! SAVE_LOC "$3" "$arg"; then
+        echo ":mn $3 there was a problem saving your defaults"
+        echo ":logw NWS -> failed to save $arg for $3"
+    fi
+fi

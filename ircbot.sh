@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v3.1.0-alpha1"
+VERSION="bash-ircbot: v4.0.0-experimental1"
 
 # help info
 usage() {
@@ -394,16 +394,69 @@ trusted_gateway() {
         user="${BASH_REMATCH[1]}"
 }
 
+# this function creates a new separated string of "arguments"
+# arguments are in the form of -k=value or --key=value
+# note that value must be a space-less word for the sake of simplicity
+# the application will get a separate arg of a stirng of all the arguments
+# that it can parse on it's own, an example forthcoming.
+#
+# Also note that arguments must have = as the delimiter of keys to values
+# this is again for the sake of simplicity. an argument without a = will be assumed to
+# be a boolean like arg
+# 
+# Other notes, this assumes arguments are in the following form:
+#      <user> .cmd -a=1 -b --asd=2 -- --not-an-arg=test rest of the message
+#
+# the -- denotes that no more arguments are to follow it, thus why --not-an-arg
+# is ignored
+# ultimately arguments must come first and the message follows
+# $1 - the message
+# mutations - args - line separated list of args
+#           - cmd  - the shell command
+#           - msg  - message sans arguments
+parse_args() {
+    args=
+    # prevent glob stupidity
+    read -ra words <<< "$1"
+    shift
+    # makes it easier...
+    # just puts the array into positional args
+    # e.g. $1 $2 $3... etc
+    set -- "${words[@]}"
+    # first word is likely command...
+    cmd="$1"
+    shift
+    while (( $# > 0 )); do
+        case "$1" in
+            --) # no more args
+                shift
+                break
+            ;;
+            -*) # option
+                args+="$1"$'\n'
+            ;;
+            *)
+                break
+            ;;
+        esac
+        shift
+    done
+    msg="$*"
+}
+
 #######################
 # Bot Message Handler #
 #######################
 
 # handle PRIVMSGs and NOTICEs and
 # determine if the bot needs to react to message
-# $1: channel
-# $2: datetime - DEPRECATED, GENERATE YOUR OWN TIME
-# $3: user
-# $4: msg
+# $1: channel - the channel the string came from
+# $2: vhost   - the vhost of the user
+# $3: user    - the nickname of the user
+# $4: full    - full message line
+# $5: cmd     - the command parsed from message
+# $6: args    - the arguments for cmd
+# $7: msg     - the message sans args and cmd
 handle_privmsg() {
     # private message to us
     # 5th argument is the command name
@@ -417,8 +470,7 @@ handle_privmsg() {
             return
         fi
 
-        # similar to command, but no prefix
-        read -r cmd args <<< "$4"
+        cmd="$5"
         # if invalid command
         if [ -z "${COMMANDS[$cmd]}" ]; then
             echo ":m $3 --- Invalid Command ---"
@@ -428,20 +480,19 @@ handle_privmsg() {
         [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
         [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
         "$LIB_PATH/${COMMANDS[$cmd]}" \
-            "$3" "$2" "$3" "$args" "$cmd"
+            "$3" "$2" "$3" "$7" "$cmd" "$6"
         echo ":ld PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $args"
         return
     fi
 
     # highlight event in message
-    # 5th argument is the $LIB_PATH (deprecation risk)
     local highlight="$NICK.? (.*)"
     if [[ "$4" =~ $highlight ]]; then
         # shellcheck disable=SC2153
         [ -x "$LIB_PATH/$HIGHLIGHT" ] || return
         [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
         "$LIB_PATH/$HIGHLIGHT" \
-            "$1" "$2" "$3" "${BASH_REMATCH[1]}" "$LIB_PATH"
+            "$1" "$2" "$3" "${BASH_REMATCH[1]}" '~PRIVMSG~'
         echo ":ld HIGHLIGHT EVENT -> $1 <$3> $4"
         return
     fi
@@ -450,29 +501,28 @@ handle_privmsg() {
     # may be useful for scripts that are linked
     # to multiple commands, allowing for different behavior
     # by command name
-    read -r cmd args <<< "$4"
-    local reg="^[${CMD_PREFIX}]${cmd:1}"
-    if [[ "$cmd" =~ $reg ]]; then
-        cmd="${cmd:1}"
+    local reg="^[${CMD_PREFIX}]${5:1}"
+    if [[ "$5" =~ $reg ]]; then
+        cmd="${5:1}"
         [ -n "${COMMANDS[$cmd]}" ] || return
         [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
         [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
         "$LIB_PATH/${COMMANDS[$cmd]}" \
-            "$1" "$2" "$3" "$args" "$cmd"
+            "$1" "$2" "$3" "$7" "$cmd" "$6"
         echo ":ld COMMAND EVENT -> $cmd: $1 <$3> $args"
         return
     fi
 
     # fallback regex check on message
-    # 5th arguemnt is the fully matched string
+    # arguemnt string is the fully matched string
     # odd number index should be the plugin
     # even should be command
     for (( i=0; i<${#REGEX[@]}; i=i+2 )); do
         if [[ "$4" =~ ${REGEX[$i]} ]]; then
             [ -x "$LIB_PATH/${REGEX[((i+1))]}" ] || return
             [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
-            "$LIB_PATH/${REGEX[((i+1))]}" \
-                "$1" "$2" "$3" "$4" "${BASH_REMATCH[0]}"
+            "$LIB_PATH/${REGEX[$((i+1))]}" \
+                "$1" "$2" "$3" "$4" "${REGEX[$i]}" "--match=${BASH_REMATCH[0]}"
             echo ":ld REGEX EVENT -> ${REGEX[$i]}: $1 <$3> $4"
             return
         fi
@@ -530,14 +580,20 @@ while read -r user command channel message; do
     # check if gateway nick
     trusted_gateway "$user"
 
+    # log message
     send_log "STDOUT" "$channel $command <$user> $message"
+
+    # parse args
+    parse_args "$message"
 
     # handle commands here
     case $command in
         # any channel message
         PRIVMSG) 
             check_ignore "$user" &&
-            handle_privmsg "$channel" "$host" "$user" "$message" \
+            handle_privmsg \
+                "$channel" "$host" "$user" "$message" \
+                "$cmd" "$args" "$msg" \
             | send_cmd &
         ;;
         # any other channel message
@@ -546,7 +602,9 @@ while read -r user command channel message; do
         NOTICE)
             [ -z "$READ_NOTICE" ] && continue
             check_ignore "$user" &&
-            handle_privmsg "$channel" "$host" "$user" "$message" \
+            handle_privmsg \
+                "$channel" "$host" "$user" "$message" \
+                "$cmd" "$args" "$msg" \
             | send_cmd &
         ;;
         # bot was invited to channel
@@ -633,6 +691,8 @@ while read -r user command channel message; do
                 hostparse) echo "$host" >&3 ;;
                 chanparse) echo "$channel" >&3 ;;
                 msgparse) echo "$message" >&3 ;;
+                argparse*) echo "${args//$'\n'/ }" >&3 ;;
+                sansparse*) echo "$msg" >&3 ;;
                 # echo invalid debug commands
                 *) echo "$message" >&3 ;;
             esac

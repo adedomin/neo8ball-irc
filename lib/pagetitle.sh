@@ -13,6 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# parse args
+while IFS='=' read -r key val; do
+    case "$key" in
+        --match)
+            URL="$val"
+        ;;
+    esac
+done <<< "$6"
+
 while read -r key val; do
     case ${key,,} in
         content-type:)
@@ -24,7 +33,7 @@ while read -r key val; do
         ;;
     esac
 done < <(
-    curl -L --max-redirs 2 -m 10 -I "$5" 2>/dev/null
+    curl -L --max-redirs 2 -m 10 -I "$URL" 2>/dev/null
 )
 
 [ -z "$mime" ] && exit 0 
@@ -35,7 +44,7 @@ fi
 
 
 read -rd '' title < <(
-    curl --compressed -L --max-redirs 2 -m 10 "$5" 2>/dev/null | sed -n '
+    curl --compressed -L --max-redirs 2 -m 10 "$URL" 2>/dev/null | sed -n '
         /<title[^>]*>.*<\/title>/I {
           s@.*<title[^>]*>\(.*\)</title>.*@\1@Ip
           q

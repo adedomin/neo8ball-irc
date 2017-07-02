@@ -14,6 +14,27 @@
 # limitations under the License.
 # DEPENDS: recode
 
+declare -i COUNT
+COUNT=3
+
+# parse args
+while IFS='=' read -r key val; do
+    case "$key" in
+        -c|--count)
+            [[ "$val" =~ ^[1-3]$ ]] &&
+                COUNT="$val"
+        ;;
+        -d|--definition)
+            echo ":m $1 --definition=# is currently not implemented"
+            exit 0
+        ;;
+        -h|--help)
+            echo ":m $1 usage: $5 [--count=#-to-ret --definition=#] query"
+            exit 0
+        ;;
+    esac
+done <<< "$6"
+
 if [ -z "$4" ]; then
     echo ":mn $3 This command requires a search query"
     exit 0
@@ -30,6 +51,7 @@ while read -r definition; do
     (( ${#definition} > 400 )) && 
         definition="${definition:0:400}..."
     echo -e ":m $1 "$'\002'"${4}\002 :: $definition"
+    (( DEF_NUM >= COUNT )) && break
 done < <(
   curl "$NEW_URBAN" -L -f 2>/dev/null \
   | jq -r '.list[0],.list[1],.list[2] //empty 

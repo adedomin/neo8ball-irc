@@ -13,6 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+declare -i COUNT
+COUNT=1
+
+# parse args
+while IFS='=' read -r key val; do
+    case "$key" in
+        -c|--count)
+            [[ "$val" =~ ^[1-3]$ ]] &&
+                COUNT="$val"
+        ;;
+        -h|--help)
+            echo ":m $1 usage: $5 [--count=#-to-ret] [query]"
+            exit 0
+        ;;
+    esac
+done <<< "$6"
+
 if [ "$5" = 'quran' ]; then
     table='quran'
     BIBLE_SOURCE="$QURAN_SOURCE"
@@ -23,7 +40,7 @@ fi
 if [ -n "$BIBLE_DB" ] && [ -f "$BIBLE_DB" ]; then
 
     if [ -z "$4" ]; then
-        printf ":m $1 %s\n" "$(sqlite3 "$BIBLE_DB" <<< "SELECT * FROM $table ORDER BY RANDOM() LIMIT 1;")"
+        printf ":m $1 %s\n" "$(sqlite3 "$BIBLE_DB" <<< "SELECT * FROM $table ORDER BY RANDOM() LIMIT $COUNT;")"
         exit 0
     fi
 
@@ -37,7 +54,7 @@ SELECT * FROM $table
 WHERE $table 
 MATCH '$q' 
 ORDER BY rank 
-LIMIT 1;
+LIMIT $COUNT;
 EOF
     )"
     
@@ -46,11 +63,11 @@ EOF
 elif [ -n "$BIBLE_SOURCE" ] && [ -f "$BIBLE_SOURCE" ]; then
     
     if [ -z "$4" ]; then
-        echo ":m $1 $(shuf -n1 "$BIBLE_SOURCE")"
+        echo ":m $1 $(shuf -n"$COUNT" "$BIBLE_SOURCE")"
         exit 0
     fi
 
-    verse="$(grep -F -m 1 "$4" "$BIBLE_SOURCE")"
+    verse="$(grep -F -m "$COUNT" "$4" "$BIBLE_SOURCE")"
     echo ":m $1 ${verse:-Nothing Found}"
 
 else

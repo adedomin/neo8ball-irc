@@ -14,34 +14,37 @@
 # limitations under the License.
 
 arg="$4"
-if [ -z "$arg" ] && \
-    [ -n "$PERSIST_LOC" ]; then
 
-    WEATHER_DB="$PERSIST_LOC/weather-defaults.db"
-    if [ ! -f "$WEATHER_DB" ]; then
-        echo ":mn $3 You have to set a default location first,"\
-             "use .nwsd <station> or .nwsl <station>"
-        echo ":mn $3 find a station: .nws search <city or airport>"
-        exit 0
-    fi
+# parse args
+while IFS='=' read -r key val; do
+    case "$key" in
+        -s|--search)
+            SEARCH=1
+        ;;
+        -S|--save)
+            SAVE=1
+            [ -n "$val" ] &&
+                arg="$val"
+        ;;
+        -h|--help)
+            echo ":m $1 usage: $5 [--search --save=station] [query]"
+            echo ":m $1 --search looks for your city in: http://weather.rap.ucar.edu/surface/stations.txt"
+            exit 0
+        ;;
+    esac
+done <<< "$6"
 
-    # shellcheck disable=2034
-    IFS=$':' read -r USR arg < <( grep "^NWS~$3:" "$WEATHER_DB" )
+if [ -z "$arg" ]; then
+    
+    arg=$(GET_LOC "NWS~$3")
     if [ -z "$arg" ]; then
-        echo ":mn $3 You have to set a default location first," \
-             "use .nwsd <station> or .nwsl <station>"
-        echo ":mn $3 find a station: .nws search <city or airport>"
+        echo ":mn $3 you must set a default location first"
+        echo ":mn $3 use --save=STATION"
         exit 0
     fi
 fi
 
-if [ "$arg" = 'help' ]; then
-    echo ":m $1 find a station: .nws search <city or airport>"
-    echo ":m $1 full list: http://weather.rap.ucar.edu/surface/stations.txt"
-    exit 0
-fi
-
-if [[ "$arg" =~ ^search ]]; then
+if [ -n "$SEARCH" ]; then
     if [ -z "$PERSIST_LOC" ]; then
         echo ":mn $3 search is disabled"
         exit 0
@@ -54,7 +57,7 @@ if [[ "$arg" =~ ^search ]]; then
     fi
 
     # shellcheck disable=2034
-    read -r srch query <<< "$arg"
+    query="$arg"
     while read -r line; do
         echo ":m $1 $line"
     done < <(
@@ -107,7 +110,7 @@ done < <(
 
 if [ -z "$LOC" ]; then
     echo ":m $1 invalid station"
-    echo ":m $1 find a station: .nws search <city or airport>"
+    echo ":m $1 find a station: .$5 --search <city or airport>"
     exit 0
 fi
 
@@ -140,3 +143,11 @@ echo -e ":m $1 \002${LOC}\002 :: ${CONDITIONS} ::" \
     "\002Humidity\002 ${HUMIDITY}% ::" \
     "\002Dewpoint\002 ${DEW} ::" \
     "\002Pressure\002 ${PRESSURE}"
+
+# valid station... so save it
+if [ -n "$SAVE" ]; then
+    if ! SAVE_LOC "NWS~$3" "$arg"; then
+        echo ":mn $3 there was a problem saving your defaults"
+        echo ":logw NWS -> failed to save $arg for $3"
+    fi
+fi
