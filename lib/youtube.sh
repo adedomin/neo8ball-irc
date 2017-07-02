@@ -19,7 +19,7 @@ COUNT=3
 # parse args
 while IFS='=' read -r key val; do
     case "$key" in
-        --match)
+        --full-msg)
             MATCH="$val"
         ;;
         -c|--count)
@@ -63,6 +63,7 @@ if [ -z "$ids" ]; then
                .id.videoId'
     )
 fi
+echo "$ids" >&2
 
 stats="https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${ids}&key=${YOUTUBE_KEY}"
 
