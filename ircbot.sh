@@ -492,7 +492,7 @@ handle_privmsg() {
         [ -x "$LIB_PATH/$HIGHLIGHT" ] || return
         [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
         "$LIB_PATH/$HIGHLIGHT" \
-            "$1" "$2" "$3" "$7" '~PRIVMSG~' "$6"
+            "$1" "$2" "$3" "$7" "$5" "$6"
         echo ":ld HIGHLIGHT EVENT -> $1 <$3> $4"
         return
     fi
