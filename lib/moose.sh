@@ -29,6 +29,11 @@ q="$4"
 # parse args
 while IFS='=' read -r key val; do
     case "$key" in
+        --match)
+            # legacy mode to shut up the idiots who want
+            # moose blah
+            read -r moose q <<< "$4"
+        ;;
         -l|--latest)
             q='latest'
         ;;

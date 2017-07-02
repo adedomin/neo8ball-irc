@@ -112,7 +112,7 @@ REGEX=(
 'youtube.com|youtu.be' 'youtube.sh'
 # literally anything can be a url nowadays
 "(https?)://[^ ]+" 'pagetitle.sh'
-'^\^' 'this.sh'
+"^moose" "moose.sh"
 )
 
 # list of nicks to ignore from, such as other bots
