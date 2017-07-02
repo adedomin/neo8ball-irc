@@ -481,7 +481,7 @@ handle_privmsg() {
         [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
         "$LIB_PATH/${COMMANDS[$cmd]}" \
             "$3" "$2" "$3" "$7" "$cmd" "$6"
-        echo ":ld PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $args"
+        echo ":ld PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $7"
         return
     fi
 
@@ -492,7 +492,7 @@ handle_privmsg() {
         [ -x "$LIB_PATH/$HIGHLIGHT" ] || return
         [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
         "$LIB_PATH/$HIGHLIGHT" \
-            "$1" "$2" "$3" "${BASH_REMATCH[1]}" '~PRIVMSG~'
+            "$1" "$2" "$3" "${BASH_REMATCH[1]}" '~PRIVMSG~' "$6"
         echo ":ld HIGHLIGHT EVENT -> $1 <$3> $4"
         return
     fi
@@ -509,7 +509,7 @@ handle_privmsg() {
         [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
         "$LIB_PATH/${COMMANDS[$cmd]}" \
             "$1" "$2" "$3" "$7" "$cmd" "$6"
-        echo ":ld COMMAND EVENT -> $cmd: $1 <$3> $args"
+        echo ":ld COMMAND EVENT -> $cmd: $1 <$3> $7"
         return
     fi
 
@@ -522,7 +522,7 @@ handle_privmsg() {
             [ -x "$LIB_PATH/${REGEX[((i+1))]}" ] || return
             [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
             "$LIB_PATH/${REGEX[$((i+1))]}" \
-                "$1" "$2" "$3" "$4" "${REGEX[$i]}" "--match=${BASH_REMATCH[0]}"
+                "$1" "$2" "$3" "$4" "${REGEX[$i]}" "--match=${BASH_REMATCH[0]}"$'\n'"$6"
             echo ":ld REGEX EVENT -> ${REGEX[$i]}: $1 <$3> $4"
             return
         fi
