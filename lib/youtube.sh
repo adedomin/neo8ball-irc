@@ -44,6 +44,7 @@ if [ -z "$YOUTUBE_KEY" ]; then
 fi
 
 if [ -n "$MATCH" ]; then
+    COUNT=1
     ids="$(grep -Po '(?<=watch\?v=)[^&?\s]*|(?<=youtu\.be/)[^?&\s]*' <<< "$MATCH")"
 fi
 

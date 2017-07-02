@@ -35,7 +35,6 @@ while IFS='=' read -r key val; do
 done <<< "$6"
 
 if [ -z "$arg" ]; then
-    
     arg=$(GET_LOC "NWS~$3")
     if [ -z "$arg" ]; then
         echo ":mn $3 you must set a default location first"
