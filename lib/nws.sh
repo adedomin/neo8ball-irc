@@ -28,7 +28,8 @@ while IFS='=' read -r key val; do
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--search --save=station] [query]"
-            echo ":m $1 --search looks for your city in: http://weather.rap.ucar.edu/surface/stations.txt"
+            echo ":m $1 plugin that uses the NWS METAR XML api to get current weather observations."
+            echo ":m $1 note that a query must be an airport or other METAR station, e.g. KLAX."
             exit 0
         ;;
     esac

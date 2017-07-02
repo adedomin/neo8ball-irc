@@ -43,7 +43,9 @@ while IFS='=' read -r key val; do
             YN="${val:-1}"
         ;;
         -h|--help)
-            echo ":m $1 usage: $5 [-y --yes-no] query"
+            echo ":m $1 usage: $5 [-y --yes-no] query?"
+            echo ":m $1 usage: $5 <choice a> or <choice b>?"
+            echo ":m $1 answers y/n questions or decides between two choices."
             exit 0
         ;;
     esac

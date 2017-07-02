@@ -25,6 +25,7 @@ while IFS='=' read -r key val; do
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--count=#-to-ret] query"
+            echp ":m $1 defines a given word."
             exit 0
         ;;
     esac

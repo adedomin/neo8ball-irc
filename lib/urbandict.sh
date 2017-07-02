@@ -30,6 +30,7 @@ while IFS='=' read -r key val; do
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--count=#-to-ret --definition=#] query"
+            echo ":m $1 find a defintion for a word using the urban dictionary."
             exit 0
         ;;
     esac

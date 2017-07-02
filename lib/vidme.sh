@@ -27,6 +27,7 @@ while IFS='=' read -r key val; do
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--count=#-to-ret] query"
+            echo ":m $1 search for videos on vidme"
             exit 0
         ;;
     esac

@@ -24,7 +24,7 @@ if [ -z "$q" ]; then
 fi
 
 declare -i AMT_RESULTS
-AMT_RESULTS=3
+AMT_RESULTS=1
 
 # parse args
 while IFS='=' read -r key val; do
@@ -35,6 +35,7 @@ while IFS='=' read -r key val; do
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--count=#-to-ret] [query]"
+            echo ":m $1 search for pornographic material or let the bot output a random one."
             exit 0
         ;;
     esac

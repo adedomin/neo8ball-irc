@@ -25,7 +25,8 @@ while IFS='=' read -r key val; do
         #        COUNT="$val"
         #;;
         -h|--help)
-            echo ":m $1 usage: $5 [--count=#-to-ret] [query]"
+            echo ":m $1 usage: $5 [query]"
+            echo ":m $1 find or get random verse from either the kjv bible or the quran."
             exit 0
         ;;
     esac

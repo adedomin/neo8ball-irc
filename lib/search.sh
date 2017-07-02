@@ -25,6 +25,7 @@ while IFS='=' read -r key val; do
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--count=#-to-ret] query"
+            echo ":m $1 search duckduckgo for whatever your heart desires."
             exit 0
         ;;
     esac
