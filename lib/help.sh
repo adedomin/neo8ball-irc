@@ -1,18 +1,15 @@
 #!/usr/bin/env bash
-echo -e ":m $1 \0028ball\002 .8ball <question>?|<choice1> or <choice2>? ::" \
-    "\002Web Search\002 .ddg <query> ::" \
-    "\002Weather\002 .owm <location> ::" \
-    "\002Set Location\002 .location <location> ::" \
-    "\002Vidme\002 .v <query> ::" \
-    "\002NWS METAR OBV\002 .nws <station> ::" \
-    "\002Set Station\002 .nwsd <station> ::" \
-    "\002NPM Search\002 .npm <query> ::" \
-    "\002Wikipedia Search\002 .wiki <query> ::" \
-    "\002Youtube\002 .you <query> ::" \
-    "\002Urban Dictionary\002 .urban <query>"
-echo -e ":m $1 \002King James Bible\002 .bible [<query>] ::" \
-    "\002Quran\002 .quran [<query>] ::" \
-    "\002PornMD Search\002 .(fap|gay|straight) [<query>] ::" \
-    "\002CaptMoose\002 .moose [<query>|search <query>] (\`.moose help\` for URL) ::" \
-    "\002PRIVATE MESSAGE\002 commands are the same, sans prefix ::" \
-    "NOTE: most commands have a --help option"
+echo -e ":m $1 This is a list of commands, for each command use [.CMD-NAME] --help, or [CMD-name] --help if a piravte message, to learn more."
+echo -e ":m $1 8ball ::" \
+    "ddg ::" \
+    "owm ::" \
+    "v ::" \
+    "nws ::" \
+    "npm ::" \
+    "wiki ::" \
+    "you ::" \
+    "urban ::" \
+    "bible ::" \
+    "quran ::" \
+    "fap|gay|straight ::" \
+    "moose" 
