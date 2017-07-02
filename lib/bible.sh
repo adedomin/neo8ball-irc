@@ -19,10 +19,11 @@ COUNT=1
 # parse args
 while IFS='=' read -r key val; do
     case "$key" in
-        -c|--count)
-            [[ "$val" =~ ^[1-3]$ ]] &&
-                COUNT="$val"
-        ;;
+        # TODO: revisit
+        #-c|--count)
+        #    [[ "$val" =~ ^[1-3]$ ]] &&
+        #        COUNT="$val"
+        #;;
         -h|--help)
             echo ":m $1 usage: $5 [--count=#-to-ret] [query]"
             exit 0
@@ -63,7 +64,7 @@ EOF
 elif [ -n "$BIBLE_SOURCE" ] && [ -f "$BIBLE_SOURCE" ]; then
     
     if [ -z "$4" ]; then
-        echo ":m $1 $(shuf -n"$COUNT" "$BIBLE_SOURCE")"
+        printf ":m $1 %s" "$(shuf -n"$COUNT" "$BIBLE_SOURCE")"
         exit 0
     fi
 
