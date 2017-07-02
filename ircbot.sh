@@ -486,13 +486,13 @@ handle_privmsg() {
     fi
 
     # highlight event in message
-    local highlight="$NICK.? (.*)"
+    local highlight="^$NICK.?"
     if [[ "$4" =~ $highlight ]]; then
         # shellcheck disable=SC2153
         [ -x "$LIB_PATH/$HIGHLIGHT" ] || return
         [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
         "$LIB_PATH/$HIGHLIGHT" \
-            "$1" "$2" "$3" "${BASH_REMATCH[1]}" '~PRIVMSG~' "$6"
+            "$1" "$2" "$3" "$7" '~PRIVMSG~' "$6"
         echo ":ld HIGHLIGHT EVENT -> $1 <$3> $4"
         return
     fi

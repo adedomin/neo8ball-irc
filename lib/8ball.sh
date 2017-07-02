@@ -36,12 +36,30 @@ responses=(
 "Don't count on it."
 )
 
+# parse args
+while IFS='=' read -r key val; do
+    case "$key" in
+        -y|--yes-no)
+            YN="${val:-1}"
+        ;;
+        -h|--help)
+            echo ":m $1 usage: $5 [-y --yes-no] query"
+            exit 0
+        ;;
+    esac
+done <<< "$6"
+
 reg="(.*) or (.*)\?" # decide
 reg2="(.*)\?" # regular 8ball msg
 if [[ "$4" =~ $reg ]]; then
     echo ":m $1 $3: ${BASH_REMATCH[($RANDOM % 2)+1]}"
 elif [[ "$4" =~ $reg2 ]]; then
-    echo ":m $1 $3: ${responses[$((RANDOM % 20))]}"
+    if [ "$YN" ]; then
+        (( RANDOM % 2 == 0 )) && y='yes'
+        echo ":m $1 $3: ${y:-no}"
+    else
+        echo ":m $1 $3: ${responses[$((RANDOM % 20))]}"
+    fi
 else
     echo ":mn $3 Try asking a question? (add a '?' to your question)"
 fi
