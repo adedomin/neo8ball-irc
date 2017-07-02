@@ -517,12 +517,16 @@ handle_privmsg() {
     # arguemnt string is the fully matched string
     # odd number index should be the plugin
     # even should be command
+    # arguments have drastically changed and two reserved args are used
+    # --match is the matched string in the regexp
+    # --full-msg is the full query msg
+    # the default args mimick a command event, msg without "cmd" and "args"
     for (( i=0; i<${#REGEX[@]}; i=i+2 )); do
         if [[ "$4" =~ ${REGEX[$i]} ]]; then
             [ -x "$LIB_PATH/${REGEX[((i+1))]}" ] || return
             [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
             "$LIB_PATH/${REGEX[$((i+1))]}" \
-                "$1" "$2" "$3" "$4" "${REGEX[$i]}" "--match=${BASH_REMATCH[0]}"$'\n'"$6"
+                "$1" "$2" "$3" "$7" "${REGEX[$i]}" "--match=${BASH_REMATCH[0]}"$'\n'"--full-msg=$4"$'\n'"$6"
             echo ":ld REGEX EVENT -> ${REGEX[$i]}: $1 <$3> $4"
             return
         fi
