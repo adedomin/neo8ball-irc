@@ -27,6 +27,7 @@ fi
 q="$4"
 
 # parse args
+# shellcheck disable=SC2034
 while IFS='=' read -r key val; do
     case "$key" in
         -l|--latest)
@@ -77,22 +78,33 @@ KCOL=$'\003'
 declare -A COLOR
 COLOR=(
 ['t']=''
-['0']=$'\003'"00,00"
-['1']=$'\003'"01,01"
-['2']=$'\003'"02,02"
-['3']=$'\003'"03,03"
-['4']=$'\003'"04,04"
-['5']=$'\003'"05,05"
-['6']=$'\003'"06,06"
-['7']=$'\003'"07,07"
-['8']=$'\003'"08,08"
-['9']=$'\003'"09,09"
-['a']=$'\003'"10,10"
-['b']=$'\003'"11,11"
-['c']=$'\003'"12,12"
-['d']=$'\003'"13,13"
-['e']=$'\003'"14,14"
-['f']=$'\003'"15,15"
+['0']=$'\003'"00"
+['1']=$'\003'"01"
+['2']=$'\003'"02"
+['3']=$'\003'"03"
+['4']=$'\003'"04"
+['5']=$'\003'"05"
+['6']=$'\003'"06"
+['7']=$'\003'"07"
+['8']=$'\003'"08"
+['9']=$'\003'"09"
+['a']=$'\003'"10"
+['b']=$'\003'"11"
+['c']=$'\003'"12"
+['d']=$'\003'"13"
+['e']=$'\003'"14"
+['f']=$'\003'"15"
+)
+
+declare -A SHADERS
+SHADERS=(
+['1']='░'
+['2']='▒'
+['3']='▓'
+['4']='█'
+['5']=',01▓'
+['6']=',01▒'
+['7']=',01░'
 )
 
 # get moose and moose meta data
@@ -109,12 +121,22 @@ fi
 # extract name
 MOOSE_NAME="$(jq -r '.name' <<< "$MOOSE")"
 MOOSE_DATE="$(jq -r '.created' <<< "$MOOSE")"
+MOOSE_SHADED="$(jq -r '.shaded' <<< "$MOOSE")"
 MOOSE_IMAGE=()
 while read -r line; do
     MOOSE_IMAGE+=("$line")
 done < <( 
     jq -r '.image' <<< "$MOOSE"
 )
+
+MOOSE_SHADING=()
+if [ "$MOOSE_SHADED" = 'true' ]; then
+    while read -r line; do
+        MOOSE_SHADING+=("$line")
+    done < <( 
+        jq -r '.shade' <<< "$MOOSE"
+    )
+fi
 
 # trim moose image
 #check from top down
@@ -181,16 +203,23 @@ for (( i=0; i<${#MOOSE_IMAGE}; i++ )); do
     done
 done
 
+[ "$MOOSE_SHADED" = 'true' ] && declare -i shade_lineno
+[ "$MOOSE_SHADED" != 'true' ] && symbol="${SHADERS['4']}"
 for line in "${MOOSE_IMAGE[@]}"; do
     out=''
+    [ "$MOOSE_SHADED" = 'true' ] && 
+        shade_line="${MOOSE_SHADING["$shade_lineno"]}"
     for (( i=0; i<${#line}; i++ )); do
         if [ "${line:$i:1}" = 't' ]; then
             out+=' '
         else
-            out+="${COLOR["${line:$i:1}"]}@${KCOL}"
+            [ "$MOOSE_SHADED" = 'true' ] &&
+                symbol="${SHADERS["${shade_line:$i:1}"]}"
+            out+="${COLOR["${line:$i:1}"]}${symbol}${KCOL}"
         fi
     done
     echo -e ":m $1 \u200B$out"
+    shade_lineno+=1
     sleep "0.3s"
 done 
 outstring=""
