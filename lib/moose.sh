@@ -146,6 +146,8 @@ for (( i=0; i<${#MOOSE_IMAGE[@]}; i++ )); do
     line="${line// }"
     if [ -z "$line" ]; then
         unset MOOSE_IMAGE["$i"]
+        [ "$MOOSE_SHADED" = 'true' ] &&
+            unset MOOSE_SHADING["$i"]
     else
         break
     fi
@@ -162,6 +164,8 @@ for (( i=${#MOOSE_IMAGE[@]}; i>=0; i-- )); do
     line="${line// }"
     if [ -z "$line" ]; then
         unset MOOSE_IMAGE["$i"]
+        [ "$MOOSE_SHADED" = 'true' ] &&
+            unset MOOSE_SHADING["$i"]
     else
         break
     fi
@@ -183,6 +187,10 @@ for (( i=0; i<${#MOOSE_IMAGE}; i++ )); do
     for (( j=0; j<${#MOOSE_IMAGE[@]}; j++ )); do
         line="${MOOSE_IMAGE[$j]}"
         MOOSE_IMAGE[$j]="${line:1}"
+        if [ "$MOOSE_SHADED" = 'true' ]; then
+            sline="${MOOSE_SHADING[$j]}"
+            MOOSE_SHADING[$j]="${sline:1}"
+        fi
     done
 done
 unset noleft
@@ -200,6 +208,10 @@ for (( i=0; i<${#MOOSE_IMAGE}; i++ )); do
     for (( j=0; j<${#MOOSE_IMAGE[@]}; j++ )); do
         line="${MOOSE_IMAGE[$j]}"
         MOOSE_IMAGE[$j]="${line:0:-1}"
+        if [ "$MOOSE_SHADED" = 'true' ]; then
+            sline="${MOOSE_SHADING[$j]}"
+            MOOSE_SHADING[$j]="${sline:0:-1}"
+        fi
     done
 done
 
