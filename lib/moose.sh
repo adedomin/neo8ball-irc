@@ -98,13 +98,13 @@ COLOR=(
 
 declare -A SHADERS
 SHADERS=(
-['1']='░'
-['2']='▒'
-['3']='▓'
-['4']='█'
-['5']=',01▓'
-['6']=',01▒'
-['7']=',01░'
+['0']='░'
+['1']='▒'
+['2']='▓'
+['3']='█'
+['4']=',01▓'
+['5']=',01▒'
+['6']=',01░'
 )
 
 # get moose and moose meta data
@@ -218,7 +218,7 @@ for (( i=0; i<${#MOOSE_IMAGE}; i++ )); do
 done
 
 [ "$MOOSE_SHADED" = 'true' ] && declare -i shade_lineno
-[ "$MOOSE_SHADED" != 'true' ] && symbol="${SHADERS['4']}"
+[ "$MOOSE_SHADED" != 'true' ] && symbol="${SHADERS['3']}"
 for line in "${MOOSE_IMAGE[@]}"; do
     out=''
     [ "$MOOSE_SHADED" = 'true' ] && 
