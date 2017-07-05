@@ -155,6 +155,7 @@ done
 
 # have to rebuild array due to how unsetting deletes positions
 MOOSE_IMAGE=("${MOOSE_IMAGE[@]}")
+MOOSE_SHADING=("${MOOSE_SHADING[@]}")
 
 # trim moose image
 #check from down up
@@ -173,6 +174,7 @@ done
 
 # have to rebuild array due to how unsetting deletes positions
 MOOSE_IMAGE=("${MOOSE_IMAGE[@]}")
+MOOSE_SHADING=("${MOOSE_SHADING[@]}")
 
 # trim from left to right
 for (( i=0; i<${#MOOSE_IMAGE}; i++ )); do
