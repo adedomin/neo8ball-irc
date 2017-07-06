@@ -27,7 +27,6 @@ fi
 q="$4"
 
 # parse args
-# shellcheck disable=SC2034
 while IFS='=' read -r key val; do
     case "$key" in
         -l|--latest)
@@ -37,7 +36,11 @@ while IFS='=' read -r key val; do
             q='random'
         ;;
         -s|--search)
-            SEARCH=1
+            if [[ "$val" = ^[0-9]*$ ]]; then
+                SEARCH="$val"
+            else
+                SEARCH=0
+            fi
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--latest|--random|--search] [query]"
@@ -54,7 +57,7 @@ if [ -n "$SEARCH" ]; then
         exit 0
     fi
     MOOSE_SEARCH="$(
-        curl "$MOOSE_URL/gallery/newest?q=$(URI_ENCODE "$q")" \
+        curl "$MOOSE_URL/gallery/newest?p=${SEARCH}&q=$(URI_ENCODE "$q")" \
             2>/dev/null
     )"
     if [ "$MOOSE_SEARCH" = '[]' ]; then
