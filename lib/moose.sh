@@ -36,7 +36,7 @@ while IFS='=' read -r key val; do
             q='random'
         ;;
         -s|--search)
-            if [[ "$val" = ^[0-9]*$ ]]; then
+            if [[ "$val" =~ ^[0-9]*$ ]]; then
                 SEARCH="$val"
             else
                 SEARCH=0
