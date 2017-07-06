@@ -43,7 +43,7 @@ while IFS='=' read -r key val; do
             fi
         ;;
         -h|--help)
-            echo ":m $1 usage: $5 [--latest|--random|--search] [query]"
+            echo ":m $1 usage: $5 [--latest|--random|--search=page-#] [query]"
             echo ":m $1 Make Moose @ $MOOSE_URL"
             exit 0
         ;;
