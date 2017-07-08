@@ -49,7 +49,8 @@ then
             -d '{ "url": '"\"$URL\""' }' \
         | jq -r '(.metadata.height|tostring) + "x"
             + (.metadata.width|tostring) + " "
-            + .description.captions[0].text'
+            + .description.captions[0].text + "( "
+            + .description.captions[0].confidence + ")"'
     )
     echo -e ":m $1 ↑ \002Image\002 :: $mime (${dimension:-0x0} ${sizeof:-Unknown B}) :: \002Description\002 ${caption:-API error}"
     exit 0
