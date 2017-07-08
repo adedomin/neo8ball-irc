@@ -42,17 +42,17 @@ if [[ "$mime" == image/* ]] &&
     [ -n "$MS_COG_SERV" ] && 
     [ -n "$MS_COG_KEY" ] 
 then
-    read -r dimension caption < <(
+    read -r dimension confidence caption < <(
         curl -f "$MS_COG_SERV" \
             -H 'Content-Type: application/json' \
             -H "Ocp-Apim-Subscription-Key: $MS_COG_KEY" \
             -d '{ "url": '"\"$URL\""' }' \
         | jq -r '(.metadata.height|tostring) + "x"
             + (.metadata.width|tostring) + " "
-            + .description.captions[0].text + " ("
-            + (.description.captions[0].confidence|tostring) + ")"'
+            + (.description.captions[0].confidence|tostring) + " "
+            + .description.captions[0].text'
     )
-    echo -e ":m $1 ↑ \002Image\002 :: $mime (${dimension:-0x0} ${sizeof:-Unknown B}) :: \002Description\002 ${caption:-API error}"
+    echo -e ":m $1 ↑ \002Image\002 :: $mime (${dimension:-0x0} ${sizeof:-Unknown B}) :: \002Description\002 ${caption:-unknown error} :: \002Confidence\002 ${confidence:-0}%)"
     exit 0
 fi
 
