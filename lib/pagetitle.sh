@@ -49,10 +49,10 @@ then
             -d '{ "url": '"\"$URL\""' }' \
         | jq -r '(.metadata.height|tostring) + "x"
             + (.metadata.width|tostring) + " "
-            + (.description.captions[0].confidence|tostring) + " "
+            + (.description.captions[0].confidence*100|floor|tostring) + " "
             + .description.captions[0].text'
     )
-    echo -e ":m $1 ↑ \002Image\002 :: $mime (${dimension:-0x0} ${sizeof:-Unknown B}) :: \002Description\002 ${caption:-unknown error} :: \002Confidence\002 ${confidence:-0}%)"
+    echo -e ":m $1 ↑ \002Image\002 :: $mime (${dimension:-0x0} ${sizeof:-Unknown B}) :: \002Description\002 ${caption:-unknown error} :: \002Confidence\002 ${confidence:-0}%"
     exit 0
 fi
 
