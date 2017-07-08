@@ -159,6 +159,12 @@ export MOOSE_IGNORE="
 # sleep timeout to prevent moose spam
 export MOOSE_SLEEP_TIMER='5s'
 
+# MS Cognitive Services Computer Vision API (describe)
+# for enhanced insight on images in lib/pagetitle.sh
+export MS_COG_SERV='https://westcentralus.api.cognitive.microsoft.com/vision/v1.0/describe'
+# keep this commented out if you want to disable this feature
+#export MS_COG_KEY='api key here'
+
 # moved common functions in the lib path.
 # you can store them here or add your own below as before
 . "$LIB_PATH/common-functions.sh"
