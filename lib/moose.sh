@@ -42,8 +42,11 @@ while IFS='=' read -r key val; do
                 SEARCH=0
             fi
         ;;
+        -n|--no-shade)
+            DISABLE_SHADE=1
+        ;;
         -h|--help)
-            echo ":m $1 usage: $5 [--latest|--random|--search=page-#] [query]"
+            echo ":m $1 usage: $5 [--latest|--random|--search=page-#|--no-shade] [query]"
             echo ":m $1 Make Moose @ $MOOSE_URL"
             exit 0
         ;;
@@ -124,7 +127,8 @@ fi
 # extract name
 MOOSE_NAME="$(jq -r '.name' <<< "$MOOSE")"
 MOOSE_DATE="$(jq -r '.created' <<< "$MOOSE")"
-MOOSE_SHADED="$(jq -r '.shaded' <<< "$MOOSE")"
+[ -z "$DISABLE_SHADE" ] && 
+    MOOSE_SHADED="$(jq -r '.shaded' <<< "$MOOSE")"
 MOOSE_IMAGE=()
 while read -r line; do
     MOOSE_IMAGE+=("$line")
