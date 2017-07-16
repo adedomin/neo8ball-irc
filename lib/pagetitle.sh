@@ -47,6 +47,7 @@ then
             -H 'Content-Type: application/json' \
             -H "Ocp-Apim-Subscription-Key: $MS_COG_KEY" \
             -d '{ "url": '"\"$URL\""' }' \
+            2>/dev/null \
         | jq -r '(.metadata.height|tostring) + "x"
             + (.metadata.width|tostring) + " "
             + (.description.captions[0].confidence*100|floor|tostring) + " "

@@ -39,7 +39,7 @@ Example systemd Service
     [Install]
     WantedBy=multi-user.target
 
-Licence
+License
 -------
 
 Copyright 2016 prussian <generalunrest@airmail.cc>
