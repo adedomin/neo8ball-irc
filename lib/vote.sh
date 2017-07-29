@@ -14,6 +14,8 @@
 # limitations under the License.
 
 VOTE_LOCK="$PLUGIN_TEMP/${1}-vote"
+YES="$VOTE_LOCK/yes"
+NO="$VOTE_LOCK/no"
 DURATION="120"
 
 # parse args
@@ -38,6 +40,13 @@ if [ ! -d "$VOTE_LOCK" ] && [ "$5" != 'vote' ]; then
     exit 0
 fi
 
+if [ "$5" != 'vote' ] && 
+    grep -q -F "$2" "$YES" "$NO" 2>/dev/null
+then
+    echo ":mn $3 You have already voted."
+    exit 0
+fi
+
 if [ "$5" = 'vote' ]; then
     if ! mkdir "$VOTE_LOCK" 2>/dev/null; then
         echo ":m $1 A vote is already in progress."
@@ -53,15 +62,7 @@ if [ "$5" = 'vote' ]; then
     echo -e ":m $1 Yes "$'\003'"03${yes:-0}"
     echo -e ":m $1 No  "$'\003'"04${no:-0}"
 elif [ "$5" = 'yes' ]; then
-    if grep -q -F "$2" "$VOTE_LOCK/yes" 2>/dev/null; then
-        echo ":mn $3 You have already voted."
-        exit 0
-    fi
-    echo "$2" >> "$VOTE_LOCK/yes"
+    echo "$2" >> "$YES"
 elif [ "$5" = 'no' ]; then
-    if grep -q -F "$2" "$VOTE_LOCK/no" 2>/dev/null; then
-        echo ":mn $3 You have already voted."
-        exit 0
-    fi
-    echo "$2" >> "$VOTE_LOCK/no"
+    echo "$2" >> "$NO"
 fi
