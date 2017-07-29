@@ -80,6 +80,7 @@ COMMANDS=(
 ["vote"]="vote.sh"
 ["yes"]="vote.sh"
 ["no"]="vote.sh"
+["standings"]="vote.sh"
 )
 
 #declare -gA API_WEIGHT
