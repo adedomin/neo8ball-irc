@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-VOTE_LOCK="$PLUGIN_TEMP/${1}-vote"
+VOTE_LOCK="$PLUGIN_TEMP/${1//\//|}-vote"
 YES="$VOTE_LOCK/yes"
 NO="$VOTE_LOCK/no"
 DURATION="120"
