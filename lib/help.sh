@@ -12,4 +12,5 @@ echo -e ":m $1 8ball ::" \
     "bible ::" \
     "quran ::" \
     "fap|gay|straight ::" \
-    "moose" 
+    "moose ::" \
+    "vote"
