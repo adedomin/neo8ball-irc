@@ -77,6 +77,9 @@ COMMANDS=(
 ["gay"]="fap.sh"
 ["straight"]="fap.sh"
 ["moose"]="moose.sh"
+["vote"]="vote.sh"
+["yes"]="vote.sh"
+["no"]="vote.sh"
 )
 
 #declare -gA API_WEIGHT

@@ -258,7 +258,7 @@ post_ident() {
 # $1 - log level of message
 # $2 - the message
 send_log() {
-    local log_lvl
+    declare -i log_lvl
     case $1 in
         STDOUT)
             [ -n "$LOG_STDOUT" ] &&
