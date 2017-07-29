@@ -16,6 +16,7 @@
 VOTE_LOCK="$PLUGIN_TEMP/${1//\//|}-vote"
 YES="$VOTE_LOCK/yes"
 NO="$VOTE_LOCK/no"
+ISSUE="$VOTE_LOCK/issue"
 DURATION="120"
 
 # $1 - channel name
@@ -31,7 +32,7 @@ while IFS='=' read -r key val; do
     case "$key" in
         -d|--duration)
             if [[ "$val" =~ ^[0-9]*$ ]]; then
-                (( val > 30 && val < 3600 )) &&
+                (( val > 30 && val < 3601 )) &&
                     DURATION="$val"
             fi
         ;;
@@ -50,7 +51,7 @@ if [ ! -d "$VOTE_LOCK" ] && [ "$5" != 'vote' ]; then
 fi
 
 if [ "$5" = 'standings' ]; then
-    echo -e ":m $1 \002Current Standings\002"
+    echo -e ":m $1 \002Current Standings\002 $(< "$ISSUE")"
     standings "$1"
     exit 0
 fi
@@ -67,16 +68,21 @@ if [ "$5" = 'vote' ]; then
         echo ":m $1 A vote is already in progress."
         exit 0
     fi
+    echo "$4" > "$ISSUE"
+
     echo ":m $1 A vote on the issue ( ${4:0:200} ) has started and will finish in $DURATION seconds."
     echo -e ":m $1 Use \002.yes\002 or \002.no\002 to vote;" \
         "\002.standings\002 to view current results."
+    
     sleep "${DURATION}s"
     echo -e ":m $1 \002Vote results\002 $4"
     standings "$1"
     rm -rf -- "$VOTE_LOCK"
+
 elif [ "$5" = 'yes' ]; then
     echo "$2" >> "$YES"
     echo -e ":mn $3 Your \002yes\002 vote was cast."
+
 elif [ "$5" = 'no' ]; then
     echo "$2" >> "$NO"
     echo -e ":mn $3 Your \002no\002 vote was cast."
