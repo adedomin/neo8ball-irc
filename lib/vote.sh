@@ -31,13 +31,14 @@ while IFS='=' read -r key val; do
     case "$key" in
         -d|--duration)
             if [[ "$val" =~ ^[0-9]*$ ]]; then
-                (( val > 0 && val < 361 )) &&
+                (( val > 30 && val < 3600 )) &&
                     DURATION="$val"
             fi
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--duration=#] <y/n question>"
             echo ":m $1 create a vote for a given question."
+            echo ":m $1 duration option must be between 30 to 3600 seconds."
             exit 0
         ;;
     esac
