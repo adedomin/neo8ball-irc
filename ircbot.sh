@@ -371,7 +371,7 @@ check_ignore() {
 # gateway is assumed to prepend a nickname to the message
 # like <the_gateway> <user1> msg
 # if your gateway does not do this, please make an issue on github
-# $1 the nickname
+# $1 - the nickname
 trusted_gateway() {
     local trusted
     for nick in "${GATEWAY[@]}"; do
@@ -392,6 +392,11 @@ trusted_gateway() {
     # delete mIRC color prepended numbers if applicable
     [[ "$user" =~ ^[0-9,]*(.*)$ ]] &&
         user="${BASH_REMATCH[1]}"
+
+    # some plugins like vote use hostname instead of username
+    # this tries to a create a new vhost, though
+    # vhosts like these could be technically made
+    host="${user}.trusted-gateway.${host}"
 }
 
 # this function creates a new separated string of "arguments"

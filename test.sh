@@ -243,6 +243,15 @@ else
     fail 'GATEWAY trusted nick parse'
 fi
 
+# gateway host name parse test
+echo ':gateway!a@a __DEBUG #channel :<'$'\003''12,32actual_username'$'\003''> hostparse' >&3
+read -t 1 -u 4 -r msghost
+if [ "$msghost" = 'actual_username.trusted-gateway.a' ]; then
+    pass 'GATEWAY trusted host parse'
+else
+    fail 'GATEWAY trusted host parse'
+fi
+
 # gateway fail parse
 echo ':gateway2!a@a __DEBUG #channel :<actual_username> nickparse' >&3
 read -t 1 -u 4 -r msgnick
