@@ -16,10 +16,18 @@ VERSION="bash-ircbot: v4.1.0-alpha"
 
 # help info
 usage() {
-    echo "usage: $0 [-c config]"
-    echo "       -c --config - a config file"
-    echo ""
-    echo "by default, if empty, the script assumes all the information can be found in the same directory as the script"
+    cat << EOF >&2
+usage: $0 [-c config]"
+    
+    -c --config=path    a config file
+    -h --help           this message
+
+If no configuration path is found or CONFIG_PATH is not set,
+ircbot will assume the configuration is in the same directory
+as the script.
+
+For testing, you can set MOCK_CONN_TEST=some-value
+EOF
     exit 1
 }
 
@@ -29,11 +37,14 @@ die() {
 }
 
 # parse args
-while [ $# -gt 0 ]; do
+while (( $# > 0 )); do
     case "$1" in
         -c|--config)
             CONFIG_PATH="$2"
             shift
+        ;;
+        --config=*)
+            CONFIG_PATH="${1#*=}"
         ;;
         -h|--help)
             usage
@@ -51,9 +62,8 @@ done
 
 # find default configuration path
 # location script's directory
-if [ -z "$CONFIG_PATH" ]; then
+[ -z "$CONFIG_PATH" ] && 
     CONFIG_PATH="$(dirname "$0")/config.sh"
-fi
 
 # load configuration
 if [ -f "$CONFIG_PATH" ]; then
@@ -65,9 +75,7 @@ else
 fi
 
 # set default temp dir path if not set
-if [ -z "$temp_dir" ]; then
-    temp_dir=/tmp
-fi
+[ -z "$temp_dir" ] && temp_dir=/tmp
 
 #######################
 # Configuration Tests #
