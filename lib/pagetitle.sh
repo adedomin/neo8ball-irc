@@ -14,13 +14,7 @@
 # limitations under the License.
 
 # parse args
-while IFS='=' read -r key val; do
-    case "$key" in
-        --match)
-            URL="$val"
-        ;;
-    esac
-done <<< "$6"
+URL="$6"
 
 while read -r key val; do
     case ${key,,} in
@@ -33,14 +27,14 @@ while read -r key val; do
         ;;
     esac
 done < <(
-    curl -L --max-redirs 2 -m 10 -I "$URL" 2>/dev/null
+    curl -s -L --max-redirs 2 -m 10 -I "$URL"
 )
 
 [ -z "$mime" ] && exit 0 
 
 if [[ "$mime" == image/* ]] && 
     [ -n "$MS_COG_SERV" ] && 
-    [ -n "$MS_COG_KEY" ] 
+    [ -n "$MS_COG_KEY" ]
 then
     read -r dimension confidence caption < <(
         curl -f "$MS_COG_SERV" \
@@ -58,6 +52,7 @@ then
 fi
 
 if [[ ! "$mime" =~ text/html|application/xhtml+xml ]]; then
+    [ -n "$PAGETITLE_DISABLE_FILE" ] && exit
     echo -e ":m $1 ↑ \002File\002 :: $mime (${sizeof:-Unknown})"
     exit 0
 fi

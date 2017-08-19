@@ -19,21 +19,34 @@ declare -i COUNT
 COUNT=3
 
 # parse args
-while IFS='=' read -r key val; do
+q="$4"
+for key in $4; do
     case "$key" in
         -c|--count)
-            [[ "$val" =~ ^[1-4]$ ]] &&
-                COUNT="$val"
+            LAST='c'
+            q="${q#* }"
+        ;;
+        --count=*)
+            [[ "${key#*=}" =~ ^[1-3]$ ]] &&
+                COUNT="${key#*=}"
+            q="${q#* }"
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--count=#-to-ret] query"
             echo ":m $1 search for videos on vidme"
             exit 0
         ;;
+        *)
+            [ -z "$LAST" ] && break
+            LAST=
+            [[ "$key" =~ ^[1-3]$ ]] &&
+                COUNT="$key"
+            q="${q#* }"
+        ;;
     esac
-done <<< "$6"
+done
 
-if [ -z "$4" ]; then
+if [ -z "$q" ]; then
     echo ":mn $3 This command requires a search query"
     exit 0
 fi
@@ -53,7 +66,7 @@ while read -r url duration views likes title; do
         "\002URL\002 $url"
     (( DEF_NUM >= COUNT )) && break
 done < <(
-    curl "${VIDME}$(URI_ENCODE "$4")" 2>/dev/null | \
+    curl "${VIDME}$(URI_ENCODE "$q")" 2>/dev/null | \
     jq -r '.videos[0],.videos[1],.videos[2],.videos[3] // empty |
         .full_url + " " + 
         (.duration|tostring) + " " + 

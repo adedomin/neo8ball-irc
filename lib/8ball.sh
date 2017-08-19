@@ -37,10 +37,14 @@ responses=(
 )
 
 # parse args
-while IFS='=' read -r key val; do
-    case "$key" in
+# new arg parser
+msg="$4"
+for arg in $4; do
+    case "$arg" in
         -y|--yes-no)
-            YN="${val:-1}"
+            YN=1
+            // remove arg
+            msg="${msg#* }"
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [-y --yes-no] query?"
@@ -48,14 +52,17 @@ while IFS='=' read -r key val; do
             echo ":m $1 answers y/n questions or decides between two choices."
             exit 0
         ;;
+        *)
+            break
+        ;;
     esac
-done <<< "$6"
-
+done
+    
 reg="(.*) or (.*)\?" # decide
 reg2="(.*)\?" # regular 8ball msg
-if [[ "$4" =~ $reg ]]; then
+if [[ "$msg" =~ $reg ]]; then
     echo ":m $1 $3: ${BASH_REMATCH[($RANDOM % 2)+1]}"
-elif [[ "$4" =~ $reg2 ]]; then
+elif [[ "$msg" =~ $reg2 ]]; then
     if [ "$YN" ]; then
         (( RANDOM % 2 == 0 )) && y='yes'
         echo ":m $1 $3: ${y:-no}"

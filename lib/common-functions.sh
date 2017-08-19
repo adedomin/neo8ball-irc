@@ -17,11 +17,11 @@
 
 # $1 - message to uri encode
 URI_ENCODE() {
-    curl -Gso /dev/null \
+    echo -nE "$1" \
+    | curl -Gso /dev/null \
         -w '%{url_effective}' \
-        --data-urlencode @- '' <<< "$1" |
-    cut -c 3- |
-    sed 's/%0A$//g'
+        --data-urlencode @- '' \
+    | cut -c 3-
 }
 export -f URI_ENCODE
 

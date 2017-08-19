@@ -15,28 +15,41 @@
 
 declare -i COUNT
 COUNT=3
-
-# parse args
-while IFS='=' read -r key val; do
-    case "$key" in
+LAST=
+msg="$4"
+for arg in $4; do
+    case "$arg" in
         -c|--count)
-            [[ "$val" =~ ^[1-3]$ ]] &&
-                COUNT="$val"
+            LAST='C'
+            msg="${msg#* }"
+        ;;
+        --count=*)
+            echo "${arg#*=}" >&2
+            [[ "${arg#*=}" =~ ^[1-3]$ ]] &&
+                COUNT="${arg#*=}"
+            msg="${msg#* }"
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--count=#-to-ret] query"
             echp ":m $1 defines a given word."
             exit 0
         ;;
+        *)
+            [ -z "$LAST" ] && break
+            LAST=
+            [[ "$arg" =~ ^[1-3]$ ]] &&
+                COUNT="$arg"
+            msg="${msg#* }"
+        ;;
     esac
-done <<< "$6"
+done
 
-if [ -z "$4" ]; then
+if [ -z "$msg" ]; then
     echo ":mn $3 This command requires a search query"
     exit 0
 fi
 
-DICTIONARY="http://www.dictionary.com/browse/$(URI_ENCODE "$4")"
+DICTIONARY="http://www.dictionary.com/browse/$(URI_ENCODE "$msg")"
 declare -i DEF_NUM
 DEF_NUM=0
 
@@ -44,7 +57,7 @@ while read -r definition; do
     DEF_NUM+=1
     (( ${#definition} > 400 )) && 
         definition="${definition:0:400}..."
-    echo -e ":m $1 "$'\002'"${4:0:100}\002 :: $definition"
+    echo -e ":m $1 "$'\002'"${msg:0:100}\002 :: $definition"
     (( DEF_NUM >= COUNT )) && break
 done < <(
     echo "$DICTIONARY" |

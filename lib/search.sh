@@ -16,22 +16,35 @@
 declare -i COUNT
 COUNT=3
 
-# parse args
-while IFS='=' read -r key val; do
-    case "$key" in
+q="$4"
+for arg in $4; do
+    case "$arg" in
         -c|--count)
-            [[ "$val" =~ ^[1-3]$ ]] &&
-                COUNT="$val"
+            LAST='c'
+            q="${q#* }"
+        ;;
+        --count=*)
+            [[ "${arg#*=}" =~ ^[1-3]$ ]] &&
+                COUNT="${arg#*=}"
+            q="${q#* }"
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--count=#-to-ret] query"
             echo ":m $1 search duckduckgo for whatever your heart desires."
             exit 0
         ;;
-    esac
-done <<< "$6"
+        *)
+            [ -z "$LAST" ] && break
+            LAST=
+            [[ "$arg" =~ ^[1-3]$ ]] &&
+                COUNT="$arg"
+            q="${q#* }"
+        ;;
 
-if [ -z "$4" ]; then
+    esac
+done
+
+if [ -z "$q" ]; then
     echo ":mn $3 This command requires a search query; refer to --help"
     exit 0
 fi
@@ -56,7 +69,7 @@ while read -r url title; do
     fi
     echo -e ":m $1 "$'\002'"$(HTML_DECODE "$title")\002 :: $(URI_DECODE "$url")"
 done < <(
-    curl "${SEARCH_ENGINE}$(URI_ENCODE "$4")" 2>/dev/null \
+    curl "${SEARCH_ENGINE}$(URI_ENCODE "$q")" 2>/dev/null \
     | sed 's@<\([^/a]\|/[^a]\)[^>]*>@@g' \
     | grep -F 'class="result__a"' \
     | grep -Po '(?<=uddg=).*' \

@@ -18,24 +18,47 @@ declare -i COUNT
 COUNT=3
 
 # parse args
-while IFS='=' read -r key val; do
+q="$4"
+for key in $4; do
     case "$key" in
         -c|--count)
-            [[ "$val" =~ ^[1-3]$ ]] &&
-                COUNT="$val"
+            LAST='c'
+            q="${q#* }"
+        ;;
+        --count=*)
+            [[ "${key#*=}" =~ ^[1-3]$ ]] &&
+                COUNT="${key#*=}"
+            q="${q#* }"
         ;;
         -d|--definition)
-            declare -i DEFINITION
-            [[ "$val" =~ ^(1[0-9]|[1-9])$ ]] &&
-                DEFINITION="$val"
+            LAST='d'
+            q="${q#* }"
+        ;;
+        --definition=*)
+            [[ "${key#*=}" =~ ^(1[0-9]|[1-9])$ ]] &&
+                DEFINITION="${key#*=}"
+            q="${q#* }"
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--count=#-to-ret|--definition=#] query"
             echo ":m $1 find a defintion for a word using the urban dictionary."
             exit 0
         ;;
+        *)
+            [ -z "$LAST" ] && break
+            if [ "$LAST" = 'd' ]; then
+                declare -i DEFINITION
+                [[ "$key" =~ ^(1[0-9]|[1-9])$ ]] &&
+                    DEFINITION="$key"
+            else
+                [[ "$key" =~ ^[1-3]$ ]] &&
+                    COUNT="$key"
+            fi
+            LAST=
+            q="${q#* }"
+        ;;
     esac
-done <<< "$6"
+done
 
 if [ -z "$4" ]; then
     echo ":mn $3 This command requires a search query"
@@ -43,8 +66,8 @@ if [ -z "$4" ]; then
 fi
 
 # kept for advert
-URBAN="http://www.urbandictionary.com/define.php?term=$(URI_ENCODE "$4")"
-NEW_URBAN="http://api.urbandictionary.com/v0/define?term=$(URI_ENCODE "$4")"
+URBAN="http://www.urbandictionary.com/define.php?term=$(URI_ENCODE "$q")"
+NEW_URBAN="http://api.urbandictionary.com/v0/define?term=$(URI_ENCODE "$q")"
 
 declare -i DEF_NUM
 DEF_NUM=0
@@ -54,7 +77,7 @@ if [ -n "$DEFINITION" ]; then
         DEF_NUM+=1
         (( ${#definition} > 400 )) && 
             definition="${definition:0:400}..."
-        echo -e ":m $1 "$'\002'"${4}\002 :: $definition"
+        echo -e ":m $1 "$'\002'"${q}\002 :: $definition"
     done < <(
         curl "$NEW_URBAN" -L -f 2>/dev/null \
         | jq -r '.list['"$(( DEFINITION - 1 ))"'] //empty
@@ -68,7 +91,7 @@ else
         DEF_NUM+=1
         (( ${#definition} > 400 )) && 
             definition="${definition:0:400}..."
-        echo -e ":m $1 "$'\002'"${4}\002 :: $definition"
+        echo -e ":m $1 "$'\002'"${q}\002 :: $definition"
         (( DEF_NUM >= COUNT )) && break
     done < <(
       curl "$NEW_URBAN" -L -f 2>/dev/null \

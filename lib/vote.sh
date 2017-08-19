@@ -28,13 +28,20 @@ standings() {
 }
 
 # parse args
-while IFS='=' read -r key val; do
+v="$4"
+for key in $4; do
     case "$key" in
         -d|--duration)
-            if [[ "$val" =~ ^[0-9]*$ ]]; then
-                (( val > 30 && val < 3601 )) &&
-                    DURATION="$val"
-            fi
+            LAST='d'
+            v="${v#* }"
+        ;;
+        --duration=*)
+            DURATION="${key#*=}" 
+            [[ "$DURATION" =~ ^[0-9]*$ ]] || 
+                DURATION=120
+            (( DURATION > 30 && DURATION < 3601 )) || 
+                DURATION=120
+            v="${v#* }"
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--duration=#] <y/n question>"
@@ -42,8 +49,17 @@ while IFS='=' read -r key val; do
             echo ":m $1 duration option must be between 30 to 3600 seconds."
             exit 0
         ;;
+        *)
+            [ -z "$LAST" ] && break
+            LAST=
+            if [[ "$key" =~ ^[0-9]*$ ]]; then
+                (( key > 30 && key < 3601 )) &&
+                    DURATION="$key"
+            fi
+            v="${v#* }"
+        ;;
     esac
-done <<< "$6"
+done
 
 if [ ! -d "$VOTE_LOCK" ] && [ "$5" != 'vote' ]; then
     echo ":m $1 No vote in progress; please use .vote question"
@@ -68,14 +84,14 @@ if [ "$5" = 'vote' ]; then
         echo ":m $1 A vote is already in progress."
         exit 0
     fi
-    echo "$4" > "$ISSUE"
+    echo "$v" > "$ISSUE"
 
-    echo ":m $1 A vote on the issue ( ${4:0:200} ) has started and will finish in $DURATION seconds."
+    echo ":m $1 A vote on the issue ( ${v:0:200} ) has started and will finish in $DURATION seconds."
     echo -e ":m $1 Use \002.yes\002 or \002.no\002 to vote;" \
         "\002.standings\002 to view current results."
     
     sleep "${DURATION}s"
-    echo -e ":m $1 \002Vote results\002 $4"
+    echo -e ":m $1 \002Vote results\002 $v"
     standings "$1"
     rm -rf -- "$VOTE_LOCK"
 

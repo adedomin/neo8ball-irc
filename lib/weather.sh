@@ -18,20 +18,22 @@ WEATHER="api.openweathermap.org/data/2.5/weather?APPID=${OWM_KEY}&q="
 arg="$4"
 
 # parse args
-while IFS='=' read -r key val; do
+for key in $4; do
     case "$key" in
         -S|--save)
             SAVE=1
-            [ -n "$val" ] &&
-                arg="$val"
+            arg="${arg#* }"
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--save] [query]"
             echo ":m $1 This service uses https://openweathermap.org"
             exit 0
         ;;
+        *)
+            break
+        ;;
     esac
-done <<< "$6"
+done
 
 if [ -z "$arg" ]; then
     arg=$(GET_LOC "$3")

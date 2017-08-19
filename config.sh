@@ -70,6 +70,7 @@ COMMANDS=(
 ["you"]="youtube.sh"
 ["youtube"]="youtube.sh"
 ["u"]="urbandict.sh"
+["urb"]="urbandict.sh"
 ["urban"]="urbandict.sh"
 ["bible"]="bible.sh"
 ["quran"]="bible.sh"
@@ -153,7 +154,7 @@ export YOUTUBE_KEY="your youtube api key"
 # you have to generate bible_db yourself, see create-db.sh in ./static
 #export BIBLE_DB="$(dirname "$0")/static/kjbible-quran.db"
 export BIBLE_SOURCE="$(dirname "$0")/static/king-james.txt"
-export QURAN_SORUCE="$(dirname "$0")/static/quran-allah-ver.txt"
+export QURAN_SOURCE="$(dirname "$0")/static/quran-allah-ver.txt"
 # list of channels to not print moose in
 # some channels may insta ban if multiple lines are written rapidly
 # has to be string due to bash export limitations

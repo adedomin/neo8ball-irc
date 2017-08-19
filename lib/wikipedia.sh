@@ -17,26 +17,39 @@ declare -i COUNT
 COUNT=3
 
 # parse args
-while IFS='=' read -r key val; do
+q="$4"
+for key in $4; do
     case "$key" in
         -c|--count)
-            [[ "$val" =~ ^[1-3]$ ]] &&
-                COUNT="$val"
+            LAST='c'
+            q="${q#* }"
+        ;;
+        --count=*)
+            [[ "${key#*=}" =~ ^[1-3]$ ]] &&
+                COUNT="${key#*=}"
+            q="${q#* }"
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--count=#-to-ret] query"
             echo ":m $1 find a wikipedia article."
             exit 0
         ;;
+        *)
+            [ -z "$LAST" ] && break
+            LAST=
+            [[ "$key" =~ ^[1-3]$ ]] &&
+                COUNT="$key"
+            q="${q#* }"
+        ;;
     esac
-done <<< "$6"
+done
 
-if [ -z "$4" ]; then
+if [ -z "$q" ]; then
     echo ":mn $3 This command requires a search query"
     exit 0
 fi
 
-WIKI="https://en.wikipedia.org/w/api.php?action=opensearch&format=json&formatversion=2&search=$(URI_ENCODE "$4")&namespace=0&limit=${COUNT}&suggest=false"
+WIKI="https://en.wikipedia.org/w/api.php?action=opensearch&format=json&formatversion=2&search=$(URI_ENCODE "$q")&namespace=0&limit=${COUNT}&suggest=false"
 declare -i DEF_NUM
 DEF_NUM=0
 

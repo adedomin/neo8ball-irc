@@ -19,14 +19,16 @@ usage() {
     cat << EOF >&2
 usage: $0 [-c config]"
     
-    -c --config=path    a config file
-    -h --help           this message
+    -c --config=path    A config file
+    -d --dynamic=path   Dynamic configurations.
+                        Disabled is not set.
+    -h --help           This message
 
 If no configuration path is found or CONFIG_PATH is not set,
 ircbot will assume the configuration is in the same directory
 as the script.
 
-For testing, you can set MOCK_CONN_TEST=some-value
+For testing, you can set MOCK_CONN_TEST=<anything>
 EOF
     exit 1
 }
@@ -70,11 +72,12 @@ if [ -f "$CONFIG_PATH" ]; then
     # shellcheck disable=SC1090
     . "$CONFIG_PATH"
 else
-    echo "*** CRITICAL *** no configuration"
+    echo "*** CRITICAL *** no configuration" >&2
     usage
 fi
 
 # set default temp dir path if not set
+# should consider using /dev/shm unless your /tmp is a tmpfs
 [ -z "$temp_dir" ] && temp_dir=/tmp
 
 #######################
@@ -105,17 +108,10 @@ fi
 # IPC and Temp #
 ################
 
-# named pipes to connect ncat to message loop
 # shellcheck disable=SC2154
 [ -d "$temp_dir/bash-ircbot" ] && rm -r "$temp_dir/bash-ircbot"
-infile="$temp_dir/bash-ircbot/in" # in as in from the server
-outfile="$temp_dir/bash-ircbot/out" # out as in to the server
 mkdir -m 0770 "$temp_dir/bash-ircbot" ||
     die "failed to make temp directory, check your config"
-mkfifo "$infile" ||
-    die "couldn't make named pipe"
-mkfifo "$outfile" ||
-    die "couldn't make named pipe"
 # if you wnt to prevent blatant command spam
 # by certain users
 # shellcheck disable=SC2153
@@ -142,9 +138,6 @@ export PLUGIN_TEMP
 EXIT_STATUS=0
 quit_prg() {
     pkill -P $$
-    exec 3>&-
-    exec 4>&-
-    exec 5>&-
     rm -rf "$temp_dir/bash-ircbot"
     exit "$EXIT_STATUS"
 }
@@ -221,18 +214,15 @@ if [ -n "$MOCK_CONN_TEST" ]; then
     BASH_TCP=1
 # Connect to server otherwise
 elif [ -z "$BASH_TCP" ]; then
-    exec 3<> "$outfile" ||
-        die "unknown failure mapping named pipe ($outfile) to fd"
-    exec 4<> "$infile" ||
-        die "unknown failure mapping named pipe ($infile) to fd"
-    ( ncat "$SERVER" "${PORT:-6667}" "$TLS" <&3 >&4
-      echo 'ERROR :ncat has terminated' >&4 ) &
+    coproc { 
+        ncat "$SERVER" "${PORT:-6667}" "$TLS"; echo 'ERROR :ncat has terminated' 
+    }
+    exec 3<> "/proc/self/fd/${COPROC[1]}"
+    exec 4<> "/proc/self/fd/${COPROC[0]}"
 else
-    infile="/dev/tcp/${SERVER}/${PORT}"
-    exec 3<> "$infile" ||
+    exec 3<> "/dev/tcp/${SERVER}/${PORT}" ||
         die "Cannot connect to ($SERVER) on port ($PORT)"
-    exec 4<&3 ||
-        die "unknown failure mapping named pipe ($infile) to fd"
+    exec 4<&3
 fi
 
 ########################
@@ -283,8 +273,7 @@ send_log() {
         printf "*** %s *** %s\n" "$1" "$2" 
 }
 
-# any literal argument/s will be sent as their own line
-# must be valid IRC command string or strings
+# send argument/s to irc server
 send_msg() {
     printf "%s\r\n" "$*" >&3
     send_log "DEBUG" "SENT -> $*"
@@ -303,7 +292,6 @@ send_cmd() {
                 send_msg "PART $arg :$other"
                 ;;
             :m|:message)
-                # add space, assume enpty line is intentional
                 send_msg "PRIVMSG $arg :$other"
                 ;;
             :mn|:notice)
@@ -353,7 +341,7 @@ check_ignore() {
     done
     if [ -n "$ANTISPAM" ]; then
         [ ! -f "$antispam/$1" ] && return 0
-        if (( $(printf "%(%s)T") - $(date -r "$antispam/$1" +"%s") > 
+        if (( $(printf "%(%s)T" -1) - $(date -r "$antispam/$1" +"%s") > 
               ${ANTISPAM_TIMEOUT:-30} )) 
         then
             rm "$antispam/$1"
@@ -407,56 +395,6 @@ trusted_gateway() {
     host="${user}.trusted-gateway.${host}"
 }
 
-# this function creates a new separated string of "arguments"
-# arguments are in the form of -k=value or --key=value
-# note that value must be a space-less word for the sake of simplicity
-# the application will get a separate arg of a stirng of all the arguments
-# that it can parse on it's own, an example forthcoming.
-#
-# Also note that arguments must have = as the delimiter of keys to values
-# this is again for the sake of simplicity. an argument without a = will be assumed to
-# be a boolean like arg
-# 
-# Other notes, this assumes arguments are in the following form:
-#      <user> .cmd -a=1 -b --asd=2 -- --not-an-arg=test rest of the message
-#
-# the -- denotes that no more arguments are to follow it, thus why --not-an-arg
-# is ignored
-# ultimately arguments must come first and the message follows
-# $1 - the message
-# mutations - args - line separated list of args
-#           - cmd  - the shell command
-#           - msg  - message sans arguments
-parse_args() {
-    args=
-    # prevent glob stupidity
-    read -ra words <<< "$1"
-    shift
-    # makes it easier...
-    # just puts the array into positional args
-    # e.g. $1 $2 $3... etc
-    set -- "${words[@]}"
-    # first word is likely command...
-    cmd="$1"
-    shift
-    while (( $# > 0 )); do
-        case "$1" in
-            --) # no more args
-                shift
-                break
-            ;;
-            -*) # option
-                args+="$1"$'\n'
-            ;;
-            *)
-                break
-            ;;
-        esac
-        shift
-    done
-    msg="$*"
-}
-
 #######################
 # Bot Message Handler #
 #######################
@@ -466,19 +404,18 @@ parse_args() {
 # $1: channel - the channel the string came from
 # $2: vhost   - the vhost of the user
 # $3: user    - the nickname of the user
-# $4: full    - full message line
-# $5: cmd     - the command parsed from message
-# $6: args    - the arguments for cmd
-# $7: msg     - the message sans args and cmd
+# $4: msg     - message minus command
+# $5: cmd     - command name
+# $6: full    - full message
 handle_privmsg() {
     # private message to us
     # 5th argument is the command name
     if [ "$NICK" = "$1" ]; then
         # most servers require this "in spirit"
         # tell them what we are
-        if [ "$message" = $'\001VERSION\001' ]; then
+        if [ "$6" = $'\001VERSION\001' ]; then
             echo -e ":mn $3 \001VERSION $VERSION\001"
-            echo ":ld CTCP VERSION -> $3 <$3> $4"
+            echo ":ld CTCP VERSION -> $3 <$3>"
             [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
             return
         fi
@@ -493,20 +430,19 @@ handle_privmsg() {
         [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
         [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
         "$LIB_PATH/${COMMANDS[$cmd]}" \
-            "$3" "$2" "$3" "$7" "$cmd" "$6"
-        echo ":ld PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $7"
+            "$3" "$2" "$3" "$4" "$cmd"
+        echo ":ld PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $4"
         return
     fi
 
     # highlight event in message
-    local highlight="^$NICK.?"
-    if [[ "$4" =~ $highlight ]]; then
+    if [[ "$5" =~ $NICK.? ]]; then
         # shellcheck disable=SC2153
         [ -x "$LIB_PATH/$HIGHLIGHT" ] || return
         [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
         "$LIB_PATH/$HIGHLIGHT" \
-            "$1" "$2" "$3" "$7" "$5" "$6"
-        echo ":ld HIGHLIGHT EVENT -> $1 <$3> $4"
+            "$1" "$2" "$3" "$4" "$5"
+        echo ":ld HIGHLIGHT EVENT -> $1 <$3>  $4"
         return
     fi
 
@@ -521,8 +457,8 @@ handle_privmsg() {
         [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
         [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
         "$LIB_PATH/${COMMANDS[$cmd]}" \
-            "$1" "$2" "$3" "$7" "$cmd" "$6"
-        echo ":ld COMMAND EVENT -> $cmd: $1 <$3> $7"
+            "$1" "$2" "$3" "$4" "$cmd"
+        echo ":ld COMMAND EVENT -> $cmd: $1 <$3> $4"
         return
     fi
 
@@ -530,17 +466,15 @@ handle_privmsg() {
     # arguemnt string is the fully matched string
     # odd number index should be the plugin
     # even should be command
-    # arguments have drastically changed and two reserved args are used
-    # --match is the matched string in the regexp
-    # --full-msg is the full query msg
-    # the default args mimick a command event, msg without "cmd" and "args"
+    # 
+    # an extra argument of type match which is the full text that matched the regexp
     for (( i=0; i<${#REGEX[@]}; i=i+2 )); do
         if [[ "$4" =~ ${REGEX[$i]} ]]; then
             [ -x "$LIB_PATH/${REGEX[((i+1))]}" ] || return
             [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
             "$LIB_PATH/${REGEX[$((i+1))]}" \
-                "$1" "$2" "$3" "$7" "${REGEX[$i]}" "--match=${BASH_REMATCH[0]}"$'\n'"--full-msg=$4"$'\n'"$6"
-            echo ":ld REGEX EVENT -> ${REGEX[$i]}: $1 <$3> $4"
+                "$1" "$2" "$3" "$5 $4" "${REGEX[$i]}" "${BASH_REMATCH[0]}"
+            echo ":ld REGEX EVENT -> ${REGEX[$i]}: $1 <$3> $5 $4"
             return
         fi
     done
@@ -573,7 +507,9 @@ fi
 send_msg "NICK $NICK"
 send_msg "USER $NICK +i * :$NICK"
 # IRC event loop
-while read -r user command channel message; do
+# note if the irc sends lines longer than
+# 1024 bytes, it may fail to parse
+while read -u 4 -r -n 1024 user command channel message; do
     # if ping request
     if [ "$user" = "PING" ]; then
         send_msg "PONG $command"
@@ -600,8 +536,8 @@ while read -r user command channel message; do
     # log message
     send_log "STDOUT" "$channel $command <$user> $message"
 
-    # parse args
-    parse_args "$message"
+    # split command, new antispam soon
+    read -r cmd msg <<< "$message"
 
     # handle commands here
     case $command in
@@ -609,8 +545,7 @@ while read -r user command channel message; do
         PRIVMSG) 
             check_ignore "$user" &&
             handle_privmsg \
-                "$channel" "$host" "$user" "$message" \
-                "$cmd" "$args" "$msg" \
+                "$channel" "$host" "$user" "$msg" "$cmd" "$message" \
             | send_cmd &
         ;;
         # any other channel message
@@ -620,8 +555,7 @@ while read -r user command channel message; do
             [ -z "$READ_NOTICE" ] && continue
             check_ignore "$user" &&
             handle_privmsg \
-                "$channel" "$host" "$user" "$message" \
-                "$cmd" "$args" "$msg" \
+                "$channel" "$host" "$user" "$msg" "$cmd" "$message" \
             | send_cmd &
         ;;
         # bot was invited to channel
@@ -708,12 +642,10 @@ while read -r user command channel message; do
                 hostparse) echo "$host" >&3 ;;
                 chanparse) echo "$channel" >&3 ;;
                 msgparse) echo "$message" >&3 ;;
-                argparse*) echo "${args//$'\n'/ }" >&3 ;;
-                sansparse*) echo "$msg" >&3 ;;
                 # echo invalid debug commands
                 *) echo "$message" >&3 ;;
             esac
     esac
-done <&4
+done
 send_log 'CRITICAL' 'Exited Event loop, exiting'
 exit_failure

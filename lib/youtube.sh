@@ -16,25 +16,33 @@
 declare -i COUNT
 COUNT=3
 
+MATCH="$4"
+
 # parse args
-while IFS='=' read -r key val; do
+for key in $4; do
     case "$key" in
-        --full-msg)
-            MATCH="$val"
-        ;;
         -c|--count)
-            [[ "$val" =~ ^[1-3]$ ]] &&
-                COUNT="$val"
+            LAST='c'
+        ;;
+        --count=*)
+            [[ "${key#*=}" =~ ^[1-3]$ ]] &&
+                COUNT="${key#*=}"
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--count=#-to-ret] query"
             echo ":m $1 search for a youtube video."
             exit 0
         ;;
+        *)
+            [ -z "$LAST" ] && break
+            LAST=
+            [[ "$key" =~ ^[1-3]$ ]] &&
+                COUNT="$key"
+        ;;
     esac
-done <<< "$6"
+done 
 
-if [ -z "$4" ] && [ -z "$MATCH" ]; then
+if [ -z "$MATCH" ]; then
     echo ":mn $3 This command requires a search query"
     exit 0
 fi
@@ -44,7 +52,7 @@ if [ -z "$YOUTUBE_KEY" ]; then
     exit 0
 fi
 
-if [ -n "$MATCH" ]; then
+if [ -n "$6" ]; then
     COUNT=1
     ids="$(grep -Po '(?<=watch\?v=)[^&?\s]*|(?<=youtu\.be/)[^?&\s]*' <<< "$MATCH")"
 fi
@@ -64,7 +72,6 @@ if [ -z "$ids" ]; then
                .id.videoId'
     )
 fi
-echo "$ids" >&2
 
 stats="https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${ids}&key=${YOUTUBE_KEY}"
 

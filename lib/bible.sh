@@ -13,24 +13,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# TODO: revisit count opt
 declare -i COUNT
 COUNT=1
 
-# parse args
-while IFS='=' read -r key val; do
-    case "$key" in
-        # TODO: revisit
-        #-c|--count)
-        #    [[ "$val" =~ ^[1-3]$ ]] &&
-        #        COUNT="$val"
-        #;;
+# new arg parser
+for arg in $4; do
+    case "$arg" in
+        # TODO: revisit count opt
         -h|--help)
             echo ":m $1 usage: $5 [query]"
             echo ":m $1 find or get random verse from either the kjv bible or the quran."
             exit 0
         ;;
+        *)
+            break
+        ;;
     esac
-done <<< "$6"
+done
 
 if [ "$5" = 'quran' ]; then
     table='quran'

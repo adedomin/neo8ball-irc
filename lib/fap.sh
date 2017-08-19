@@ -19,29 +19,44 @@ if [ "$5" = 'gay' ]; then
 fi
 
 q="$4"
-if [ -z "$q" ]; then
-    q="$(curl "https://www.pornmd.com/randomwords?orientation=$orientation" 2>/dev/null | tr -d '"' )"
-fi
-
+LAST=
 declare -i AMT_RESULTS
 AMT_RESULTS=1
-
-# parse args
-while IFS='=' read -r key val; do
-    case "$key" in
+for arg in $4; do
+    case "$arg" in
         -c|--count)
-            [[ "$val" =~ ^[1-3]$ ]] &&
-                AMT_RESULTS="$val"
+            LAST='C'
+            q="${q#* }"
+        ;;
+        --count=*)
+            [[ "${arg#*=}" =~ ^[1-3]$ ]] &&
+                AMT_RESULTS="${arg#*=}"
+            q="${q#* }"
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--count=#-to-ret] [query]"
             echo ":m $1 search for pornographic material or let the bot output a random one."
             exit 0
         ;;
+        *)
+            [ -z "$LAST" ] && break
+            LAST=
+            [[ "$arg" =~ ^[1-3]$ ]] &&
+                AMT_RESULTS="$arg"
+            q="${q#* }"
+        ;;
     esac
-done <<< "$6"
+done
 
+if [ -z "$q" ]; then
+    q="$(
+        curl -s
+            "https://www.pornmd.com/randomwords?orientation=$orientation" \
+        | tr -d '"'
+    )"
+fi
 PORN_MD="https://www.pornmd.com"
+# query must be lowercase, non lowercase queries cause weirdness
 PORN_MD_SRCH="$PORN_MD/$orientation/$(URI_ENCODE "${q,,}")"
 
 while read -r uri title; do

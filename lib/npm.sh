@@ -16,6 +16,34 @@
 declare -i COUNT
 COUNT=3
 
+q="$4"
+for arg in $4; do
+    case "$arg" in
+        -c|--count)
+            LAST='c'
+            q="${q#* }"
+        ;;
+        --count=*)
+            [[ "${arg#*=}" =~ ^[1-3]$ ]] &&
+                COUNT="${arg#*=}"
+            q="${q#* }"
+        ;;
+        -h|--help)
+            echo ":m $1 usage: $5 [--count=#-to-ret] query"
+            echo ":m $1 search for an npm package."
+            exit 0
+        ;;
+        *)
+            [ -z "$LAST" ] && break
+            LAST=
+            [[ "$arg" =~ ^[1-3]$ ]] &&
+                COUNT="$arg"
+            q="${q#* }"
+        ;;
+    esac
+done
+
+
 # parse args
 while IFS='=' read -r key val; do
     case "$key" in

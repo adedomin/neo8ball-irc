@@ -25,33 +25,46 @@ if [ -n "$MOOSE_IGNORE" ]; then
 fi
 
 q="$4"
-
-# parse args
-while IFS='=' read -r key val; do
-    case "$key" in
+LAST=
+SEARCH=0
+for arg in $4; do
+    case "$arg" in
         -l|--latest)
             q='latest'
+            break
         ;;
         -r|--random)
             q='random'
+            break
         ;;
         -s|--search)
-            if [[ "$val" =~ ^[0-9]+$ ]]; then
-                SEARCH="$val"
-            else
+            LAST='s'
+            q="${q#* }"
+        ;;
+        --search=*)
+            SEARCH="${arg#*=}"
+            [[ "$SEARCH" =~ ^[0-9]+$ ]] ||
                 SEARCH=0
-            fi
+            q="${q#* }"
         ;;
         -n|--no-shade)
             DISABLE_SHADE=1
+            q="${q#* }"
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--latest|--random|--search=page-#|--no-shade] [query]"
             echo ":m $1 Make Moose @ $MOOSE_URL"
             exit 0
         ;;
+        *)
+            [ "$LAST" != 's' ] && break
+            LAST=
+            [[ "$arg" =~ ^[0-9]+$ ]] ||
+                SEARCH="$arg"
+            q="${q#* }"
+        ;;
     esac
-done <<< "$6"
+done
 
 if [ -n "$SEARCH" ]; then
     # shellcheck disable=2034
