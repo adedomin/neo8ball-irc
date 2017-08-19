@@ -469,12 +469,12 @@ handle_privmsg() {
     # 
     # an extra argument of type match which is the full text that matched the regexp
     for (( i=0; i<${#REGEX[@]}; i=i+2 )); do
-        if [[ "$4" =~ ${REGEX[$i]} ]]; then
+        if [[ "$6" =~ ${REGEX[$i]} ]]; then
             [ -x "$LIB_PATH/${REGEX[((i+1))]}" ] || return
             [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
             "$LIB_PATH/${REGEX[$((i+1))]}" \
-                "$1" "$2" "$3" "$5 $4" "${REGEX[$i]}" "${BASH_REMATCH[0]}"
-            echo ":ld REGEX EVENT -> ${REGEX[$i]}: $1 <$3> $5 $4"
+                "$1" "$2" "$3" "$6" "${REGEX[$i]}" "${BASH_REMATCH[0]}"
+            echo ":ld REGEX EVENT -> ${REGEX[$i]}: $1 <$3> $6"
             return
         fi
     done

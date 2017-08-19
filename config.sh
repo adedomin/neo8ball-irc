@@ -112,8 +112,7 @@ COMMANDS=(
 REGEX=(
 'youtube.com|youtu.be' 'youtube.sh'
 # literally anything can be a url nowadays
-"(https?)://[^ ]+" 'pagetitle.sh'
-"^moose" "moose.sh"
+'(https?)://[^ ]+' 'pagetitle.sh'
 )
 
 # list of nicks to ignore from, such as other bots
@@ -169,6 +168,8 @@ export MOOSE_SLEEP_TIMER='5s'
 export MS_COG_SERV='https://westcentralus.api.cognitive.microsoft.com/vision/v1.0/describe'
 # keep this commented out if you want to disable this feature
 #export MS_COG_KEY='api key here'
+# Uncomment to disable pagetitle.sh "File" reports.
+#export PAGETITLE_DISABLE_FILE=1
 
 # moved common functions in the lib path.
 # you can store them here or add your own below as before
