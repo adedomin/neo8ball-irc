@@ -328,21 +328,21 @@ declare -Ag ANTISPAM_LIST
 # $2 - username
 # $3 - command
 check_spam() {
-    declare -i temp ttime
     local cmd 
-    read -r temp ttime <<< "${ANTISPAM_LIST[$2]:-0 0}"
-    
     cmd="${3:1}"
-    # increment if command or hl event
-    if [ "$1" = "$NICK" ] ||
-       [ -n "${COMMANDS["${cmd:-zzzz}"]}" ] ||
-       [[ "$3" =~ $NICK.? ]]
+    if [ "$1" != "$NICK" ] &&
+       [ -z "${COMMANDS["${cmd:-zzzz}"]}" ] &&
+       [[ ! "$3" =~ $NICK.? ]]
     then
-        (( temp <= ${ANTISPAM_COUNT:-3} )) &&
-            temp+=1
-    else
         return 0
     fi
+
+    # increment if command or hl event
+    declare -i temp ttime
+    read -r temp ttime <<< "${ANTISPAM_LIST[$2]:-0 0}"
+    (( temp <= ${ANTISPAM_COUNT:-3} )) &&
+        temp+=1
+
 
     declare -i counter current
     current="$(printf "%(%s)T" -1)"
