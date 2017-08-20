@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v4.1.0-alpha"
+VERSION="bash-ircbot: v4.2.0-alpha"
 
 # help info
 usage() {
@@ -112,14 +112,6 @@ fi
 [ -d "$temp_dir/bash-ircbot" ] && rm -r "$temp_dir/bash-ircbot"
 mkdir -m 0770 "$temp_dir/bash-ircbot" ||
     die "failed to make temp directory, check your config"
-# if you wnt to prevent blatant command spam
-# by certain users
-# shellcheck disable=SC2153
-if [ -n "$ANTISPAM" ]; then
-    antispam="$temp_dir/bash-ircbot/antispam"
-    mkdir "$antispam" ||
-        die "couldn't make antispam directory"
-fi
 
 # add temp dir for plugins
 PLUGIN_TEMP="$temp_dir/bash-ircbot/plugin"
@@ -327,6 +319,53 @@ send_cmd() {
     done
 }
 
+declare -Ag ANTISPAM_LIST
+# stripped down version of privmsg checker
+# determines if message qualifies for spam
+# filtering using a weighted moving average
+#
+# $1 - channel
+# $2 - username
+# $3 - command
+check_spam() {
+    declare -i temp ttime
+    local cmd 
+    read -r temp ttime <<< "${ANTISPAM_LIST[$2]:-0 0}"
+    
+    cmd="${3:1}"
+    # increment if command or hl event
+    if [ "$1" = "$NICK" ] ||
+       [ -n "${COMMANDS["${cmd:-zzzz}"]}" ] ||
+       [[ "$3" =~ $NICK.? ]]
+    then
+        temp+=1
+    else
+        return 0
+    fi
+
+    (( temp > ${ANTISPAM_COUNT:-3} )) && 
+        temp="${ANTISPAM_COUNT:-3}"
+
+    (( ttime < 1 )) && 
+        ttime=$(printf "%(%s)T" -1)
+
+    declare -i counter
+    counter="( $(printf "%(%s)T" -1) - ttime ) / 5"
+    (( counter > 0 )) && ttime="$(printf "%(%s)T" -1)"
+    temp="$temp - $counter"
+
+    (( temp < 0 )) && temp=0
+
+    ANTISPAM_LIST[$2]="$temp $ttime"
+
+    if (( temp < ${ANTISPAM_COUNT:-3} )); then
+        return 0
+    else
+        send_log "DEBUG" "SPAMMER -> $2"
+        return 1
+    fi
+}
+
 # check if nick is in ignore list
 # also check if nick is associated with spam, if enabled
 # $1 - nick to check
@@ -339,20 +378,6 @@ check_ignore() {
             return 1
         fi
     done
-    if [ -n "$ANTISPAM" ]; then
-        [ ! -f "$antispam/$1" ] && return 0
-        if (( $(printf "%(%s)T" -1) - $(date -r "$antispam/$1" +"%s") > 
-              ${ANTISPAM_TIMEOUT:-30} )) 
-        then
-            rm "$antispam/$1"
-        elif [ "$(wc -c < "$antispam/$1")" -ge \
-               "${ANTISPAM_COUNT:-3}" ]
-        then
-            send_log 'DEBUG' "SPAMMER -> $1"
-            return 1
-        fi
-    fi
-    return 0
 }
 
 # check if nick is a "trusted gateway" as in a a nick 
@@ -416,7 +441,6 @@ handle_privmsg() {
         if [ "$6" = $'\001VERSION\001' ]; then
             echo -e ":mn $3 \001VERSION $VERSION\001"
             echo ":ld CTCP VERSION -> $3 <$3>"
-            [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
             return
         fi
 
@@ -428,7 +452,6 @@ handle_privmsg() {
             cmd="${PRIVMSG_DEFAULT_CMD:-help}"        
         fi
         [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
-        [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
         "$LIB_PATH/${COMMANDS[$cmd]}" \
             "$3" "$2" "$3" "$4" "$cmd"
         echo ":ld PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $4"
@@ -439,7 +462,6 @@ handle_privmsg() {
     if [[ "$5" =~ $NICK.? ]]; then
         # shellcheck disable=SC2153
         [ -x "$LIB_PATH/$HIGHLIGHT" ] || return
-        [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
         "$LIB_PATH/$HIGHLIGHT" \
             "$1" "$2" "$3" "$4" "$5"
         echo ":ld HIGHLIGHT EVENT -> $1 <$3>  $4"
@@ -455,7 +477,6 @@ handle_privmsg() {
         cmd="${5:1}"
         [ -n "${COMMANDS[$cmd]}" ] || return
         [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
-        [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
         "$LIB_PATH/${COMMANDS[$cmd]}" \
             "$1" "$2" "$3" "$4" "$cmd"
         echo ":ld COMMAND EVENT -> $cmd: $1 <$3> $4"
@@ -471,7 +492,6 @@ handle_privmsg() {
     for (( i=0; i<${#REGEX[@]}; i=i+2 )); do
         if [[ "$6" =~ ${REGEX[$i]} ]]; then
             [ -x "$LIB_PATH/${REGEX[((i+1))]}" ] || return
-            [ -n "$ANTISPAM" ] && printf "1" >> "$antispam/$3"
             "$LIB_PATH/${REGEX[$((i+1))]}" \
                 "$1" "$2" "$3" "$6" "${REGEX[$i]}" "${BASH_REMATCH[0]}"
             echo ":ld REGEX EVENT -> ${REGEX[$i]}: $1 <$3> $6"
@@ -543,6 +563,10 @@ while read -u 4 -r -n 1024 user command channel message; do
     case $command in
         # any channel message
         PRIVMSG) 
+            if [ -n "$ANTISPAM" ]; then 
+                check_spam "$channel" "$user" "$cmd" || 
+                    continue
+            fi
             check_ignore "$user" &&
             handle_privmsg \
                 "$channel" "$host" "$user" "$msg" "$cmd" "$message" \
@@ -553,6 +577,10 @@ while read -u 4 -r -n 1024 user command channel message; do
         # to be responded to, as a bot
         NOTICE)
             [ -z "$READ_NOTICE" ] && continue
+            if [ -n "$ANTISPAM" ]; then 
+                check_spam "$channel" "$user" "$cmd" || 
+                    continue
+            fi
             check_ignore "$user" &&
             handle_privmsg \
                 "$channel" "$host" "$user" "$msg" "$cmd" "$message" \
@@ -645,6 +673,7 @@ while read -u 4 -r -n 1024 user command channel message; do
                 # echo invalid debug commands
                 *) echo "$message" >&3 ;;
             esac
+        ;;
     esac
 done
 send_log 'CRITICAL' 'Exited Event loop, exiting'
