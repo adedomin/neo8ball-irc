@@ -131,10 +131,10 @@ GATEWAY=(
 # prevent users from abusing your bot
 # set to blank to disable
 ANTISPAM=yes
-# time in seconds to timeout users
-ANTISPAM_TIMEOUT=30
-# number of times user called command 
-# within the timeout period
+# a new command allowance is given every x amount of seconds
+# time in seconds to grant an allowance
+ANTISPAM_TIMEOUT=10
+# max number of commands a user gets in a time period
 ANTISPAM_COUNT=3
 
 # time in minutes to check for closed socket

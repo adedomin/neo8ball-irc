@@ -265,7 +265,7 @@ fi
 # ignore user test
 echo -e ':ignorebot PRIVMSG testnick_ :\001VERSION\001' >&3
 echo '[****] Waiting for ingore user test timeout'
-read -t 0.2 -u 4 -r line
+read -t 1 -u 4 -r line
 if [ -z "$line" ]; then  
     pass 'ignore nick test'
 else
@@ -286,7 +286,7 @@ read -t 1 -u 4 -r line
 # now test the bot properly ignores testbot2
 echo -e ':testbot2 PRIVMSG testnick_ :\001VERSION\001' >&3
 echo '[****] Waiting for antispam timeout'
-read -t 2 -u 4 -r line
+read -t 1 -u 4 -r line
 [ -n "$line" ] && aspam=1
 echo -e ':testbot2 PRIVMSG testnick_ :\001VERSION\001' >&3
 read -t 1 -u 4 -r line

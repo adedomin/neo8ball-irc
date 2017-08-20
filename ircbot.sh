@@ -338,27 +338,29 @@ check_spam() {
        [ -n "${COMMANDS["${cmd:-zzzz}"]}" ] ||
        [[ "$3" =~ $NICK.? ]]
     then
-        temp+=1
+        (( temp <= ${ANTISPAM_COUNT:-3} )) &&
+            temp+=1
     else
         return 0
     fi
 
-    (( temp > ${ANTISPAM_COUNT:-3} )) && 
-        temp="${ANTISPAM_COUNT:-3}"
+    declare -i counter current
+    current="$(printf "%(%s)T" -1)"
 
-    (( ttime < 1 )) && 
-        ttime=$(printf "%(%s)T" -1)
-
-    declare -i counter
-    counter="( $(printf "%(%s)T" -1) - ttime ) / 5"
-    (( counter > 0 )) && ttime="$(printf "%(%s)T" -1)"
-    temp="$temp - $counter"
-
-    (( temp < 0 )) && temp=0
+    (( ttime == 0 )) &&
+        ttime="$current"
+    counter="( current - ttime ) / ${ANTISPAM_TIMEOUT:-10}"
+    if (( counter > 0 )); then
+        ttime="$current"
+        (( temp > 0 )) &&
+            temp="$temp - $counter"
+    fi
 
     ANTISPAM_LIST[$2]="$temp $ttime"
 
-    if (( temp < ${ANTISPAM_COUNT:-3} )); then
+    send_log "DEBUG" "$temp"
+
+    if (( temp <= ${ANTISPAM_COUNT:-3} )); then
         return 0
     else
         send_log "DEBUG" "SPAMMER -> $2"
