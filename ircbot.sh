@@ -87,7 +87,7 @@ fi
 # check for ncat, use bash tcp otherwise
 # fail hard if user wanted tls and ncat not found
 if ! which ncat >/dev/null 2>&1; then
-        echo "*** NOTICE *** ncat not found; using bash tcp"
+    echo "*** NOTICE *** ncat not found; using bash tcp"
     [ -n "$TLS" ] && 
         die "TLS does not work with bash tcp"
     BASH_TCP=a
@@ -104,9 +104,9 @@ if [ -z "$SERVER" ]; then
     die "A server must be defined; check the configuration."
 fi
 
-################
-# IPC and Temp #
-################
+###############
+# Plugin Temp #
+###############
 
 # shellcheck disable=SC2154
 [ -d "$temp_dir/bash-ircbot" ] && rm -r "$temp_dir/bash-ircbot"
@@ -130,6 +130,8 @@ export PLUGIN_TEMP
 EXIT_STATUS=0
 quit_prg() {
     pkill -P $$
+    exec 3<&-
+    exec 4<&-
     rm -rf "$temp_dir/bash-ircbot"
     exit "$EXIT_STATUS"
 }
@@ -209,8 +211,11 @@ elif [ -z "$BASH_TCP" ]; then
     coproc { 
         ncat "$SERVER" "${PORT:-6667}" "$TLS"; echo 'ERROR :ncat has terminated' 
     }
-    exec 3<> "/proc/self/fd/${COPROC[1]}"
-    exec 4<> "/proc/self/fd/${COPROC[0]}"
+    # coprocs are a bit weird
+    # subshells may not be able to r/w to these fd's normally
+    # without reopening them
+    exec 3<> "/dev/fd/${COPROC[1]}"
+    exec 4<> "/dev/fd/${COPROC[0]}"
 else
     exec 3<> "/dev/tcp/${SERVER}/${PORT}" ||
         die "Cannot connect to ($SERVER) on port ($PORT)"
@@ -229,7 +234,7 @@ fi
 post_ident() {
     # join chans
     local CHANNELS_
-    CHANNELS_=$(printf ",%s" "${CHANNELS[@]}")
+    printf -v CHANNELS_ ",%s" "${CHANNELS[@]}"
     # channels are repopulated on JOIN commands
     # to better reflect joined channel realities
     CHANNELS=()
@@ -345,7 +350,7 @@ check_spam() {
 
 
     declare -i counter current
-    current="$(printf "%(%s)T" -1)"
+    printf -v current "%(%s)T" -1
 
     (( ttime == 0 )) &&
         ttime="$current"
@@ -490,10 +495,11 @@ handle_privmsg() {
     # even should be command
     # 
     # an extra argument of type match which is the full text that matched the regexp
+    declare -i i
     for (( i=0; i<${#REGEX[@]}; i=i+2 )); do
         if [[ "$6" =~ ${REGEX[$i]} ]]; then
-            [ -x "$LIB_PATH/${REGEX[((i+1))]}" ] || return
-            "$LIB_PATH/${REGEX[$((i+1))]}" \
+            [ -x "$LIB_PATH/${REGEX[i+1]}" ] || return
+            "$LIB_PATH/${REGEX[i+1]}" \
                 "$1" "$2" "$3" "$6" "${REGEX[$i]}" "${BASH_REMATCH[0]}"
             echo ":ld REGEX EVENT -> ${REGEX[$i]}: $1 <$3> $6"
             return
