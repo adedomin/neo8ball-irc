@@ -352,13 +352,12 @@ check_spam() {
     counter="( current - ttime ) / ${ANTISPAM_TIMEOUT:-10}"
     if (( counter > 0 )); then
         ttime="$current"
-        (( temp > 0 )) &&
-            temp="$temp - $counter"
+        temp="$temp - $counter"
+        (( temp < 0 )) &&
+            temp=0
     fi
 
     ANTISPAM_LIST[$2]="$temp $ttime"
-
-    send_log "DEBUG" "$temp"
 
     if (( temp <= ${ANTISPAM_COUNT:-3} )); then
         return 0
