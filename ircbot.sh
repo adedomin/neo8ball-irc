@@ -348,7 +348,6 @@ check_spam() {
     (( temp <= ${ANTISPAM_COUNT:-3} )) &&
         temp+=1
 
-
     declare -i counter current
     printf -v current "%(%s)T" -1
 
@@ -356,8 +355,8 @@ check_spam() {
         ttime="$current"
     counter="( current - ttime ) / ${ANTISPAM_TIMEOUT:-10}"
     if (( counter > 0 )); then
-        ttime="$current"
-        temp="$temp - $counter"
+        ttime='current'
+        temp='temp - counter'
         (( temp < 0 )) &&
             temp=0
     fi

@@ -43,28 +43,12 @@ for arg in $4; do
     esac
 done
 
-
-# parse args
-while IFS='=' read -r key val; do
-    case "$key" in
-        -c|--count)
-            [[ "$val" =~ ^[1-3]$ ]] &&
-                COUNT="$val"
-        ;;
-        -h|--help)
-            echo ":m $1 usage: $5 [--count=#-to-ret] query"
-            echo ":m $1 search for an npm package."
-            exit 0
-        ;;
-    esac
-done <<< "$6"
-
-if [ -z "$4" ]; then
+if [ -z "$q" ]; then
     echo ":mn $3 This command requires a search query, see --help for more info"
     exit 0
 fi
 
-NPM="https://www.npmjs.com/-/search?text=$(URI_ENCODE "$4")&from=0&size=${COUNT}"
+NPM="https://www.npmjs.com/-/search?text=$(URI_ENCODE "$q")&from=0&size=${COUNT}"
 declare -i DEF_NUM
 DEF_NUM=0
  
