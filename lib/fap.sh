@@ -50,8 +50,7 @@ done
 
 if [ -z "$q" ]; then
     q="$(
-        curl -s
-            "https://www.pornmd.com/randomwords?orientation=$orientation" \
+        curl -s "https://www.pornmd.com/randomwords?orientation=$orientation" \
         | tr -d '"'
     )"
 fi
