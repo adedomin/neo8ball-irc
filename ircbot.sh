@@ -64,11 +64,11 @@ done
 
 # find default configuration path
 # location script's directory
-[ -z "$CONFIG_PATH" ] && 
+[[ -z "$CONFIG_PATH" ]] && 
     CONFIG_PATH="$(dirname "$0")/config.sh"
 
 # load configuration
-if [ -f "$CONFIG_PATH" ]; then
+if [[ -f "$CONFIG_PATH" ]]; then
     # shellcheck disable=SC1090
     . "$CONFIG_PATH"
 else
@@ -78,7 +78,7 @@ fi
 
 # set default temp dir path if not set
 # should consider using /dev/shm unless your /tmp is a tmpfs
-[ -z "$temp_dir" ] && temp_dir=/tmp
+[[ -z "$temp_dir" ]] && temp_dir=/tmp
 
 #######################
 # Configuration Tests #
@@ -88,19 +88,19 @@ fi
 # fail hard if user wanted tls and ncat not found
 if ! which ncat >/dev/null 2>&1; then
     echo "*** NOTICE *** ncat not found; using bash tcp"
-    [ -n "$TLS" ] && 
+    [[ -n "$TLS" ]] && 
         die "TLS does not work with bash tcp"
     BASH_TCP=a
 fi
 
 # use default nick if not set, should be set
-if [ -z "$NICK" ]; then
+if [[ -z "$NICK" ]]; then
     echo "*** NOTICE *** nick was not specified; using ircbashbot"
     NICK="ircbashbot"
 fi
 
 # fail if no server
-if [ -z "$SERVER" ]; then
+if [[ -z "$SERVER" ]]; then
     die "A server must be defined; check the configuration."
 fi
 
@@ -109,7 +109,7 @@ fi
 ###############
 
 # shellcheck disable=SC2154
-[ -d "$temp_dir/bash-ircbot" ] && rm -r "$temp_dir/bash-ircbot"
+[[ -d "$temp_dir/bash-ircbot" ]] && rm -r "$temp_dir/bash-ircbot"
 mkdir -m 0770 "$temp_dir/bash-ircbot" ||
     die "failed to make temp directory, check your config"
 
@@ -148,7 +148,7 @@ trap 'exit_failure' SIGUSR1
 # determine if chan is in channel list
 contains_chan() {
   for chan in "${@:2}"; do 
-      [ "$chan" = "$1" ] && return 0
+      [[ "$chan" == "$1" ]] && return 0
   done
   return 1
 }
@@ -168,11 +168,11 @@ reload_config() {
     # shellcheck disable=SC1090
     . "$CONFIG_PATH"
     # NICK changed
-    if [ "$NICK" != "$_NICK" ]; then
+    if [[ "$NICK" != "$_NICK" ]]; then
         send_msg "NICK $NICK"
     fi
     # pass change for nickserv
-    if [ "$NICKSERV" != "$_NICKSERV" ]; then
+    if [[ "$NICKSERV" != "$_NICKSERV" ]]; then
         printf "%s\r\n" "NICKSERV IDENTIFY $NICKSERV" >&3
     fi
     
@@ -196,9 +196,9 @@ trap 'reload_config' SIGHUP SIGWINCH
 # Setup Connection #
 ####################
 
-[ -n "$TLS" ] && TLS="--ssl"
+[[ -n "$TLS" ]] && TLS="--ssl"
 # this mode should be used for testing only
-if [ -n "$MOCK_CONN_TEST" ]; then
+if [[ -n "$MOCK_CONN_TEST" ]]; then
     # send irc communication to
     exec 4>&0 # from server - stdin
     exec 3<&1 # to   server - stdout
@@ -207,8 +207,8 @@ if [ -n "$MOCK_CONN_TEST" ]; then
     # disable ncat half close check
     BASH_TCP=1
 # Connect to server otherwise
-elif [ -z "$BASH_TCP" ]; then
-    coproc { 
+elif [[ -z "$BASH_TCP" ]]; then
+    coproc {
         ncat "$SERVER" "${PORT:-6667}" "$TLS"; echo 'ERROR :ncat has terminated' 
     }
     # coprocs are a bit weird
@@ -241,7 +241,7 @@ post_ident() {
     # list join channels
     send_cmd <<< ":j ${CHANNELS_:1}"
     # ident with nickserv
-    if [ -n "$NICKSERV" ]; then
+    if [[ -n "$NICKSERV" ]]; then
         # bypass logged send_cmd/send_msg
         printf "%s\r\n" "NICKSERV IDENTIFY $NICKSERV" >&3
     fi
@@ -256,7 +256,7 @@ send_log() {
     declare -i log_lvl
     case $1 in
         STDOUT)
-            [ -n "$LOG_STDOUT" ] &&
+            [[ -n "$LOG_STDOUT" ]] &&
                 printf "%(%Y-%m-%d %H:%M:%S)T %s\n" '-1' "${2//[$'\n'$'\r']/}"
             return
         ;;
@@ -335,9 +335,9 @@ declare -Ag ANTISPAM_LIST
 check_spam() {
     local cmd 
     cmd="${3:1}"
-    if [ "$1" != "$NICK" ] &&
-       [ -z "${COMMANDS["${cmd:-zzzz}"]}" ] &&
-       [[ ! "$3" =~ $NICK.? ]]
+    if [[ "$1" != "$NICK" &&
+          -z "${COMMANDS["${cmd:-zzzz}"]}" &&
+          ! "$3" =~ $NICK.? ]]
     then
         return 0
     fi
@@ -378,7 +378,7 @@ check_ignore() {
     # if ignore list is defined
     # shellcheck disable=SC2153
     for nick in "${IGNORE[@]}"; do
-        if [ "$nick" = "$1" ]; then
+        if [[ "$nick" == "$1" ]]; then
             send_log "DEBUG" "IGNORED -> $nick"
             return 1
         fi
@@ -401,12 +401,12 @@ check_ignore() {
 trusted_gateway() {
     local trusted
     for nick in "${GATEWAY[@]}"; do
-        if [ "$1" = "$nick" ]; then
+        if [[ "$1" == "$nick" ]]; then
             trusted=1
             break;
         fi
     done
-    [ -z "$trusted" ] && return 1
+    [[ -z "$trusted" ]] && return 1
     
     # is a gateway user
     # this a mutation
@@ -440,10 +440,10 @@ trusted_gateway() {
 handle_privmsg() {
     # private message to us
     # 5th argument is the command name
-    if [ "$NICK" = "$1" ]; then
+    if [[ "$NICK" == "$1" ]]; then
         # most servers require this "in spirit"
         # tell them what we are
-        if [ "$6" = $'\001VERSION\001' ]; then
+        if [[ "$6" = $'\001VERSION\001' ]]; then
             echo -e ":mn $3 \001VERSION $VERSION\001"
             echo ":ld CTCP VERSION -> $3 <$3>"
             return
@@ -451,12 +451,12 @@ handle_privmsg() {
 
         cmd="$5"
         # if invalid command
-        if [ -z "${COMMANDS[$cmd]}" ]; then
+        if [[ -z "${COMMANDS[$cmd]}" ]]; then
             echo ":m $3 --- Invalid Command ---"
             # basically your "help" command
             cmd="${PRIVMSG_DEFAULT_CMD:-help}"        
         fi
-        [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
+        [[ -x "$LIB_PATH/${COMMANDS[$cmd]}" ]] || return
         "$LIB_PATH/${COMMANDS[$cmd]}" \
             "$3" "$2" "$3" "$4" "$cmd"
         echo ":ld PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $4"
@@ -466,7 +466,7 @@ handle_privmsg() {
     # highlight event in message
     if [[ "$5" =~ $NICK.? ]]; then
         # shellcheck disable=SC2153
-        [ -x "$LIB_PATH/$HIGHLIGHT" ] || return
+        [[ -x "$LIB_PATH/$HIGHLIGHT" ]] || return
         "$LIB_PATH/$HIGHLIGHT" \
             "$1" "$2" "$3" "$4" "$5"
         echo ":ld HIGHLIGHT EVENT -> $1 <$3>  $4"
@@ -480,8 +480,8 @@ handle_privmsg() {
     local reg="^[${CMD_PREFIX}]${5:1}"
     if [[ "$5" =~ $reg ]]; then
         cmd="${5:1}"
-        [ -n "${COMMANDS[$cmd]}" ] || return
-        [ -x "$LIB_PATH/${COMMANDS[$cmd]}" ] || return
+        [[ -n "${COMMANDS[$cmd]}" ||
+            -x "$LIB_PATH/${COMMANDS[$cmd]}" ]] || return
         "$LIB_PATH/${COMMANDS[$cmd]}" \
             "$1" "$2" "$3" "$4" "$cmd"
         echo ":ld COMMAND EVENT -> $cmd: $1 <$3> $4"
@@ -497,7 +497,7 @@ handle_privmsg() {
     declare -i i
     for (( i=0; i<${#REGEX[@]}; i=i+2 )); do
         if [[ "$6" =~ ${REGEX[$i]} ]]; then
-            [ -x "$LIB_PATH/${REGEX[i+1]}" ] || return
+            [[ -x "$LIB_PATH/${REGEX[i+1]}" ]] || return
             "$LIB_PATH/${REGEX[i+1]}" \
                 "$1" "$2" "$3" "$6" "${REGEX[$i]}" "${BASH_REMATCH[0]}"
             echo ":ld REGEX EVENT -> ${REGEX[$i]}: $1 <$3> $6"
@@ -516,7 +516,7 @@ handle_privmsg() {
 # writes fail
 # fd's on linux should be buffered
 # so no race condition
-if [ -z "$BASH_TCP" ]; then
+if [[ -z "$BASH_TCP" ]]; then
     while sleep "${HALFCLOSE_CHECK:-3}m"; do
         echo -ne '\r\n' >&3
         echo -ne '\r\n' >&3
@@ -526,7 +526,7 @@ fi
 send_log "DEBUG" "COMMUNICATION START"
 # pass if server is private
 # this is likely not required
-if [ -n "$PASS" ]; then
+if [[ -n "$PASS" ]]; then
     send_msg "PASS $PASS"
 fi
 # "Ident" information
@@ -537,10 +537,10 @@ send_msg "USER $NICK +i * :$NICK"
 # 1024 bytes, it may fail to parse
 while read -u 4 -r -n 1024 user command channel message; do
     # if ping request
-    if [ "$user" = "PING" ]; then
+    if [[ "$user" == "PING" ]]; then
         send_msg "PONG $command"
         continue
-    elif [ "$user" = 'ERROR' ]; then # probably banned?
+    elif [[ "$user" == 'ERROR' ]]; then # probably banned?
        send_log "CRITICAL" "${command:1} $channel $message"
        break
     fi
@@ -569,7 +569,7 @@ while read -u 4 -r -n 1024 user command channel message; do
     case $command in
         # any channel message
         PRIVMSG) 
-            if [ -n "$ANTISPAM" ]; then 
+            if [[ -n "$ANTISPAM" ]]; then 
                 check_spam "$channel" "$user" "$cmd" || 
                     continue
             fi
@@ -582,8 +582,8 @@ while read -u 4 -r -n 1024 user command channel message; do
         # generally notices are not supposed
         # to be responded to, as a bot
         NOTICE)
-            [ -z "$READ_NOTICE" ] && continue
-            if [ -n "$ANTISPAM" ]; then 
+            [[ -z "$READ_NOTICE" ]] && continue
+            if [[ -n "$ANTISPAM" ]]; then 
                 check_spam "$channel" "$user" "$cmd" || 
                     continue
             fi
@@ -602,7 +602,7 @@ while read -u 4 -r -n 1024 user command channel message; do
         # or a regular user
         # bot only cares about when it joins
         JOIN)
-            if [ "$user" = "$NICK" ]; then
+            if [[ "$user" = "$NICK" ]]; then
                 channel="${channel:1}"
                 channel="${channel%$'\r'}"
                 # channel joined add to list or channels
@@ -613,9 +613,9 @@ while read -u 4 -r -n 1024 user command channel message; do
         # when a user leaves a channel
         # only care when bot leaves a channel for any reason
         PART)
-            if [ "$user" = "$NICK" ]; then
+            if [[ "$user" = "$NICK" ]]; then
                 for i in "${!CHANNELS[@]}"; do
-                    if [ "${CHANNELS[$i]}" = "$channel" ]; then
+                    if [[ "${CHANNELS[$i]}" = "$channel" ]]; then
                         unset CHANNELS["$i"]
                     fi
                 done
@@ -625,9 +625,9 @@ while read -u 4 -r -n 1024 user command channel message; do
         # only other way for the bot to be removed
         # from a channel
         KICK)
-            if [ "$kick" = "$NICK" ]; then
+            if [[ "$kick" = "$NICK" ]]; then
                 for i in "${!CHANNELS[@]}"; do
-                    if [ "${CHANNELS[$i]}" = "$channel" ]; then
+                    if [[ "${CHANNELS[$i]}" = "$channel" ]]; then
                         unset CHANNELS["$i"]
                     fi
                 done
@@ -635,7 +635,7 @@ while read -u 4 -r -n 1024 user command channel message; do
             fi
         ;;
         NICK)
-            if [ "$user" = "$NICK" ]; then
+            if [[ "$user" = "$NICK" ]]; then
                 channel="${channel:1}"
                 NICK="${channel%$'\r'}"
                 send_log "NICK" "NICK CHANGED TO $NICK"
@@ -668,7 +668,7 @@ while read -u 4 -r -n 1024 user command channel message; do
         # key stateful variable from the bot for mock testing
         __DEBUG)
             # disable this if not in mock testing mode
-            [ -z "$MOCK_CONN_TEST" ] && continue
+            [[ -z "$MOCK_CONN_TEST" ]] && continue
             case $message in
                 channels) echo "${CHANNELS[*]}" >&3 ;;
                 nickname) echo "$NICK" >&3 ;;
