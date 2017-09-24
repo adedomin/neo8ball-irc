@@ -43,7 +43,7 @@ fi
 
 while IFS=',' read -r -a api_data; do
     if [[ -n "$LIST_GAME" ]]; then
-        LIST_GAMES+=':: '$'\002'"${api_data[3]} vs ${api_data[7]}"$'\002'" at ${api_data[1]} "
+        LIST_GAMES+=':: '$'\002'"${api_data[3]} vs ${api_data[7]}"$'\002'" at ${api_data[1]} EST"
     else 
         for data in "${api_data[@]:2}"; do
             if [[ "${msg,,}" == "${data,,}" ]]; then
@@ -74,6 +74,7 @@ fi
 
 if [[ -z "$FOUND" ]]; then
     echo ":m $1 $msg is not playing."
+    exit 0
 fi
 
 echo ":m $1 Home: ${api_data[3]} - ${api_data[5]}" \
