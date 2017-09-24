@@ -84,6 +84,7 @@ COMMANDS=(
 ["yes"]="vote.sh"
 ["no"]="vote.sh"
 ["standings"]="vote.sh"
+["mlb"]="mlb.sh" # not complete
 )
 
 #declare -gA API_WEIGHT
