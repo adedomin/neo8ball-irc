@@ -43,9 +43,9 @@ fi
 
 while IFS=',' read -r -a api_data; do
     if [[ -n "$LIST_GAME" ]]; then
-        LIST_GAMES+=':: '$'\002'"${api_data[2]} vs ${api_data[6]}"$'\002'" at ${api_data[0]} "
+        LIST_GAMES+=':: '$'\002'"${api_data[3]} vs ${api_data[7]}"$'\002'" at ${api_data[1]} "
     else 
-        for data in "${api_data[@]:1:8}"; do
+        for data in "${api_data[@]:2}"; do
             if [[ "${msg,,}" == "${data,,}" ]]; then
                 FOUND=1
                 break 2
@@ -55,16 +55,16 @@ while IFS=',' read -r -a api_data; do
 done < <(
     curl -s -q "$MLB_API/grid.json" \
     | jq -r '.data.games.game[] | 
+        .status + "," +
         .event_time + "," +
         .home_team_name + "," +
             .home_name_abbrev + "," + 
-            .home_code + "," + 
+            .home_code + "," +
             (("0"+.home_score|tonumber)|tostring) + "," + 
         .away_team_name + "," +
-            .away_name_abbrev + "," + 
+            .away_name_abbrev + "," +
             .away_code + "," + 
-            (("0"+.home_score|tonumber)|tostring) + "," + 
-        .status'
+            (("0"+.away_score|tonumber)|tostring)'
 )
 
 if [[ -n "$LIST_GAME" ]]; then
@@ -76,6 +76,6 @@ if [[ -z "$FOUND" ]]; then
     echo ":m $1 $msg is not playing."
 fi
 
-echo ":m $1 Home: ${api_data[2]} - ${api_data[4]}" \
-    "Away: ${api_data[6]} - ${api_data[8]}" \
-    "Status: ${api_data[9]}" \
+echo ":m $1 Home: ${api_data[3]} - ${api_data[5]}" \
+    "Away: ${api_data[7]} - ${api_data[9]}" \
+    "Status: ${api_data[0]}" \
