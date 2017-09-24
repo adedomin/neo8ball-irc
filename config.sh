@@ -7,7 +7,9 @@ NICKSERV=
 # irc server
 SERVER="irc.rizon.net"
 # channels to join
-CHANNELS=("#prussian")
+CHANNELS=("#prussian" "#prussian2")
+# supplimentary channels to join from file
+INVITE_FILE="/tmp/invite-channel-list"
 
 # port number
 PORT="6697"

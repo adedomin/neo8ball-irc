@@ -175,6 +175,10 @@ reload_config() {
     if [[ "$NICKSERV" != "$_NICKSERV" ]]; then
         printf "%s\r\n" "NICKSERV IDENTIFY $NICKSERV" >&3
     fi
+
+    # persist channel invites
+    [[ -n "$INVITE_FILE" ]] &&
+        CHANNELS+=($(< "$INVITE_FILE"))
     
     # join or part channels based on new channel list
     uniq_chan_list="$(
@@ -234,6 +238,8 @@ fi
 post_ident() {
     # join chans
     local CHANNELS_
+    [[ -n "$INVITE_FILE" ]] &&
+        CHANNELS+=($(< "$INVITE_FILE"))
     printf -v CHANNELS_ ",%s" "${CHANNELS[@]}"
     # channels are repopulated on JOIN commands
     # to better reflect joined channel realities
@@ -597,6 +603,8 @@ while read -u 4 -r -n 1024 user command channel message; do
         INVITE)
             send_cmd <<< ":j $message"
             send_log "INVITE" "<$user> $message "
+            [[ -n "$INVITE_FILE" ]] &&
+                echo "$message" > "$INVITE_FILE"
         ;;
         # when the bot joins a channel
         # or a regular user
