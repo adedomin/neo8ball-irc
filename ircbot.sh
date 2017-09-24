@@ -86,7 +86,7 @@ fi
 
 # check for ncat, use bash tcp otherwise
 # fail hard if user wanted tls and ncat not found
-if ! which ncat >/dev/null 2>&1; then
+if ! type ncat >/dev/null 2>&1; then
     echo "*** NOTICE *** ncat not found; using bash tcp"
     [[ -n "$TLS" ]] && 
         die "TLS does not work with bash tcp"
