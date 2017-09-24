@@ -30,7 +30,7 @@ export -f URI_ENCODE
 # timestamp, e.g. 1 minute ago, ect.
 reladate() {
     local unit past_suffix
-    declare -i thn now diff amt
+    local -i thn now diff amt
     thn=$(TZ=UTC date --date "$1" +%s)
     now=$(date +%s)
 
@@ -44,19 +44,19 @@ reladate() {
 
     if (( diff >= 31536000 )); then
         unit='year'
-        amt=$(( diff / 31536000 ))
-    elif (( diff >= 2592000 )); then
-        unit='month'
-        amt=$(( diff / 2592000 ))
+        amt='diff / 31536000'
+    elif (( diff >= 604800 )); then
+        unit='week'
+        amt='diff / 604800'
     elif (( diff >= 86400 )); then
         unit='day'
-        amt=$(( diff / 86400 ))
+        amt='diff / 86400'
     elif (( diff >= 3600 )); then
         unit='hour'
-        amt=$(( diff / 3600 ))
+        amt='diff / 3600'
     elif (( diff >= 60 )); then
         unit='minute'
-        amt=$(( diff / 60 ))
+        amt='diff / 60'
     else
         unit='second'
         amt=diff
