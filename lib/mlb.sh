@@ -45,16 +45,16 @@ if [[ -z "$msg" ]]; then
 fi
 
 while IFS=',' read -r -a api_data; do
+    case "${api_data[11]}" in
+        Y) iarrow="${GREEN}▴${RESET}" ;;
+        N) iarrow="${RED}▾${RESET}" ;;
+        *) iarrow="-" ;;
+    esac
+    case "${api_data[0]}" in
+        Pre*) iarrow=; api_data[12]='P' ;;
+        Final) iarrow=; api_data[12]='F' ;;
+    esac
     if [[ -n "$LIST_GAME" ]]; then
-        case "${api_data[11]}" in
-            Y) iarrow="${GREEN}▴${RESET}" ;;
-            N) iarrow="${RED}▾${RESET}" ;;
-            *) iarrow="-" ;;
-        esac
-        case "${api_data[0]}" in
-            Pre*) iarrow=; api_data[12]='P' ;;
-            Final) iarrow=; api_data[12]='F' ;;
-        esac
         LIST_GAMES+=":: ${BOLD}${api_data[7]}${BOLD} ${api_data[9]} "
         LIST_GAMES+="(${api_data[12]}$iarrow) "
         LIST_GAMES+="${BOLD}${api_data[3]}${BOLD} ${api_data[5]} "
@@ -94,9 +94,9 @@ if [[ -z "$FOUND" ]]; then
     exit 0
 fi
 
-echo ":m $1 Away: ${api_data[7]} - ${api_data[9]}" \
-    "Home: ${api_data[3]} - ${api_data[5]}" \
-    "Status: ${api_data[0]}" \
-
+echo ":m $1 ${BOLD}${api_data[7]}${BOLD} ${api_data[9]}" \
+    "(${api_data[12]}$iarrow) " \
+    "${BOLD}${api_data[3]}${BOLD} ${api_data[5]}"
+    
 id="${api_data[10]##*/}"
 grid_path+="${id//-/_}"
