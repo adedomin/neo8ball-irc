@@ -49,6 +49,11 @@ while IFS=',' read -r -a api_data; do
         case "${api_data[11]}" in
             Y) iarrow="${GREEN}▴${RESET}" ;;
             N) iarrow="${RED}▾${RESET}" ;;
+            *) iarrow="-" ;;
+        esac
+        case "${api_data[0]}" in
+            Pre*) iarrow=; api_data[12]='P' ;;
+            Final) iarrow=; api_data[12]='F' ;;
         esac
         LIST_GAMES+=":: ${BOLD}${api_data[7]}${BOLD} ${api_data[9]} "
         LIST_GAMES+="(${api_data[12]}$iarrow) "
@@ -76,11 +81,11 @@ done < <(
             (("0"+.away_score|tonumber)|tostring) + "," +
         .id + "," +
         .top_inning + "," +
-        .inning'
+        (("0"+.inning|tonumber)|tostring)'
 )
 
 if [[ -n "$LIST_GAME" ]]; then
-    echo ":m $1 Games Today $LIST_GAMES"
+    printf ":m $1 %(%b-%d)T - %s\n" -1 "${LIST_GAMES:3}"
     exit 0
 fi
 
