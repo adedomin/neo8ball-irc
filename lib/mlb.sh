@@ -15,7 +15,6 @@
 
 MLB='http://gd2.mlb.com/components/game/mlb'
 printf -v api_path '%(year_%Y/month_%m/day_%d)T' -1
-printf -v gid_path '%(gid_%Y_%m_%d_)T' -1
 MLB_API="$MLB/$api_path"
 BOLD=$'\002'
 GREEN=$'\003''03'
@@ -90,13 +89,41 @@ if [[ -n "$LIST_GAME" ]]; then
 fi
 
 if [[ -z "$FOUND" ]]; then
-    echo ":m $1 $msg is not playing."
+    echo ":m $1 $msg - not playing today."
     exit 0
+fi
+    
+id="${api_data[10]//\//_}"
+gid_path="gid_${id//-/_}"
+
+if [[ "${api_data[12]}" != 'P' || 
+      "${api_data[0]}" != 'F' ]]
+then
+    game_data="$(curl -s -q "$MLB_API/$gid_path/linescore.json")"
+    if [[ -n "$game_data" ]]; then
+        batter="$(
+            jq -r .data.game.current_batter.last_name <<< "$game_data"
+        )"
+        pitcher="$(
+            jq -r .data.game.current_pitcher.last_name <<< "$game_data"
+        )"
+        strikes="$(
+            jq -r .data.game.strikes <<< "$game_data"
+        )"
+        balls="$(
+            jq -r .data.game.balls <<< "$game_data"
+        )"
+        outs="$(
+            jq -r .data.game.outs <<< "$game_data"
+        )"
+        base="$(
+            jq -r .data.game.outs <<< "$game_data"
+        )"
+    fi
 fi
 
 echo ":m $1 ${BOLD}${api_data[7]}${BOLD} ${api_data[9]}" \
-    "(${api_data[12]}$iarrow) " \
-    "${BOLD}${api_data[3]}${BOLD} ${api_data[5]}"
-    
-id="${api_data[10]##*/}"
-grid_path+="${id//-/_}"
+    "(${api_data[12]}$iarrow)" \
+    "${BOLD}${api_data[3]}${BOLD} ${api_data[5]} -" \
+    "Count: ${strikes:-0}-${balls:-0} Outs: ${outs:-0} OnBase: ${base:-0}" \
+    "Batter: ${batter:-UNKN} Pitcher: ${pitcher:-UNKN}"
