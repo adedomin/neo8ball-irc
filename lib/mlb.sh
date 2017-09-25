@@ -117,7 +117,7 @@ then
             jq -r .data.game.outs <<< "$game_data"
         )"
         base="$(
-            jq -r .data.game.outs <<< "$game_data"
+            jq -r .data.game.runner_on_base_status <<< "$game_data"
         )"
     fi
 fi
@@ -125,5 +125,5 @@ fi
 echo ":m $1 ${BOLD}${api_data[7]}${BOLD} ${api_data[9]}" \
     "(${api_data[12]}$iarrow)" \
     "${BOLD}${api_data[3]}${BOLD} ${api_data[5]} -" \
-    "Count: ${strikes:-0}-${balls:-0} Outs: ${outs:-0} OnBase: ${base:-0}" \
+    "Count: ${strikes:-UNKN}-${balls:-UNKN} Outs: ${outs:-UNKN} OnBase: ${base:-UNKN}" \
     "Batter: ${batter:-UNKN} Pitcher: ${pitcher:-UNKN}"
