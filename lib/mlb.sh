@@ -17,6 +17,10 @@ MLB='http://gd2.mlb.com/components/game/mlb'
 printf -v api_path '%(year_%Y/month_%m/day_%d)T' -1
 printf -v gid_path '%(gid_%Y_%m_%d_)T' -1
 MLB_API="$MLB/$api_path"
+BOLD=$'\002'
+GREEN=$'\003''03'
+RED=$'\003''04'
+RESET=$'\003'
 
 msg="$4"
 for arg in $4; do
@@ -42,7 +46,13 @@ fi
 
 while IFS=',' read -r -a api_data; do
     if [[ -n "$LIST_GAME" ]]; then
-        LIST_GAMES+=':: '$'\002'"${api_data[7]} @ ${api_data[3]}"$'\002'" at ${api_data[1]} EST"
+        case "${api_data[11]}" in
+            Y) iarrow="${GREEN}▴${RESET}" ;;
+            N) iarrow="${RED}▾${RESET}" ;;
+        esac
+        LIST_GAMES+=":: ${BOLD}${api_data[7]}${BOLD} ${api_data[9]} "
+        LIST_GAMES+="(${api_data[12]}$iarrow) "
+        LIST_GAMES+="${BOLD}${api_data[3]}${BOLD} ${api_data[5]} "
     else 
         for data in "${api_data[@]:2}"; do
             if [[ "${msg,,}" == "${data,,}" ]]; then
@@ -64,7 +74,9 @@ done < <(
             .away_name_abbrev + "," +
             .away_code + "," + 
             (("0"+.away_score|tonumber)|tostring) + "," +
-        .id'
+        .id + "," +
+        .top_inning + "," +
+        .inning'
 )
 
 if [[ -n "$LIST_GAME" ]]; then
