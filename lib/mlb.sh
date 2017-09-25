@@ -26,9 +26,8 @@ for arg in $4; do
             msg="${msg#* }"
         ;;
         -h|--help)
-            echo ":m $1 usage: $5 [-y --yes-no] query?"
-            echo ":m $1 usage: $5 <choice a> or <choice b>?"
-            echo ":m $1 answers y/n questions or decides between two choices."
+            echo ":m $1 usage: $5 [team name or abbv]"
+            echo ":m $1 Get stats of currently playing games today."
             exit 0
         ;;
         *)
@@ -43,7 +42,7 @@ fi
 
 while IFS=',' read -r -a api_data; do
     if [[ -n "$LIST_GAME" ]]; then
-        LIST_GAMES+=':: '$'\002'"${api_data[3]} vs ${api_data[7]}"$'\002'" at ${api_data[1]} EST"
+        LIST_GAMES+=':: '$'\002'"${api_data[7]} @ ${api_data[3]}"$'\002'" at ${api_data[1]} EST"
     else 
         for data in "${api_data[@]:2}"; do
             if [[ "${msg,,}" == "${data,,}" ]]; then
@@ -64,7 +63,8 @@ done < <(
         .away_team_name + "," +
             .away_name_abbrev + "," +
             .away_code + "," + 
-            (("0"+.away_score|tonumber)|tostring)'
+            (("0"+.away_score|tonumber)|tostring) + "," +
+        .id'
 )
 
 if [[ -n "$LIST_GAME" ]]; then
@@ -77,6 +77,9 @@ if [[ -z "$FOUND" ]]; then
     exit 0
 fi
 
-echo ":m $1 Home: ${api_data[3]} - ${api_data[5]}" \
-    "Away: ${api_data[7]} - ${api_data[9]}" \
+echo ":m $1 Away: ${api_data[7]} - ${api_data[9]}" \
+    "Home: ${api_data[3]} - ${api_data[5]}" \
     "Status: ${api_data[0]}" \
+
+id="${api_data[10]##*/}"
+grid_path+="${id//-/_}"
