@@ -50,7 +50,7 @@ while IFS=',' read -r -a api_data; do
         *) iarrow="-" ;;
     esac
     case "${api_data[0]}" in
-        Pre*) iarrow=; api_data[12]='P' ;;
+        Pre*) iarrow=; api_data[12]="${api_data[1]}" ;;
         Final) iarrow=; api_data[12]='F' ;;
     esac
     if [[ -n "$LIST_GAME" ]]; then
@@ -84,7 +84,7 @@ done < <(
 )
 
 if [[ -n "$LIST_GAME" ]]; then
-    printf ":m $1 %(%b-%d)T - %s\n" -1 "${LIST_GAMES:3}"
+    printf ":m $1 %(%b %d)T EST - %s\n" -1 "${LIST_GAMES:3}"
     exit 0
 fi
 
