@@ -92,7 +92,21 @@ if [[ -z "$FOUND" ]]; then
     echo ":m $1 $msg - not playing today."
     exit 0
 fi
-    
+
+case "${api_data[0]}" in
+    Pre*)
+        echo ":m $1 ${BOLD}${api_data[7]}${BOLD}" \
+            "@ ${BOLD}${api_data[3]}${BOLD}" \
+            "${api_data[1]} EST" 
+        exit 0
+    ;;
+    Final)
+        echo ":m $1 Final Score: ${BOLD}${api_data[7]}${BOLD} ${api_data[9]}" \
+            "${BOLD}${api_data[3]}${BOLD} ${api_data[5]}"
+        exit 0
+    ;;
+esac
+
 id="${api_data[10]//\//_}"
 gid_path="gid_${id//-/_}"
 
