@@ -153,12 +153,42 @@ get_linescores() {
         N) iarrow="${RED}▾${RESET}" ;;
         *) iarrow="-" ;;
     esac
+    read -r event < <( 
+        curl -s -q "$MLB_API/$gid_path/eventLog.xml" \
+        | awk '
+            BEGIN { RS = "/><" }
+            /event/ {
+                inDesc = ""
+                for (i=1; i<=NF; ++i) {
+                    if ($i ~ /number=/) {
+                        gsub(/number=|"*/, "", $i)
+                        num = $i
+                    }
+                    else if (inDesc) {
+                        if ($i ~ /"/) {
+                            inDesc = ""
+                            gsub(/"/, "", $i)
+                        }
+                        desc = desc " " $i
+                    }
+                    else if ($i ~ /description=/) {
+                        inDesc = "true"
+                        gsub(/description="/, "", $i)
+                        desc = $i
+                    }
+                }
+                print num, desc
+            }
+          ' \
+        | sort -k 1 -n | cut -d ' ' -f 2- | tail -1
+    )
     outline="$away $ascore (${inning}${iarrow}) $home $hscore "
     outline+="Count: ${balls:-null}-${strikes:-null} Outs: ${outs:-null} "
     outline+="OnBase: ${base:-null} "
     outline+="Pitcher: ${BOLD}${pitcher:-null}${BOLD} "
     outline+="Batter: ${BOLD}${batter:-null}${BOLD}"
     echo ":m $1 $outline"
+    [[ -n "$event" ]] && echo ":m $1 $event"
 }
 
 if [[ -n "$FOLLOW" ]]; then
