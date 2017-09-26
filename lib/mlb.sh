@@ -34,7 +34,7 @@ for arg in $4; do
             # shellcheck disable=SC2035
             kill -15 *
             popd
-            rmdir "$FOLLOW_LOCK"
+            rm -rf "$FOLLOW_LOCK"
             echo ":m $1 Unfollowed game."
             exit
         ;;
