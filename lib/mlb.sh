@@ -102,43 +102,63 @@ case "${api_data[0]}" in
     ;;
     Final)
         echo ":m $1 Final Score: ${BOLD}${api_data[7]}${BOLD} ${api_data[9]}" \
-            "${BOLD}${api_data[3]}${BOLD} ${api_data[5]}"
+            "@ ${BOLD}${api_data[3]}${BOLD} ${api_data[5]}"
         exit 0
     ;;
 esac
 
 id="${api_data[10]//\//_}"
 gid_path="gid_${id//-/_}"
+away="${BOLD}${api_data[7]}${BOLD}"
+home="${BOLD}${api_data[3]}${BOLD}"
 
-if [[ "${api_data[12]}" != 'P' || 
-      "${api_data[0]}" != 'F' ]]
-then
-    game_data="$(curl -s -q "$MLB_API/$gid_path/linescore.json")"
-    if [[ -n "$game_data" ]]; then
-        batter="$(
-            jq -r .data.game.current_batter.last_name <<< "$game_data"
-        )"
-        pitcher="$(
-            jq -r .data.game.current_pitcher.last_name <<< "$game_data"
-        )"
-        strikes="$(
-            jq -r .data.game.strikes <<< "$game_data"
-        )"
-        balls="$(
-            jq -r .data.game.balls <<< "$game_data"
-        )"
-        outs="$(
-            jq -r .data.game.outs <<< "$game_data"
-        )"
-        base="$(
-            jq -r .data.game.runner_on_base_status <<< "$game_data"
-        )"
+get_linescores() {
+    read -r ascore hscore \
+        top_inning inning \
+        strikes balls outs base \
+        pitcher batter status < \
+    <(
+        curl -s -q "$MLB_API/$gid_path/linescore.json" \
+        | jq -r '.data.game | 
+            ("0"+.home_team_runs|tonumber|tostring) + " " +
+            ("0"+.away_team_runs|tonumber|tostring) + " " +
+            .top_inning + " " +
+            .inning + " " +
+            .strikes + " " +
+            .balls + " " +
+            .outs + " " +
+            .runner_on_base_status + " " +
+            .current_pitcher.last_name + " " +
+            .current_batter.last_name + " " +
+            .status
+        '
+    )
+    if [[ -z "$batter" || "$status" == "Final" ]]; then
+        echo ":m $1 Final Score: $away $ascore" \
+            "@ $home $hscore"
+        exit
     fi
+    case "$top_inning" in
+        Y) iarrow="${GREEN}▴${RESET}" ;;
+        N) iarrow="${RED}▾${RESET}" ;;
+        *) iarrow="-" ;;
+    esac
+    outline="$away $ascore (${inning}${iarrow}) $home $hscore "
+    outline+="Count: ${strikes:-null}-${balls:-null} Outs: ${outs:-null} "
+    outline+="OnBase: ${base:-null} "
+    outline+="Pitcher: ${BOLD}${pitcher:-null}${BOLD}"
+    outline+="Batter: ${BOLD}${batter:-null}${BOLD}"
+    echo ":m $1 $outline"
+}
+
+FOLLOW_LOCK="$PLUGIN_TEMP/${1//\//|}-mlb/"
+if [[ -n "$FOLLOW" ]]; then
+    get_linescores "$1"
+    mkdir "$FOLLOW_LOCK" || exit 0
+    while true; do
+        sleep '2m'
+        get_linescores "$1"
+    done
 fi
 
-echo ":m $1 ${BOLD}${api_data[7]}${BOLD} ${api_data[9]}" \
-    "(${api_data[12]}$iarrow)" \
-    "${BOLD}${api_data[3]}${BOLD} ${api_data[5]} -" \
-    "Count: ${strikes:-UNKN}-${balls:-UNKN} Outs: ${outs:-UNKN} OnBase: ${base:-UNKN}" \
-    "Batter: ${BOLD}${batter:-UNKN}${BOLD}" \
-    "Pitcher: ${BOLD}${pitcher:-UNKN}${BOLD}"
+get_linescores "$1"
