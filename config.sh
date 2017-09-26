@@ -175,7 +175,7 @@ export MS_COG_SERV='https://westcentralus.api.cognitive.microsoft.com/vision/v1.
 #export PAGETITLE_DISABLE_FILE=1
 # rate to poll following MLB games
 # in seconds or whatever timespec that the sleep command takes
-MLB_POLL_RATE=90
+export MLB_POLL_RATE=90
 
 # moved common functions in the lib path.
 # you can store them here or add your own below as before
