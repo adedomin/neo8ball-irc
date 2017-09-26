@@ -160,24 +160,23 @@ get_linescores() {
             /event/ {
                 inDesc = ""
                 for (i=1; i<=NF; ++i) {
-                    if ($i ~ /number=/) {
-                        gsub(/number=|"*/, "", $i)
-                        num = $i
+                    if ($i ~ /^number=/) {
+                        # len of number=" ... "
+                        num = substr($i, 9)
+                        num = substr(num, 0, length(num) - 1)
                     }
                     else if (inDesc) {
-                        if ($i ~ /"/) {
+                        if (index($i, "\""))
                             inDesc = ""
-                            gsub(/"/, "", $i)
-                        }
                         desc = desc " " $i
                     }
-                    else if ($i ~ /description=/) {
+                    else if ($i ~ /^description=/) {
                         inDesc = "true"
-                        gsub(/description="/, "", $i)
-                        desc = $i
+                        # len of description="
+                        desc = substr($i, 14)
                     }
                 }
-                print num, desc
+                print num, substr(desc, 0, index(desc, "\"")-1)
             }
           ' \
         | sort -k 1 -n | cut -d ' ' -f 2- | tail -1
