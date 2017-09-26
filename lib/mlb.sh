@@ -188,7 +188,7 @@ get_linescores() {
     outline+="Pitcher: ${BOLD}${pitcher:-null}${BOLD} "
     outline+="Batter: ${BOLD}${batter:-null}${BOLD}"
     echo ":m $1 $outline"
-    [[ -n "$event" ]] && echo ":m $1 $event"
+    [[ -n "$event" ]] && echo ":m $1 Latest: $event"
 }
 
 if [[ -n "$FOLLOW" ]]; then
