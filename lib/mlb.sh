@@ -29,8 +29,8 @@ for arg in $4; do
             msg="${msg#* }"
         ;;
         -h|--help)
-            echo ":m $1 usage: $5 [team name or abbv]"
-            echo ":m $1 Get stats of currently playing games today."
+            echo ":m $1 usage: $5 [--follow] [team name or abbv]"
+            echo ":m $1 Get stats of currently playing MLB games today."
             exit 0
         ;;
         *)
@@ -144,7 +144,7 @@ get_linescores() {
         *) iarrow="-" ;;
     esac
     outline="$away $ascore (${inning}${iarrow}) $home $hscore "
-    outline+="Count: ${strikes:-null}-${balls:-null} Outs: ${outs:-null} "
+    outline+="Count: ${balls:-null}-${strikes:-null} Outs: ${outs:-null} "
     outline+="OnBase: ${base:-null} "
     outline+="Pitcher: ${BOLD}${pitcher:-null}${BOLD} "
     outline+="Batter: ${BOLD}${batter:-null}${BOLD}"
@@ -156,7 +156,7 @@ if [[ -n "$FOLLOW" ]]; then
     get_linescores "$1"
     mkdir "$FOLLOW_LOCK" || exit 0
     while true; do
-        sleep '2m'
+        sleep "${MLB_POLL_RATE:-90}"
         get_linescores "$1"
     done
 fi
