@@ -146,7 +146,7 @@ get_linescores() {
     outline="$away $ascore (${inning}${iarrow}) $home $hscore "
     outline+="Count: ${strikes:-null}-${balls:-null} Outs: ${outs:-null} "
     outline+="OnBase: ${base:-null} "
-    outline+="Pitcher: ${BOLD}${pitcher:-null}${BOLD}"
+    outline+="Pitcher: ${BOLD}${pitcher:-null}${BOLD} "
     outline+="Batter: ${BOLD}${batter:-null}${BOLD}"
     echo ":m $1 $outline"
 }
