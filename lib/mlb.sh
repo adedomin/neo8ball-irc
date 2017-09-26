@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+FOLLOW_LOCK="$PLUGIN_TEMP/${1//\//|}-mlb/"
 MLB='http://gd2.mlb.com/components/game/mlb'
 printf -v api_path '%(year_%Y/month_%m/day_%d)T' -1
 MLB_API="$MLB/$api_path"
@@ -28,8 +29,17 @@ for arg in $4; do
             FOLLOW=1
             msg="${msg#* }"
         ;;
+        -u|--unfollow)
+            pushd "$FOLLOW_LOCK" || exit
+            # shellcheck disable=SC2035
+            kill -15 *
+            popd
+            rmdir "$FOLLOW_LOCK"
+            echo ":m $1 Unfollowed game."
+            exit
+        ;;
         -h|--help)
-            echo ":m $1 usage: $5 [--follow] [team name or abbv]"
+            echo ":m $1 usage: $5 [--(un)follow] [team name or abbv]"
             echo ":m $1 Get stats of currently playing MLB games today."
             exit 0
         ;;
@@ -151,10 +161,10 @@ get_linescores() {
     echo ":m $1 $outline"
 }
 
-FOLLOW_LOCK="$PLUGIN_TEMP/${1//\//|}-mlb/"
 if [[ -n "$FOLLOW" ]]; then
     get_linescores "$1"
     mkdir "$FOLLOW_LOCK" || exit 0
+    touch "$FOLLOW_LOCK/$$"
     while true; do
         sleep "${MLB_POLL_RATE:-90}"
         get_linescores "$1"
