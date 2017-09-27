@@ -179,7 +179,7 @@ get_linescores() {
                 }
                 if (num > max) {
                     max = num
-                    final = desc
+                    final = substr(desc, 0, index(desc, "\"") - 1)
                 }
             }
 
