@@ -130,8 +130,8 @@ get_linescores() {
     <(
         curl -s -q "$MLB_API/$gid_path/linescore.json" \
         | jq -r '.data.game | 
-            ("0"+.home_team_runs|tonumber|tostring) + " " +
             ("0"+.away_team_runs|tonumber|tostring) + " " +
+            ("0"+.home_team_runs|tonumber|tostring) + " " +
             .top_inning + " " +
             .inning + " " +
             .strikes + " " +
@@ -156,14 +156,15 @@ get_linescores() {
     read -r event < <( 
         curl -s -q "$MLB_API/$gid_path/eventLog.xml" \
         | awk '
-            BEGIN { RS = "/><" }
-            /event/ {
+            BEGIN { RS = ">"; max = -999 }
+
+            /<event/ {
                 inDesc = ""
                 for (i=1; i<=NF; ++i) {
                     if ($i ~ /^number=/) {
                         # len of number=" ... "
                         num = substr($i, 9)
-                        num = substr(num, 0, length(num) - 1)
+                        num = strtonum(substr(num, 0, length(num) - 1))
                     }
                     else if (inDesc) {
                         if (index($i, "\""))
@@ -176,10 +177,14 @@ get_linescores() {
                         desc = substr($i, 14)
                     }
                 }
-                print num, substr(desc, 0, index(desc, "\"")-1)
+                if (num > max) {
+                    max = num
+                    final = desc
+                }
             }
-          ' \
-        | sort -k 1 -n | cut -d ' ' -f 2- | tail -1
+
+            END { print final }
+        '
     )
     outline="$away $ascore (${inning}${iarrow}) $home $hscore "
     outline+="Count: ${balls:-null}-${strikes:-null} Outs: ${outs:-null} "
