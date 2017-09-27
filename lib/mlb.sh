@@ -34,7 +34,7 @@ for arg in $4; do
             # shellcheck disable=SC2035
             kill -15 *
             popd
-            rm -rf "$FOLLOW_LOCK"
+            rm -rf -- "$FOLLOW_LOCK"
             echo ":m $1 Unfollowed game."
             exit
         ;;
@@ -146,6 +146,7 @@ get_linescores() {
     if [[ -z "$batter" || "$status" == "Final" ]]; then
         echo ":m $1 Final Score: $away $ascore" \
             "@ $home $hscore"
+        rm -rf -- "$FOLLOW_LOCK"
         exit
     fi
     case "$top_inning" in
@@ -197,7 +198,7 @@ get_linescores() {
 
 if [[ -n "$FOLLOW" ]]; then
     get_linescores "$1"
-    mkdir "$FOLLOW_LOCK" || exit 0
+    mkdir "$FOLLOW_LOCK" 2>/dev/null || exit 0
     touch "$FOLLOW_LOCK/$$"
     while true; do
         sleep "${MLB_POLL_RATE:-90}"
