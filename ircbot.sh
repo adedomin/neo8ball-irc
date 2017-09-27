@@ -604,7 +604,7 @@ while read -u 4 -r -n 1024 user command channel message; do
             send_cmd <<< ":j $message"
             send_log "INVITE" "<$user> $message "
             [[ -n "$INVITE_FILE" ]] &&
-                echo "$message" > "$INVITE_FILE"
+                echo "$message" >> "$INVITE_FILE"
         ;;
         # when the bot joins a channel
         # or a regular user
