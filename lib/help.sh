@@ -8,9 +8,10 @@ echo -e ":m $1 8ball ::" \
     "npm ::" \
     "wiki ::" \
     "you ::" \
-    "urban ::" \
+    "urb ::" \
     "bible ::" \
     "quran ::" \
     "fap|gay|straight ::" \
     "moose ::" \
-    "vote"
+    "vote ::" \
+    "mlb"
