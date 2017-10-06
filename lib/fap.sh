@@ -70,9 +70,13 @@ while read -r uri title; do
     )"
     echo -e ":m $1 "$'\002'"${title}\002 :: ${url}"
 done < <(
+    # changes seem to create duplicates
+    # stupid uniq isn't removing the uniqes either
+    # despite the fact they are adjacent
     curl "$PORN_MD_SRCH" 2>/dev/null \
     | sed 's@<\([^/a]\|/[^a]\)[^>]*>@@g'  \
     | grep -Po '(?<=href=")[^"]*|(?<=title=")[^"]*' \
-    | grep -F -A 1 -m "$AMT_RESULTS" '/viewvideo' \
-    | sed -e '/--/d' -e 'N;s/\n/ /'
+    | grep -F -A 1 -m "$(( AMT_RESULTS * 2 ))" '/viewvideo' \
+    | sed -e '/--/d' -e 'N;s/\n/ /' \
+    | sed -e '1~2d'
 )
