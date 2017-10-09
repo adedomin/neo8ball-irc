@@ -84,20 +84,8 @@ COMMANDS=(
 ["yes"]="vote.sh"
 ["no"]="vote.sh"
 ["standings"]="vote.sh"
-["mlb"]="mlb.sh" # not complete
+["mlb"]="mlb.sh"
 )
-
-#declare -gA API_WEIGHT
-# new API weight - CURRENTLY NOT IMPL
-# allows you to mark some plugins as higher spam value
-# than others
-# thus allowing for more 8ball queries but less of others
-# api weight is a string
-# more characters = higher weight
-# e.g. ['moose']='11111' means this query has a weihht of 5
-#API_WEIGHT=(
-#)
-# if not in api weight, defaults to 1
 
 # regex patterns
 # if you need more fine grained control
