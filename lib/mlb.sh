@@ -94,6 +94,7 @@ done < <(
 )
 
 if [[ -n "$LIST_GAME" ]]; then
+    [[ -z "$LIST_GAMES" ]] && LIST_GAMES="   No games today."
     printf ":m $1 %(%b %d)T EST - %s\n" -1 "${LIST_GAMES:3}"
     exit 0
 fi
