@@ -78,7 +78,7 @@ while IFS=',' read -r -a api_data; do
 done < <(
     curl -s -q "$MLB_API/grid.json" \
         | jq -r '
-        if (.data.games.game[]|type=="array") then 
+        if (.data.games.game|type=="array") then 
             .data.games.game[]
         else
             .data.games.game
