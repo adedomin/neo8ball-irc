@@ -33,7 +33,6 @@ for key in $4; do
     case "$key" in
         -d|--duration)
             LAST='d'
-            v="${v#* }"
         ;;
         --duration=*)
             DURATION="${key#*=}" 
@@ -41,7 +40,6 @@ for key in $4; do
                 DURATION=120
             (( DURATION > 30 && DURATION < 3601 )) || 
                 DURATION=120
-            v="${v#* }"
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--duration=#] <y/n question>"
@@ -56,9 +54,14 @@ for key in $4; do
                 (( key > 30 && key < 3601 )) &&
                     DURATION="$key"
             fi
-            v="${v#* }"
         ;;
     esac
+    if [[ "$v" == "${v#* }" ]]; then
+        v=
+        break
+    else
+        v="${v#* }"
+    fi
 done
 
 if [ ! -d "$VOTE_LOCK" ] && [ "$5" != 'vote' ]; then

@@ -21,12 +21,10 @@ for arg in $4; do
     case "$arg" in
         -c|--count)
             LAST='c'
-            q="${q#* }"
         ;;
         --count=*)
             [[ "${arg#*=}" =~ ^[1-3]$ ]] &&
                 COUNT="${arg#*=}"
-            q="${q#* }"
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--count=#-to-ret] query"
@@ -38,10 +36,14 @@ for arg in $4; do
             LAST=
             [[ "$arg" =~ ^[1-3]$ ]] &&
                 COUNT="$arg"
-            q="${q#* }"
         ;;
-
     esac
+    if [[ "$q" == "${q#* }" ]]; then
+        q=
+        break
+    else
+        q="${q#* }"
+    fi
 done
 
 if [ -z "$q" ]; then

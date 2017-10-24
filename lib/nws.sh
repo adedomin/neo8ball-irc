@@ -19,13 +19,9 @@ for a in $4; do
     case "$a" in
         -s|--search)
             SEARCH=1
-            arg="${arg#* }"
-            break
         ;;
         -S|--save)
             SAVE=1
-            arg="${arg#* }"
-            break
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--search|--save] [query]"
@@ -37,6 +33,13 @@ for a in $4; do
             break
         ;;
     esac
+    if [[ "$arg" == "${arg#* }" ]]; then
+        arg=
+        break
+    else
+        arg="${arg#* }"
+        break
+    fi
 done
 
 if [ -z "$arg" ]; then

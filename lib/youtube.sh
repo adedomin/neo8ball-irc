@@ -17,7 +17,6 @@ declare -i COUNT
 COUNT=3
 
 MATCH="$4"
-
 # parse args
 for key in $4; do
     case "$key" in
@@ -40,6 +39,12 @@ for key in $4; do
                 COUNT="$key"
         ;;
     esac
+    if [[ "$MATCH" == "${MATCH#* }" ]]; then
+        MATCH=
+        break
+    else
+        MATCH="${MATCH#* }"
+    fi
 done 
 
 if [ -z "$MATCH" ]; then
@@ -58,7 +63,7 @@ if [ -n "$6" ]; then
 fi
 
 if [ -z "$ids" ]; then
-    youtube="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=$(URI_ENCODE "$4")&maxResults=${COUNT}&key=${YOUTUBE_KEY}"
+    youtube="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=$(URI_ENCODE "$MATCH")&maxResults=${COUNT}&key=${YOUTUBE_KEY}"
     while read -r id; do
         if [ -z "$ids" ]; then
             ids=$id

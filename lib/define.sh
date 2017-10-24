@@ -42,6 +42,12 @@ for arg in $4; do
             msg="${msg#* }"
         ;;
     esac
+    if [[ "$msg" == "${msg#* }" ]]; then
+        msg=
+        break
+    else
+        msg="${msg#* }"
+    fi
 done
 
 if [ -z "$msg" ]; then

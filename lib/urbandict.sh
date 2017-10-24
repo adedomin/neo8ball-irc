@@ -23,21 +23,17 @@ for key in $4; do
     case "$key" in
         -c|--count)
             LAST='c'
-            q="${q#* }"
         ;;
         --count=*)
             [[ "${key#*=}" =~ ^[1-3]$ ]] &&
                 COUNT="${key#*=}"
-            q="${q#* }"
         ;;
         -d|--definition)
             LAST='d'
-            q="${q#* }"
         ;;
         --definition=*)
             [[ "${key#*=}" =~ ^(1[0-9]|[1-9])$ ]] &&
                 DEFINITION="${key#*=}"
-            q="${q#* }"
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--count=#-to-ret|--definition=#] query"
@@ -55,9 +51,14 @@ for key in $4; do
                     COUNT="$key"
             fi
             LAST=
-            q="${q#* }"
         ;;
     esac
+    if [[ "$q" == "${q#* }" ]]; then
+        q=
+        break
+    else
+        q="${q#* }"
+    fi
 done
 
 if [ -z "$4" ]; then

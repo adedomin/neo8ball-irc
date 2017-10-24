@@ -27,7 +27,12 @@ for arg in $4; do
     case "$arg" in
         -f|--follow)
             FOLLOW=1
-            msg="${msg#* }"
+            if [[ "$msg" == "${msg#* }" ]]; then
+                echo ":m $1 --follow argument requires a team."
+                exit 0
+            else
+                msg="${msg#* }"
+            fi
         ;;
         -u|--unfollow)
             pushd "$FOLLOW_LOCK" || exit
@@ -36,7 +41,7 @@ for arg in $4; do
             popd
             rm -rf -- "$FOLLOW_LOCK"
             echo ":m $1 Unfollowed game."
-            exit
+            exit 0
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--(un)follow] [team name or abbv]"
@@ -47,6 +52,7 @@ for arg in $4; do
             break
         ;;
     esac
+
 done
 
 if [[ -z "$msg" ]]; then

@@ -22,7 +22,6 @@ for key in $4; do
     case "$key" in
         -S|--save)
             SAVE=1
-            arg="${arg#* }"
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--save] [query]"
@@ -33,6 +32,12 @@ for key in $4; do
             break
         ;;
     esac
+    if [[ "$arg" == "${arg#* }" ]]; then
+        arg=
+        break
+    else
+        arg="${arg#* }"
+    fi
 done
 
 if [ -z "$arg" ]; then

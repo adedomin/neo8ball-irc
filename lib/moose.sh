@@ -39,31 +39,37 @@ for arg in $4; do
         ;;
         -s|--search)
             LAST='s'
-            q="${q#* }"
         ;;
         --search=*)
             SEARCH="${arg#*=}"
             [[ "$SEARCH" =~ ^[0-9]+$ ]] ||
                 SEARCH=0
-            q="${q#* }"
         ;;
         -n|--no-shade)
             DISABLE_SHADE=1
-            q="${q#* }"
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--latest|--random|--search=page-#|--no-shade] [query]"
             echo ":m $1 Make Moose @ $MOOSE_URL"
             exit 0
         ;;
+        --)
+            q="${q:3}"
+            break
+        ;;
         *)
             [ "$LAST" != 's' ] && break
             LAST=
             [[ "$arg" =~ ^[0-9]+$ ]] ||
                 SEARCH="$arg"
-            q="${q#* }"
         ;;
     esac
+    if [[ "$q" == "${q#* }" ]]; then
+        q=
+        break
+    else
+        q="${q#* }"
+    fi
 done
 
 if [ -n "$SEARCH" ]; then
