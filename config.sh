@@ -85,6 +85,8 @@ COMMANDS=(
 ["no"]="vote.sh"
 ["standings"]="vote.sh"
 ["mlb"]="mlb.sh"
+["twit"]="twitter.sh"
+["twitter"]="twitter.sh"
 )
 
 # regex patterns

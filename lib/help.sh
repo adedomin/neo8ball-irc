@@ -14,4 +14,5 @@ echo -e ":m $1 8ball ::" \
     "fap|gay|straight ::" \
     "moose ::" \
     "vote ::" \
-    "mlb"
+    "mlb ::" \
+    "twit"
