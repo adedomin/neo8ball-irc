@@ -132,19 +132,24 @@ ANTISPAM_COUNT=3
 # this is applicable if you use ncat
 HALFCLOSE_CHECK=3
 
-# variables for plugins
+## variables for plugins ##
+
 # comment out if you don't want 
 # to use OpenWeatherMap plugin
 export OWM_KEY="your owm key"
+
 # your persistant storage here, 
 # comment out to disabable weatherdb.sh
 export PERSIST_LOC="/tmp"
+
 # for youtube.sh
-export YOUTUBE_KEY="your youtube api key"
+#export YOUTUBE_KEY="your youtube api key"
+
 # you have to generate bible_db yourself, see create-db.sh in ./static
 #export BIBLE_DB="$(dirname "$0")/static/kjbible-quran.db"
 export BIBLE_SOURCE="$(dirname "$0")/static/king-james.txt"
 export QURAN_SOURCE="$(dirname "$0")/static/quran-allah-ver.txt"
+
 # list of channels to not print moose in
 # some channels may insta ban if multiple lines are written rapidly
 # has to be string due to bash export limitations
@@ -159,11 +164,17 @@ export MOOSE_SLEEP_TIMER='5s'
 export MS_COG_SERV='https://westcentralus.api.cognitive.microsoft.com/vision/v1.0/describe'
 # keep this commented out if you want to disable this feature
 #export MS_COG_KEY='api key here'
+
 # Uncomment to disable pagetitle.sh "File" reports.
 #export PAGETITLE_DISABLE_FILE=1
+
 # rate to poll following MLB games
 # in seconds or whatever timespec that the sleep command takes
 export MLB_POLL_RATE=90
+
+# the following are twitter consumer key and secret for the twitter plugin
+#export TWITTER_KEY=your-key-here
+#export TWITTER_SECRET=your-key-here
 
 # moved common functions in the lib path.
 # you can store them here or add your own below as before
