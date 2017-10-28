@@ -120,6 +120,20 @@ mkdir "$PLUGIN_TEMP" ||
 # this is for plugins, so export it
 export PLUGIN_TEMP
 
+#########
+# State #
+#########
+
+#declare -A invites 
+# TODO: soon
+#declare -A user_modes
+declare -Ag antispam_list
+# IGNORE to a hash
+declare -A ignore_hash
+for ign in "${IGNORE[@]}"; do
+    ignore_hash[$ign]=1
+done
+
 ####################
 # Signal Listeners #
 ####################
@@ -127,19 +141,18 @@ export PLUGIN_TEMP
 # handler to terminate bot
 # can not trap SIGKILL
 # make sure you kill with SIGTERM or SIGINT
-EXIT_STATUS=0
+exit_status=0
 quit_prg() {
-    pkill -P $$
     exec 3<&-
     exec 4<&-
     rm -rf "$temp_dir/bash-ircbot"
-    exit "$EXIT_STATUS"
+    exit "$exit_status"
 }
 trap 'quit_prg' SIGINT SIGTERM
 
 # similar to above but with >0 exit code
 exit_failure() {
-    EXIT_STATUS=1
+    exit_status=1
     quit_prg
 }
 trap 'exit_failure' SIGUSR1
@@ -161,18 +174,18 @@ contains_chan() {
 #       reload all other variables, like COMMANDS, etc
 reload_config() {
     send_log 'DEBUG' 'CONFIG RELOAD TRIGGERED'
-    local _NICK="$NICK"
+    local _nick="$NICK"
     # shellcheck disable=SC2153
-    local _NICKSERV="$NICKSERV"
-    local _CHANNELS=("${CHANNELS[@]}")
+    local _nickserv="$NICKSERV"
+    local _channels=("${CHANNELS[@]}")
     # shellcheck disable=SC1090
     . "$CONFIG_PATH"
     # NICK changed
-    if [[ "$NICK" != "$_NICK" ]]; then
+    if [[ "$NICK" != "$_nick" ]]; then
         send_msg "NICK $NICK"
     fi
     # pass change for nickserv
-    if [[ "$NICKSERV" != "$_NICKSERV" ]]; then
+    if [[ "$NICKSERV" != "$_nickserv" ]]; then
         printf "%s\r\n" "NICKSERV IDENTIFY $NICKSERV" >&3
     fi
 
@@ -180,14 +193,14 @@ reload_config() {
     [[ -n "$INVITE_FILE" ]] &&
         CHANNELS+=($(< "$INVITE_FILE"))
     
-    # join or part channels based on new channel list
-    uniq_chan_list="$(
-        printf '%s\n' "${_CHANNELS[@]}" "${CHANNELS[@]}" \
-        | sort \
-        | uniq -u
-    )"
-    for uniq_chan in $uniq_chan_list; do
-        if contains_chan "$uniq_chan" "${_CHANNELS[@]}"; then
+    declare -A uniq_chans
+    for chan in "${_channels[@]}" "${CHANNELS[@]}"; do
+        uniq_chans[$chan]+=1
+    done
+
+    for uniq_chan in "${!uniq_chans[@]}"; do
+        (( ${#uniq_chans[$uniq_chan]} > 1 )) && continue
+        if contains_chan "$uniq_chan" "${_channels[@]}"; then
             send_cmd <<< ":l $uniq_chan"
         else
             send_cmd <<< ":j $uniq_chan"
@@ -213,7 +226,8 @@ if [[ -n "$MOCK_CONN_TEST" ]]; then
 # Connect to server otherwise
 elif [[ -z "$BASH_TCP" ]]; then
     coproc {
-        ncat "$SERVER" "${PORT:-6667}" "$TLS"; echo 'ERROR :ncat has terminated' 
+        ncat "$SERVER" "${PORT:-6667}" "$TLS"
+        echo 'ERROR :ncat has terminated' 
     }
     # coprocs are a bit weird
     # subshells may not be able to r/w to these fd's normally
@@ -237,15 +251,15 @@ fi
 #       This command is not technically a standard
 post_ident() {
     # join chans
-    local CHANNELS_
+    local _channels
     [[ -n "$INVITE_FILE" ]] &&
         CHANNELS+=($(< "$INVITE_FILE"))
-    printf -v CHANNELS_ ",%s" "${CHANNELS[@]}"
+    printf -v _channels ",%s" "${CHANNELS[@]}"
     # channels are repopulated on JOIN commands
     # to better reflect joined channel realities
     CHANNELS=()
     # list join channels
-    send_cmd <<< ":j ${CHANNELS_:1}"
+    send_cmd <<< ":j ${_channels:1}"
     # ident with nickserv
     if [[ -n "$NICKSERV" ]]; then
         # bypass logged send_cmd/send_msg
@@ -262,6 +276,7 @@ send_log() {
     declare -i log_lvl
     case $1 in
         STDOUT)
+            # shellcheck disable=2183
             [[ -n "$LOG_STDOUT" ]] &&
                 printf "%(%Y-%m-%d %H:%M:%S)T %s\n" '-1' "${2//[$'\n'$'\r']/}"
             return
@@ -276,15 +291,19 @@ send_log() {
         printf "*** %s *** %s\n" "$1" "$2" 
 }
 
-# send argument/s to irc server
+# send arguments to irc server
+# $* - multiple strings to be sent.
 send_msg() {
     printf "%s\r\n" "$*" >&3
     send_log "DEBUG" "SENT -> $*"
 }
 
-# function which converts bash-ircbot
-# commands to IRC messages
+# function which converts sic/ircii-like
+# commands to IRC messages.
 # must be piped or heredoc; no arguments
+# 
+# <STDIN> - valid bash-ircbot command string
+# SEE     - README.md
 send_cmd() {
     while read -r cmd arg other; do
         case $cmd in
@@ -330,7 +349,6 @@ send_cmd() {
     done
 }
 
-declare -Ag ANTISPAM_LIST
 # stripped down version of privmsg checker
 # determines if message qualifies for spam
 # filtering using a weighted moving average
@@ -350,11 +368,12 @@ check_spam() {
 
     # increment if command or hl event
     declare -i temp ttime
-    read -r temp ttime <<< "${ANTISPAM_LIST[$2]:-0 0}"
+    read -r temp ttime <<< "${antispam_list[$2]:-0 0}"
     (( temp <= ${ANTISPAM_COUNT:-3} )) &&
         temp+=1
 
     declare -i counter current
+    # shellcheck disable=2183
     printf -v current "%(%s)T" -1
 
     (( ttime == 0 )) &&
@@ -367,7 +386,7 @@ check_spam() {
             temp=0
     fi
 
-    ANTISPAM_LIST[$2]="$temp $ttime"
+    antispam_list[$2]="$temp $ttime"
 
     if (( temp <= ${ANTISPAM_COUNT:-3} )); then
         return 0
@@ -381,14 +400,18 @@ check_spam() {
 # also check if nick is associated with spam, if enabled
 # $1 - nick to check
 check_ignore() {
+    if [[ -n "${ignore_hash[$1]}" ]]; then
+        send_log "DEBUG" "IGNORED -> $1"
+        return 1
+    fi
     # if ignore list is defined
     # shellcheck disable=SC2153
-    for nick in "${IGNORE[@]}"; do
-        if [[ "$nick" == "$1" ]]; then
-            send_log "DEBUG" "IGNORED -> $nick"
-            return 1
-        fi
-    done
+    #for nick in "${IGNORE[@]}"; do
+    #    if [[ "$nick" == "$1" ]]; then
+    #        send_log "DEBUG" "IGNORED -> $nick"
+    #        return 1
+    #    fi
+    #done
 }
 
 # check if nick is a "trusted gateway" as in a a nick 
@@ -435,6 +458,7 @@ trusted_gateway() {
 # Bot Message Handler #
 #######################
 
+# TODO: note addition of usermode when available
 # handle PRIVMSGs and NOTICEs and
 # determine if the bot needs to react to message
 # $1: channel - the channel the string came from
@@ -550,15 +574,14 @@ while read -u 4 -r -n 1024 user command channel message; do
        send_log "CRITICAL" "${command:1} $channel $message"
        break
     fi
-    # needs to be here, prior to pruning
+    # needs to be declared here 
+    # prior to any parsing
     kick="${message% :*}"
-    # clean up information
-    # user=$(sed 's/^:\([^!]*\).*/\1/' <<< "$user")
+    # clean and split out user information
     host="${user##*@}"
     user="${user%%\!*}"
     user="${user:1}"
-    # NOTE: datetime is deprecated
-    # datetime=$(date +"%Y-%m-%d %H:%M:%S")
+    # remove leading colon and carriage return
     message=${message:1}
     message=${message%$'\r'}
 
@@ -568,20 +591,26 @@ while read -u 4 -r -n 1024 user command channel message; do
     # log message
     send_log "STDOUT" "$channel $command <$user> $message"
 
-    # split command, new antispam soon
+    # split command from message
     read -r cmd msg <<< "$message"
 
     # handle commands here
     case $command in
         # any channel message
         PRIVMSG) 
+            # this step has to occur in the main loop sadly
             if [[ -n "$ANTISPAM" ]]; then 
                 check_spam "$channel" "$user" "$cmd" || 
                     continue
             fi
             check_ignore "$user" &&
             handle_privmsg \
-                "$channel" "$host" "$user" "$msg" "$cmd" "$message" \
+                "$channel" \
+                "$host" \
+                "$user" \
+                "$msg" \
+                "$cmd" \
+                "$message" \
             | send_cmd &
         ;;
         # any other channel message
@@ -589,13 +618,19 @@ while read -u 4 -r -n 1024 user command channel message; do
         # to be responded to, as a bot
         NOTICE)
             [[ -z "$READ_NOTICE" ]] && continue
+            # this step has to occur in the main loop sadly
             if [[ -n "$ANTISPAM" ]]; then 
                 check_spam "$channel" "$user" "$cmd" || 
                     continue
             fi
             check_ignore "$user" &&
             handle_privmsg \
-                "$channel" "$host" "$user" "$msg" "$cmd" "$message" \
+                "$channel" \
+                "$host" \
+                "$user" \
+                "$msg" \
+                "$cmd" \
+                "$message" \
             | send_cmd &
         ;;
         # bot was invited to channel
@@ -607,8 +642,6 @@ while read -u 4 -r -n 1024 user command channel message; do
                 echo "$message" >> "$INVITE_FILE"
         ;;
         # when the bot joins a channel
-        # or a regular user
-        # bot only cares about when it joins
         JOIN)
             if [[ "$user" = "$NICK" ]]; then
                 channel="${channel:1}"
@@ -618,8 +651,7 @@ while read -u 4 -r -n 1024 user command channel message; do
                 send_log "JOIN" "$channel"
             fi
         ;;
-        # when a user leaves a channel
-        # only care when bot leaves a channel for any reason
+        # when the bot leaves a channel
         PART)
             if [[ "$user" = "$NICK" ]]; then
                 for i in "${!CHANNELS[@]}"; do
@@ -630,8 +662,8 @@ while read -u 4 -r -n 1024 user command channel message; do
                 send_log "PART" "$channel"
             fi
         ;;
-        # only other way for the bot to be removed
-        # from a channel
+        # only way for the bot to be removed
+        # from a channel, other than config reload
         KICK)
             if [[ "$kick" = "$NICK" ]]; then
                 for i in "${!CHANNELS[@]}"; do
@@ -684,7 +716,6 @@ while read -u 4 -r -n 1024 user command channel message; do
                 hostparse) echo "$host" >&3 ;;
                 chanparse) echo "$channel" >&3 ;;
                 msgparse) echo "$message" >&3 ;;
-                # echo invalid debug commands
                 *) echo "$message" >&3 ;;
             esac
         ;;
