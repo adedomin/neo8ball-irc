@@ -404,14 +404,6 @@ check_ignore() {
         send_log "DEBUG" "IGNORED -> $1"
         return 1
     fi
-    # if ignore list is defined
-    # shellcheck disable=SC2153
-    #for nick in "${IGNORE[@]}"; do
-    #    if [[ "$nick" == "$1" ]]; then
-    #        send_log "DEBUG" "IGNORED -> $nick"
-    #        return 1
-    #    fi
-    #done
 }
 
 # check if nick is a "trusted gateway" as in a a nick 
