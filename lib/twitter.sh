@@ -72,12 +72,11 @@ get_latest_tweet() {
         return 1
     fi
 
-    REPLY="$1 - $(jq -r '.[0] | 
+    [[ -z "$res" ]] && return 1
+    REPLY=$'\002'"$1"$'\002'" - $(jq -r '.[0] | 
         .created_at + ": " + 
         (.text|gsub("\n"; " "))
     ' <<< "$res")"
-    [[ -z "$REPLY" ]] && return 1
-    return 0
 }
 
 if get_latest_tweet "$screen_name"; then
