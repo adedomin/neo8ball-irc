@@ -72,7 +72,6 @@ get_latest_tweet() {
         return 1
     fi
 
-    [[ -z "$res" ]] && return 1
     REPLY=$'\002'"$1"$'\002'" - $(jq -r '.[0] | 
         .created_at + ": " + 
         (.text|gsub("\n"; " "))
