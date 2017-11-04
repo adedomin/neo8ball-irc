@@ -109,11 +109,14 @@ SAVE_LOC() {
         "$weatherdb" \
     > "$weatherdb_tmp"; then
         rmdir "$weatherdb.lock"
+        rm -f "$weatherdb_tmp"
         return 1
     fi
 
     rmdir "$weatherdb.lock"
-    mv "$weatherdb_tmp" "$weatherdb" \
-        || return 1
+    if ! mv "$weatherdb_tmp" "$weatherdb"; then
+        rm -f "$weatherdb_tmp"
+        return 1
+    fi
 }
 export -f SAVE_LOC
