@@ -88,6 +88,7 @@ export -f GET_LOC
 SAVE_LOC() {
     [ -z "$PERSIST_LOC" ] && PERSIST_LOC="$PLUGIN_TEMP"
     local weatherdb="$PERSIST_LOC/weather-defaults.db"
+    local weatherdb_tmp="$weatherdb.$$.tmp"
     if [ ! -f "$weatherdb" ]; then
         touch "$weatherdb"
     fi
@@ -98,13 +99,21 @@ SAVE_LOC() {
         "$0" "$@"
         return
     fi
-
-    if grep -q "^$1:" "$weatherdb"; then
-        sed -i'' 's/^'"$1"':.*$/'"$1"':'"$2"'/' "$weatherdb" || return 1
-    else
-        echo "$1:$2" >> "$weatherdb" || return 1
+    
+    if ! awk -F : \
+        -v user="$1" \
+        -v location="$2" -- \
+        '$1 == user { next } 
+        { print }
+        END { print user ":" location }' \
+        "$weatherdb" \
+    > "$weatherdb_tmp"; then
+        rmdir "$weatherdb.lock"
+        return 1
     fi
 
     rmdir "$weatherdb.lock"
+    mv "$weatherdb_tmp" "$weatherdb" \
+        || return 1
 }
 export -f SAVE_LOC
