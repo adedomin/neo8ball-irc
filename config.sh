@@ -16,6 +16,10 @@ PORT="6697"
 # use tls
 # set to blank to disable
 TLS=yes
+# verify trust using system trust store
+VERIFY_TLS=yes
+# verify trust using given cert(s)
+# VERIFY_TLS_FILE=/path/to/cert/bundle
 
 # IPC related files will use this root
 temp_dir=/tmp

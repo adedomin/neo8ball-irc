@@ -20,8 +20,7 @@ usage() {
 usage: $0 [-c config]"
     
     -c --config=path    A config file
-    -d --dynamic=path   Dynamic configurations.
-                        Disabled is not set.
+    -o --log-out=file   A file to log to instead of stdout.
     -h --help           This message
 
 If no configuration path is found or CONFIG_PATH is not set,
@@ -47,6 +46,19 @@ while (( $# > 0 )); do
         ;;
         --config=*)
             CONFIG_PATH="${1#*=}"
+        ;;
+        -o|--log-out)
+            if [[ -z "$MOCK_CONN_TEST" ]]; then
+                exec 1<>"$2"
+                exec 2>&1
+                shift
+            fi
+        ;;
+        --log-out=*)
+            if [[ -z "$MOCK_CONN_TEST" ]]; then
+                exec 1<>"${1#*=}"
+                exec 2>&1
+            fi
         ;;
         -h|--help)
             usage
@@ -213,7 +225,11 @@ trap 'reload_config' SIGHUP SIGWINCH
 # Setup Connection #
 ####################
 
-[[ -n "$TLS" ]] && TLS="--ssl"
+TLS_OPTS=()
+[[ -n "$TLS"             ]] && TLS_OPTS+=(--ssl)
+[[ -n "$VERIFY_TLS"      ]] && TLS_OPTS+=(--ssl-verify)
+[[ -n "$VERIFY_TLS_FILE" ]] && TLS_OPTS+=("--ssl-trustfile=$VERIFY_TLS_FILE")
+
 # this mode should be used for testing only
 if [[ -n "$MOCK_CONN_TEST" ]]; then
     # send irc communication to
@@ -226,7 +242,7 @@ if [[ -n "$MOCK_CONN_TEST" ]]; then
 # Connect to server otherwise
 elif [[ -z "$BASH_TCP" ]]; then
     coproc {
-        ncat "$SERVER" "${PORT:-6667}" "$TLS"
+        ncat "${TLS_OPTS[@]}" "$SERVER" "${PORT:-6667}"
         echo 'ERROR :ncat has terminated' 
     }
     # coprocs are a bit weird
