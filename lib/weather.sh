@@ -62,7 +62,7 @@ if [ "$(jq -r '.cod' <<< "$RES")" != '200' ]; then
     exit 0
 fi
 
-KELV="$(jq -r '.main.temp_min' <<< "$RES")"
+KELV="$(jq -r '.main.temp' <<< "$RES")"
 CURR_FAHR="$(printf "%.2f" "$(bc <<< "scale=2;$KELV * 9 / 5 - 459.67")")"
 CURR_CELS="$(printf "%.2f" "$(bc <<< "scale=2;$KELV - 273.15")")"
 COND=$(jq -r '.weather[0].description' <<< "$RES")
