@@ -12,13 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v4.2.0-alpha"
+VERSION="bash-ircbot: v4.2.1"
 
 # help info
 usage() {
     cat << EOF >&2
 usage: $0 [-c config]"
-    
+
     -c --config=path    A config file
     -o --log-out=file   A file to log to instead of stdout.
     -h --help           This message
@@ -367,24 +367,25 @@ send_cmd() {
 
 # stripped down version of privmsg checker
 # determines if message qualifies for spam
-# filtering using a weighted moving average
+# filtering
 #
 # $1 - channel
 # $2 - username
 # $3 - command
 check_spam() {
-    local cmd 
+    local cmd
     cmd="${3:1}"
     if [[ "$1" != "$NICK" &&
           -z "${COMMANDS["${cmd:-zzzz}"]}" &&
-          ! "$3" =~ $NICK.? ]]
+          "$3" != @(|@)$NICK@(|:|,) ]]
     then
         return 0
     fi
 
     # increment if command or hl event
     declare -i temp ttime
-    read -r temp ttime <<< "${antispam_list[$2]:-0 0}"
+    temp="${antispam_list[$2]% *}"
+    ttime="${antispam_list[$2]#* }"
     (( temp <= ${ANTISPAM_COUNT:-3} )) &&
         temp+=1
 
@@ -444,7 +445,7 @@ trusted_gateway() {
         fi
     done
     [[ -z "$trusted" ]] && return 1
-    
+
     # is a gateway user
     # this a mutation
     read -r newuser newmsg <<< "$message"
@@ -492,7 +493,7 @@ handle_privmsg() {
         if [[ -z "${COMMANDS[$cmd]}" ]]; then
             echo ":m $3 --- Invalid Command ---"
             # basically your "help" command
-            cmd="${PRIVMSG_DEFAULT_CMD:-help}"        
+            cmd="${PRIVMSG_DEFAULT_CMD:-help}"
         fi
         [[ -x "$LIB_PATH/${COMMANDS[$cmd]}" ]] || return
         "$LIB_PATH/${COMMANDS[$cmd]}" \
@@ -502,7 +503,7 @@ handle_privmsg() {
     fi
 
     # highlight event in message
-    if [[ "$5" =~ $NICK.? ]]; then
+    if [[ "$5" = @(|@)$NICK@(|:|,) ]]; then
         # shellcheck disable=SC2153
         [[ -x "$LIB_PATH/$HIGHLIGHT" ]] || return
         "$LIB_PATH/$HIGHLIGHT" \
@@ -515,16 +516,15 @@ handle_privmsg() {
     # may be useful for scripts that are linked
     # to multiple commands, allowing for different behavior
     # by command name
-    local reg="^[${CMD_PREFIX}]${5:1}"
-    if [[ "$5" =~ $reg ]]; then
+    case "${5:0:1}" in ["$CMD_PREFIX"])
         cmd="${5:1}"
-        [[ -n "${COMMANDS[$cmd]}" ||
+        [[ -n "${COMMANDS[$cmd]}" &&
             -x "$LIB_PATH/${COMMANDS[$cmd]}" ]] || return
         "$LIB_PATH/${COMMANDS[$cmd]}" \
             "$1" "$2" "$3" "$4" "$cmd"
         echo ":ld COMMAND EVENT -> $cmd: $1 <$3> $4"
         return
-    fi
+    esac
 
     # fallback regex check on message
     # arguemnt string is the fully matched string
