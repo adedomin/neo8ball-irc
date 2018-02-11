@@ -100,7 +100,7 @@ fi
 # fail hard if user wanted tls and ncat not found
 if ! type ncat >/dev/null 2>&1; then
     echo "*** NOTICE *** ncat not found; using bash tcp"
-    [[ -n "$TLS" ]] && 
+    [[ -n "$TLS" ]] &&
         die "TLS does not work with bash tcp"
     BASH_TCP=a
 fi
@@ -136,7 +136,7 @@ export PLUGIN_TEMP
 # State #
 #########
 
-#declare -A invites 
+#declare -A invites
 # TODO: soon
 #declare -A user_modes
 declare -Ag antispam_list
@@ -172,7 +172,7 @@ trap 'exit_failure' SIGUSR1
 # helper for channel config reload
 # determine if chan is in channel list
 contains_chan() {
-  for chan in "${@:2}"; do 
+  for chan in "${@:2}"; do
       [[ "$chan" == "$1" ]] && return 0
   done
   return 1
@@ -243,7 +243,7 @@ if [[ -n "$MOCK_CONN_TEST" ]]; then
 elif [[ -z "$BASH_TCP" ]]; then
     coproc {
         ncat "${TLS_OPTS[@]}" "$SERVER" "${PORT:-6667}"
-        echo 'ERROR :ncat has terminated' 
+        echo 'ERROR :ncat has terminated'
     }
     # coprocs are a bit weird
     # subshells may not be able to r/w to these fd's normally
@@ -377,7 +377,7 @@ check_spam() {
     cmd="${3:1}"
     if [[ "$1" != "$NICK" &&
           -z "${COMMANDS["${cmd:-zzzz}"]}" &&
-          "$3" != @(|@)$NICK@(|:|,) ]]
+          "$3" != ?(@)$NICK?(:|,) ]]
     then
         return 0
     fi
@@ -503,7 +503,7 @@ handle_privmsg() {
     fi
 
     # highlight event in message
-    if [[ "$5" = @(|@)$NICK@(|:|,) ]]; then
+    if [[ "$5" = ?(@)$NICK?(:|,) ]]; then
         # shellcheck disable=SC2153
         [[ -x "$LIB_PATH/$HIGHLIGHT" ]] || return
         "$LIB_PATH/$HIGHLIGHT" \
@@ -582,7 +582,7 @@ while read -u 4 -r -n 1024 user command channel message; do
        send_log "CRITICAL" "${command:1} $channel $message"
        break
     fi
-    # needs to be declared here 
+    # needs to be declared here
     # prior to any parsing
     kick="${message% :*}"
     # clean and split out user information
@@ -607,8 +607,8 @@ while read -u 4 -r -n 1024 user command channel message; do
         # any channel message
         PRIVMSG) 
             # this step has to occur in the main loop sadly
-            if [[ -n "$ANTISPAM" ]]; then 
-                check_spam "$channel" "$user" "$cmd" || 
+            if [[ -n "$ANTISPAM" ]]; then
+                check_spam "$channel" "$user" "$cmd" ||
                     continue
             fi
             check_ignore "$user" &&
@@ -627,8 +627,8 @@ while read -u 4 -r -n 1024 user command channel message; do
         NOTICE)
             [[ -z "$READ_NOTICE" ]] && continue
             # this step has to occur in the main loop sadly
-            if [[ -n "$ANTISPAM" ]]; then 
-                check_spam "$channel" "$user" "$cmd" || 
+            if [[ -n "$ANTISPAM" ]]; then
+                check_spam "$channel" "$user" "$cmd" ||
                     continue
             fi
             check_ignore "$user" &&
@@ -720,7 +720,7 @@ while read -u 4 -r -n 1024 user command channel message; do
             case $message in
                 channels) echo "${CHANNELS[*]}" >&3 ;;
                 nickname) echo "$NICK" >&3 ;;
-                nickparse) echo "$user" >&3 ;; 
+                nickparse) echo "$user" >&3 ;;
                 hostparse) echo "$host" >&3 ;;
                 chanparse) echo "$channel" >&3 ;;
                 msgparse) echo "$message" >&3 ;;
