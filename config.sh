@@ -68,6 +68,7 @@ COMMANDS=(
 ["weather"]="weather.sh"
 ["nws"]="nws.sh"
 ["npm"]="npm.sh"
+["mdn"]="mdn.sh"
 ["wiki"]="wikipedia.sh"
 ["yt"]="youtube.sh"
 ["you"]="youtube.sh"
