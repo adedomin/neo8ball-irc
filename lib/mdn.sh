@@ -53,12 +53,17 @@ fi
 mdn_search='https://developer.mozilla.org/en-US/search.json?q='"$(URI_ENCODE "$q")"
 
 {
-    curl -s -q "$mdn_search" || echo INVALID_JSON
-} | jq --arg COUNT "$COUNT" \
+    curl -s -q "$mdn_search" || echo null
+} | jq \
+    --arg COUNT "$COUNT" \
     --arg CHANNEL "$1" \
     --arg BOLD $'\002' \
-    -r '.documents[0:($COUNT | tonumber)][]
+    -r 'if (.documents[0]) then
+            .documents[0:($COUNT | tonumber)][]
+    else
+        { title: "No Results", exerpt: "", url: "" }
+    end
     | ":m \($CHANNEL) \($BOLD)" + .title + $BOLD +
       " " + .excerpt[0:85] + "... " +
       .url
-' 2>/dev/null || echo ":m $1 Unknown Query Error."
+'
