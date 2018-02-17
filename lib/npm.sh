@@ -52,23 +52,28 @@ if [ -z "$q" ]; then
 fi
 
 NPM="https://www.npmjs.com/-/search?text=$(URI_ENCODE "$q")&from=0&size=${COUNT}"
-declare -i DEF_NUM
-DEF_NUM=0
- 
-while read -r name link desc; do
-    [ -z "$desc" ] && [ -z "$link" ] && break
-    DEF_NUM+=1
-    if [ -n "$desc" ]; then
-        desc=" $desc ::"
-    fi 
-    echo -e ":m $1 "$'\002'"${name}\002 ::$desc $link"
-done < <(
-    curl "$NPM" -f 2>/dev/null |
-    jq -r '.objects[0].package,.objects[1].package,.objects[2].package // empty |
-        .name + " " + 
-        .links.npm + " " + 
-        .description
-    '
-)
 
-(( DEF_NUM < 1 )) && echo ":m $1 No npm module found"
+{
+    curl \
+        --silent \
+        --fail "$NPM" \
+    || echo null
+} | jq -r --arg BOLD $'\002' \
+        --arg CHANNEL "$1" \
+        --arg COUNT "$COUNT" '
+    if (.objects[0]) then
+        .objects[0:($COUNT | tonumber)][]
+    else
+        {
+          package: {
+            name: "No npm module found"
+            , links: { npm: "" }
+            , description: ""
+          }
+      }
+    end
+    | .package
+    | ":m \($CHANNEL) \($BOLD) " + .name + $BOLD +
+      " " + .links.npm + " " +
+      .description[0:150]
+'

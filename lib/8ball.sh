@@ -14,25 +14,25 @@
 # limitations under the License.
 
 responses=(
-"Signs point to yes."
-"Yes."
-"Reply hazy, try again".
-"Without a doubt."
-"My sources say no."
-"As I see it, yes."
-"You may rely on it."
-"Concentrate and ask again."
-"Outlook not so good."
-"It is decidedly so."
-"Better not tell you now."
-"Very doubtful."
-"Yes - definitely."
-"It is certain."
-"Cannot predict now."
-"Most likely."
-"Ask again later."
-"My reply is no."
-"Outlook good."
+'Signs point to yes.'
+'Yes.'
+'Reply hazy, try again'.
+'Without a doubt.'
+'My sources say no.'
+'As I see it, yes.'
+'You may rely on it.'
+'Concentrate and ask again.'
+'Outlook not so good.'
+'It is decidedly so.'
+'Better not tell you now.'
+'Very doubtful.'
+'Yes - definitely.'
+'It is certain.'
+'Cannot predict now.'
+'Most likely.'
+'Ask again later.'
+'My reply is no.'
+'Outlook good.'
 "Don't count on it."
 )
 
@@ -43,7 +43,7 @@ for arg in $4; do
     case "$arg" in
         -y|--yes-no)
             YN=1
-            // remove arg
+            # remove arg
             msg="${msg#* }"
         ;;
         -h|--help)
@@ -57,17 +57,16 @@ for arg in $4; do
         ;;
     esac
 done
-    
-reg="(.*) or (.*)\?" # decide
-reg2="(.*)\?" # regular 8ball msg
+
+reg='(.*) or (.*)\?' # decide
 if [[ "$msg" =~ $reg ]]; then
-    echo ":m $1 $3: ${BASH_REMATCH[($RANDOM % 2)+1]}"
-elif [[ "$msg" =~ $reg2 ]]; then
-    if [ "$YN" ]; then
+    echo ":m $1 $3: ${BASH_REMATCH[(RANDOM % 2)+1]}"
+elif [[ "$msg" = *\? ]]; then
+    if [[ "$YN" ]]; then
         (( RANDOM % 2 == 0 )) && y='yes'
         echo ":m $1 $3: ${y:-no}"
     else
-        echo ":m $1 $3: ${responses[$((RANDOM % 20))]}"
+        echo ":m $1 $3: ${responses[RANDOM % 20]}"
     fi
 else
     echo ":mn $3 Try asking a question? (add a '?' to your question)"

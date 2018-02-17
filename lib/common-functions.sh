@@ -32,10 +32,10 @@ reladate() {
     local unit past_suffix
     local -i thn now diff amt
     thn=$(TZ=UTC date --date "$1" +%s)
-    now=$(date +%s)
+    printf -v now '%(%s)T' -1
 
     diff=$(( now - thn ))
-    if (( diff > 0 )); then 
+    if (( diff > 0 )); then
         past_suffix="ago"
     else
         past_suffix="from now"
@@ -61,7 +61,7 @@ reladate() {
         unit='second'
         amt=diff
     fi
-    
+
     (( amt > 1 )) && unit+='s'
 
     echo "$amt $unit $past_suffix"
@@ -74,14 +74,14 @@ export -f reladate
 GET_LOC() {
     [ -z "$PERSIST_LOC" ] && PERSIST_LOC="$PLUGIN_TEMP"
     local weatherdb="$PERSIST_LOC/weather-defaults.db"
-    IFS=':' read -r USR arg < <( 
-        grep "^$1:" "$weatherdb" 
+    IFS=':' read -r _ arg < <(
+        grep "^$1:" "$weatherdb"
     )
     echo "$arg"
 }
 export -f GET_LOC
 
-# save location ($2) for user ($1) 
+# save location ($2) for user ($1)
 # for weather plugins
 # $1: user
 # $2: location
@@ -99,11 +99,11 @@ SAVE_LOC() {
         "$0" "$@"
         return
     fi
-    
+
     if ! awk -F : \
         -v user="$1" \
         -v location="$2" -- \
-        '$1 == user { next } 
+        '$1 == user { next }
         { print }
         END { print user ":" location }' \
         "$weatherdb" \

@@ -53,7 +53,9 @@ fi
 mdn_search='https://developer.mozilla.org/en-US/search.json?q='"$(URI_ENCODE "$q")"
 
 {
-    curl -s -q "$mdn_search" || echo null
+    curl --silent \
+        --fail \
+        "$mdn_search" || echo null
 } | jq \
     --arg COUNT "$COUNT" \
     --arg CHANNEL "$1" \
