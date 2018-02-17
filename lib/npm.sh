@@ -73,7 +73,7 @@ NPM="https://www.npmjs.com/-/search?text=$(URI_ENCODE "$q")&from=0&size=${COUNT}
       }
     end
     | .package
-    | ":m \($CHANNEL) \($BOLD) " + .name + $BOLD +
+    | ":m \($CHANNEL) \($BOLD)" + .name + $BOLD +
       " " + .links.npm + " " +
       .description[0:150]
 '
