@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# DEPENDS: recode
 
 declare -i COUNT
 COUNT=3
@@ -70,42 +69,35 @@ fi
 URBAN="http://www.urbandictionary.com/define.php?term=$(URI_ENCODE "$q")"
 NEW_URBAN="http://api.urbandictionary.com/v0/define?term=$(URI_ENCODE "$q")"
 
-declare -i DEF_NUM
-DEF_NUM=0
+{
+    curl \
+        --silent \
+        --fail \
+        --location \
+        "$NEW_URBAN" \
+    || echo null
+} | jq  --arg BOLD $'\002' \
+        --arg CHANNEL "$1" \
+        --arg COUNT "$COUNT" \
+        --arg DEFNUM "$DEFINITION" \
+        --arg WORD "$q" \
+        -r '
+    if ($DEFNUM != "") then
+        if (.list[($DEFNUM | tonumber) - 1]) then
+            .list[($DEFNUM | tonumber) - 1]
+        else
+            { definition: "No Definition Found." }
+        end
+    else
+        if (.list[0]) then
+            .list[0:($COUNT | tonumber)][]
+        else
+            { definition: "No Definition Found." }
+        end
+    end
+    | ":m \($CHANNEL) \($BOLD)\($WORD)\($BOLD) :: \(.definition[0:400])"
+    | sub("\r|\n"; " "; "g")
+    | sub("  +"; " "; "g")
+'
 
-if [ -n "$DEFINITION" ]; then
-    while read -r definition; do
-        DEF_NUM+=1
-        (( ${#definition} > 400 )) && 
-            definition="${definition:0:400}..."
-        echo -e ":m $1 "$'\002'"${q}\002 :: $definition"
-    done < <(
-        curl "$NEW_URBAN" -L -f 2>/dev/null \
-        | jq -r '.list['"$(( DEFINITION - 1 ))"'] //empty
-            | .definition
-            | sub("\r|\n"; " "; "g")
-            | sub("  +"; " "; "g") 
-        '
-    )
-else
-    while read -r definition; do
-        DEF_NUM+=1
-        (( ${#definition} > 400 )) && 
-            definition="${definition:0:400}..."
-        echo -e ":m $1 "$'\002'"${q}\002 :: $definition"
-        (( DEF_NUM >= COUNT )) && break
-    done < <(
-      curl "$NEW_URBAN" -L -f 2>/dev/null \
-      | jq -r '.list[0],.list[1],.list[2] //empty 
-            | .definition
-            | sub("\r|\n"; " "; "g")
-            | sub("  +"; " "; "g")
-        '
-    )
-fi
-
-if (( DEF_NUM > 0 )); then
-    echo ":mn $3 See More: $URBAN"
-else
-    echo ":m $1 No definitions found"
-fi
+echo ":mn $3 See More: $URBAN"
