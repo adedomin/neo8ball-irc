@@ -15,4 +15,5 @@ echo -e ":m $1 8ball ::" \
     "moose ::" \
     "vote ::" \
     "mlb ::" \
-    "twit"
+    "twit ::" \
+    "mdn"
