@@ -55,27 +55,28 @@ if [ -z "$msg" ]; then
     exit 0
 fi
 
-DICTIONARY="http://www.dictionary.com/browse/$(URI_ENCODE "$msg")"
+DICTIONARY="https://en.wiktionary.org/w/index.php?title=${msg% *}&printable=yes"
 declare -i DEF_NUM
 DEF_NUM=0
 
 while read -r definition; do
     DEF_NUM+=1
-    (( ${#definition} > 400 )) && 
+    (( ${#definition} > 400 )) &&
         definition="${definition:0:400}..."
     echo -e ":m $1 "$'\002'"${msg:0:100}\002 :: $definition"
     (( DEF_NUM >= COUNT )) && break
 done < <(
-    echo "$DICTIONARY" |
-    wget -O- -i- --quiet | 
-    hxnormalize -x 2>/dev/null | 
-    hxselect -i "div.def-set" 2>/dev/null |  
-    lynx -stdin -dump 2>/dev/null |
-    xargs 2>/dev/null |
-    sed 's/[0-9]\./\n&/g' |
-    head -n 4 |
-    sed '/^$/d' |
-    sed '/file:\/\//d' 
+    curl --silent --fail "$DICTIONARY" \
+    | xmllint --xpath '/html/body/div/div/div/div/ol/li' - \
+    | sed 's@<\(a\|/a\|span\|/span\)[^>]*>@@g' \
+    | html2 \
+    | sed -n '
+        /^\/html\/body\/li=[[:space:]]*$/d
+        /^\/html\/body\/li=/ {
+          s@/html/body/li=@@p
+        }
+    ' \
+    | head -n 3
 )
 
 if (( DEF_NUM > 0 )); then
