@@ -53,22 +53,21 @@ if [ -z "$q" ]; then
 fi
 
 WIKI="https://en.wikipedia.org/w/api.php?action=opensearch&format=json&formatversion=2&search=$(URI_ENCODE "$q")&namespace=0&limit=${COUNT}&suggest=false"
-declare -i DEF_NUM
-DEF_NUM=0
 
-while read -r link name; do
-    [ -z "$name" ] && break
-    DEF_NUM+=1
-    echo -e ":m $1 "$'\002'"${name}\002 :: $link"
-done < <( 
-    curl -f "$WIKI" 2>/dev/null \
-    | jq -r '[.[1],.[3]] // empty 
-        | transpose 
-        | map(.[1] + " " + .[0]) 
+{
+    curl --silent \
+        --fail "$WIKI" \
+    || echo null
+} | jq --arg BOLD $'\002' \
+       --arg CHAN "$1" \
+       --arg COUNT "$COUNT" \
+       -r '
+    if ((.[1] | length) > 0) then
+        [.[1][0:($COUNT | tonumber)],.[2][0:($COUNT | tonumber)],.[3][0:($COUNT | tonumber)]]
+        | transpose
+        | map(":m \($CHAN) \($BOLD)\(.[0])\($BOLD) :: \(.[1][0:85]) ... \(.[2])")
         | .[]
-    ' 
-)
-
-if (( DEF_NUM < 1 )); then
-    echo ":m $1 No results"
-fi
+    else
+        ":m \($CHAN) No Results."
+    end
+'
