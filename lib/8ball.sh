@@ -58,6 +58,8 @@ for arg in $4; do
     esac
 done
 
+declare -i RAND_MAX=32767 rand_val="$RANDOM"
+
 reg='(.*) or (.*)\?' # decide
 if [[ "$msg" =~ $reg ]]; then
     echo ":m $1 $3: ${BASH_REMATCH[(RANDOM % 2)+1]}"
@@ -66,7 +68,10 @@ elif [[ "$msg" = *\? ]]; then
         (( RANDOM % 2 == 0 )) && y='yes'
         echo ":m $1 $3: ${y:-no}"
     else
-        echo ":m $1 $3: ${responses[RANDOM % 20]}"
+        while (( rand_val >= ( RAND_MAX - ( RAND_MAX % 20 ) ) )); do
+            rand_val="$RANDOM"
+        done
+        echo ":m $1 $3: ${responses[rand_val % 20]}"
     fi
 else
     echo ":mn $3 Try asking a question? (add a '?' to your question)"
