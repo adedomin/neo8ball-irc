@@ -18,13 +18,13 @@
 s/&exclamation;/!/g
 s/&quot;/"/g
 s/&percent;/%/g
-s/&amp;/&amp;/g
+s/&amp;/\&/g
 s/&apos;/'/g
 s/&add;/+/g
-s/&lt;/&lt;/g
+s/&lt;/</g
 s/&equal;/=/g
 s/&gt;/>/g
-s/&nbsp;/<span/g
+s/&nbsp;/ /g
 s/&iexcl;/¡/g
 s/&cent;/¢/g
 s/&pound;/£/g
