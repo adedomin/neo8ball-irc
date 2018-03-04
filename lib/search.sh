@@ -58,10 +58,6 @@ URI_DECODE() {
     printf '%b' "${uri//%/\\x}"
 }
 
-HTML_DECODE() {
-    recode -d utf8..html <<< "$1" | recode html..utf8
-}
-
 SEARCH_ENGINE="https://duckduckgo.com/html/?q="
 
 while read -r url title; do
@@ -69,9 +65,11 @@ while read -r url title; do
         echo ":m $1 No results found"
         exit 0
     fi
-    echo -e ":m $1 "$'\002'"$(HTML_DECODE "$title")\002 :: $(URI_DECODE "$url")"
+    echo -e ":m $1 "$'\002'"$(HTML_CHAR_ENT_TO_UTF8 <<< "$title")\002 :: $(URI_DECODE "$url")"
 done < <(
-    curl "${SEARCH_ENGINE}$(URI_ENCODE "$q")" 2>/dev/null \
+    curl --silent \
+        --fail \
+        "${SEARCH_ENGINE}$(URI_ENCODE "$q")" \
     | sed 's@<\([^/a]\|/[^a]\)[^>]*>@@g' \
     | grep -F 'class="result__a"' \
     | grep -Po '(?<=uddg=).*' \

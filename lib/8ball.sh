@@ -58,16 +58,18 @@ for arg in $4; do
     esac
 done
 
+# need better random source ???
 declare -i RAND_MAX=32767 rand_val="$RANDOM"
 
 reg='(.*) or (.*)\?' # decide
 if [[ "$msg" =~ $reg ]]; then
-    echo ":m $1 $3: ${BASH_REMATCH[(RANDOM % 2)+1]}"
+    echo ":m $1 $3: ${BASH_REMATCH[(rand_val % 2)+1]}"
 elif [[ "$msg" = *\? ]]; then
     if [[ "$YN" ]]; then
         (( RANDOM % 2 == 0 )) && y='yes'
         echo ":m $1 $3: ${y:-no}"
     else
+        # modulo bias solution
         while (( rand_val >= ( RAND_MAX - ( RAND_MAX % 20 ) ) )); do
             rand_val="$RANDOM"
         done

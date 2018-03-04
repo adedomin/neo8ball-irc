@@ -121,7 +121,7 @@ SAVE_LOC() {
 }
 export -f SAVE_LOC
 
-# Converts &amp; entities to utf8 character equivalents
+# Converts &amp;-like char entities to utf8 character equivalents
 #
 # <STDIN>:  stream to convert
 # <STDOUT>: the stream with character entities replaced

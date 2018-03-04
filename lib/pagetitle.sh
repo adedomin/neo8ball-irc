@@ -81,7 +81,6 @@ fi
           $! b next
         }' \
     | HTML_CHAR_ENT_TO_UTF8 \
-    | tr '\r\n' ' ' \
-    | head --bytes=375
+    | tr '\r\n' ' '
     echo
 }

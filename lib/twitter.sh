@@ -72,14 +72,16 @@ get_latest_tweet() {
         return 1
     fi
 
-    REPLY=$'\002'"$1"$'\002'" - $(jq -r '.[0] | 
-        .created_at + ": " + 
+    printf '%s' $'\002'"$1"$'\002'" - "
+    jq -r '.[0] |
+        .created_at + ": " +
         (.text|gsub("\n"; " "))
-    ' <<< "$res" | recode -d utf8..html | recode html..utf8)"
+    ' <<< "$res" \
+    | HTML_CHAR_ENT_TO_UTF8
 }
 
-if get_latest_tweet "$screen_name"; then
-    echo ":m $1 ${REPLY:0:300}"
+if TWEET="$(get_latest_tweet "$screen_name")"; then
+    echo ":m $1 $TWEET"
 else
     echo ":m $1 $screen_name - no such user."
 fi

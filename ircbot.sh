@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v4.2.1"
+VERSION="bash-ircbot: v4.2.2"
 
 # help info
 usage() {
@@ -48,17 +48,13 @@ while (( $# > 0 )); do
             CONFIG_PATH="${1#*=}"
         ;;
         -o|--log-out)
-            if [[ -z "$MOCK_CONN_TEST" ]]; then
-                exec 1<>"$2"
-                exec 2>&1
-                shift
-            fi
+            exec 1<>"$2"
+            exec 2>&1
+            shift
         ;;
         --log-out=*)
-            if [[ -z "$MOCK_CONN_TEST" ]]; then
-                exec 1<>"${1#*=}"
-                exec 2>&1
-            fi
+            exec 1<>"${1#*=}"
+            exec 2>&1
         ;;
         -h|--help)
             usage
@@ -136,10 +132,19 @@ export PLUGIN_TEMP
 # State #
 #########
 
-#declare -A invites
 # TODO: soon
 #declare -A user_modes
+
+# populate invites array to prevent duplicate entries
+if [[ -n "$INVITE_FILE" ]]; then
+    declare -A invites
+    while read -r channel; do
+        invites[$channel]=1
+    done < "$INVITE_FILE"
+fi
+
 declare -Ag antispam_list
+
 # IGNORE to a hash
 declare -A ignore_hash
 for ign in "${IGNORE[@]}"; do
@@ -204,7 +209,7 @@ reload_config() {
     # persist channel invites
     [[ -n "$INVITE_FILE" ]] &&
         CHANNELS+=($(< "$INVITE_FILE"))
-    
+
     declare -A uniq_chans
     for chan in "${_channels[@]}" "${CHANNELS[@]}"; do
         uniq_chans[$chan]+=1
@@ -285,6 +290,7 @@ post_ident() {
 
 # logger function that outputs to stdout
 # checks log level to determine 
+#
 # if applicable to be written
 # $1 - log level of message
 # $2 - the message
@@ -302,22 +308,24 @@ send_log() {
         DEBUG)   log_lvl=1 ;;
         *)       log_lvl=4 ;;
     esac
-    
+
     (( log_lvl >= LOG_LEVEL )) &&
-        printf "*** %s *** %s\n" "$1" "$2" 
+        printf "*** %s *** %s\n" "$1" "$2"
 }
 
-# send arguments to irc server
+# Send arguments to irc server.
+# Most servers don't allow for string longer than 510+2 bytes
+#
 # $* - multiple strings to be sent.
 send_msg() {
-    printf "%s\r\n" "$*" >&3
+    printf '%s\r\n' "$*" >&3
     send_log "DEBUG" "SENT -> $*"
 }
 
 # function which converts sic/ircii-like
 # commands to IRC messages.
 # must be piped or heredoc; no arguments
-# 
+#
 # <STDIN> - valid bash-ircbot command string
 # SEE     - README.md
 send_cmd() {
@@ -646,8 +654,10 @@ while read -u 4 -r -n 1024 user command channel message; do
         INVITE)
             send_cmd <<< ":j $message"
             send_log "INVITE" "<$user> $message "
-            [[ -n "$INVITE_FILE" ]] &&
+            [[ -n "$INVITE_FILE" && "${invites[$message]}" != 1 ]] && {
                 echo "$message" >> "$INVITE_FILE"
+                invites[$message]=1
+            }
         ;;
         # when the bot joins a channel
         JOIN)

@@ -65,11 +65,10 @@ while read -r uri title; do
     [ -z "$title" ] && exit
     url="$(
         curl "$PORN_MD$uri" -I 2>/dev/null \
-        | sed -ne 's/^Location: //ip' 
+        | sed -ne 's/^Location: //ip'
     )"
     title="$(
-        recode -d utf8..html <<< "$title" \
-        | recode html..utf8
+        HTML_CHAR_ENT_TO_UTF8 <<< "$title"
     )"
     echo -e ":m $1 "$'\002'"${title}\002 :: ${url}"
 done < <(
