@@ -58,7 +58,7 @@ if [[ ! "$mime" =~ text/html|application/xhtml+xml ]]; then
 fi
 
 {
-    printf '%s' ":m $1 ↑ \002Title\002 :: "
+    printf '%s' ":m $1 ↑ "$'\002'"Title"$'\002'" :: "
     curl --silent \
         --fail \
         --compressed \
