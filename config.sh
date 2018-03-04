@@ -40,6 +40,8 @@ LOG_STDOUT=
 ## DECLARE IRC events here ##
 
 LIB_PATH="$(dirname "$0")/lib/"
+# let other programs know where plugins are.
+export LIB_PATH
 
 # on highlight, call the following script/s
 HIGHLIGHT="8ball.sh"

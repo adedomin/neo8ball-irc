@@ -120,3 +120,12 @@ SAVE_LOC() {
     fi
 }
 export -f SAVE_LOC
+
+# Converts &amp; entities to utf8 character equivalents
+#
+# <STDIN>:  stream to convert
+# <STDOUT>: the stream with character entities replaced
+HTML_CHAR_ENT_TO_UTF8() {
+    sed -f "$LIB_PATH/html-to-utf8.sed"
+}
+export -f HTML_CHAR_ENT_TO_UTF8

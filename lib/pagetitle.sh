@@ -57,9 +57,16 @@ if [[ ! "$mime" =~ text/html|application/xhtml+xml ]]; then
     exit 0
 fi
 
-
-read -rd '' title < <(
-    curl --compressed -L --max-redirs 2 -m 10 "$URL" 2>/dev/null | sed -n '
+{
+    printf '%s' ":m $1 ↑ \002Title\002 :: "
+    curl --silent \
+        --fail \
+        --compressed \
+        --location \
+        --max-redirs 2 \
+        --max-time 10 \
+        "$URL" \
+    | sed -n '
         /<title[^>]*>.*<\/title>/I {
           s@.*<title[^>]*>\(.*\)</title>.*@\1@Ip
           q
@@ -72,7 +79,9 @@ read -rd '' title < <(
             q
           }
           $! b next
-        }' | 
-    recode -d utf8..html | recode html..utf8 | tr '\r\n' ' '
-)
-echo -e ":m $1 ↑ \002Title\002 :: ${title:0:400}"
+        }' \
+    | HTML_CHAR_ENT_TO_UTF8 \
+    | tr '\r\n' ' ' \
+    | head --bytes=375
+    echo
+}
