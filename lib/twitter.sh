@@ -81,7 +81,7 @@ get_latest_tweet() {
 }
 
 if TWEET="$(get_latest_tweet "$screen_name")"; then
-    echo ":m $1 $TWEET"
+    echo ":m $1 ${TWEET:0:400}"
 else
     echo ":m $1 $screen_name - no such user."
 fi
