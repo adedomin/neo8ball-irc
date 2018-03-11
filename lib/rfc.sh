@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright 2018 kjensenxz <kenneth@jensen.cf>
+# Copyright 2018 kjensenxz <kenneth@jensen.cf>, Anthony DeDominic
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -60,27 +60,37 @@ if [ -z "$q" ]; then
     q=${EXAMPLE_RFCs[ $RANDOM % ${#EXAMPLE_RFCs[@]} ]}
 fi
 
-if [ "$q" -eq "$q" ] 2>/dev/null; then
-    p="rfc"
-else 
-    p="title"
-fi
+p=rfc
+case "$q" in *[!0-9]*) p="title" ;; esac
 
 IETF="https://tools.ietf.org/html"
 RFC_SEARCH="https://www.rfc-editor.org/search/rfc_search_detail.php?"
 
 while read -r rfc; do
-    title=`curl "$IETF$rfc" 2>/dev/null \
-        | gawk  -v IGNORECASE=1 -v RS='</title' 'RT{gsub(/.*<title[^>]*>/,"");printf "%s", $0;exit}'`
-
-       echo -e ":m $1 "$'\002'"$(HTML_CHAR_ENT_TO_UTF8 <<< "$title")\002 :: $IETF$rfc"
+    if ! title="$(
+        curl --silent \
+             --fail \
+            "$IETF$rfc" \
+        | gawk -v IGNORECASE=1 \
+               -v RS='</title' -- '
+            RT {
+                gsub(/.*<title[^>]*>/,"")
+                print $0
+                exit 0
+            }' \
+        | HTML_CHAR_ENT_TO_UTF8 \
+        | td '\r\n' ' '
+    )"; then
+        continue
+    fi
+    echo ":m $1 "$'\002'"$title"$'\002'" :: $IETF$rfc"
 done < <(
        curl --silent --fail \
-        "${RFC_SEARCH}$p=$(URI_ENCODE "$q")" \
+           "${RFC_SEARCH}$p=$(URI_ENCODE "$q")" \
        | grep -o "<table class='gridtable'>.*</table>"      \
        | xmllint --recover --html --nocompact - 2>/dev/null \
        | grep -oE '/rfc[0-9]+.txt' | sed 's/.txt$//g'       \
-       | sort | uniq | head -n $COUNT
+       | sort | uniq | head -n "$COUNT"
 )
 
 
