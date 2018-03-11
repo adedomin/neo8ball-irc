@@ -91,7 +91,7 @@ COMMANDS=(
 ["mlb"]="mlb.sh"
 ["twit"]="twitter.sh"
 ["twitter"]="twitter.sh"
-["r"]="r.sh"
+["r"]="rfc.sh"
 ["rfc"]="rfc.sh"
 )
 
