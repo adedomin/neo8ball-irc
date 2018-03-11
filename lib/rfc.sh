@@ -79,7 +79,7 @@ while read -r rfc; do
                 exit 0
             }' \
         | HTML_CHAR_ENT_TO_UTF8 \
-        | td '\r\n' ' '
+        | tr '\r\n' ' '
     )"; then
         continue
     fi
