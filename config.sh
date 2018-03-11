@@ -91,6 +91,8 @@ COMMANDS=(
 ["mlb"]="mlb.sh"
 ["twit"]="twitter.sh"
 ["twitter"]="twitter.sh"
+["r"]="rfc.sh"
+["rfc"]="rfc.sh"
 )
 
 # regex patterns
