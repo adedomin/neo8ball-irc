@@ -80,7 +80,7 @@ done < <(
        | grep -o "<table class='gridtable'>.*</table>"      \
        | xmllint --recover --html --nocompact - 2>/dev/null \
        | grep -oE '/rfc[0-9]+.txt' | sed 's/.txt$//g'       \
-       | sort | uniq | head -n 3
+       | sort | uniq | head -n $COUNT
 )
 
 
