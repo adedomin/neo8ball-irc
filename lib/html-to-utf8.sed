@@ -14,7 +14,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# common numer char entities...
+s/&#x22;/"/g
+s/&#34;/"/g
+s/&#x27;/'/g
+s/&#39;/'/g
+s/&#x3[cC];/</g
+s/&#60;/</g
+s/&#x3[eE];/</g
+s/&#62;/</g
+s/&#x26;/\&/g
+s/&#38;/\&/g
 # currently does not support numeric character entities...
+s/&#x\?[[:xdigit:]]*;/�/g
+
 s/&exclamation;/!/g
 s/&quot;/"/g
 s/&percent;/%/g
