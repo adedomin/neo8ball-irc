@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v4.2.2"
+VERSION="bash-ircbot: v4.3.0"
 
 # help info
 usage() {
@@ -117,12 +117,12 @@ fi
 ###############
 
 # shellcheck disable=SC2154
-[[ -d "$temp_dir/bash-ircbot" ]] && rm -r "$temp_dir/bash-ircbot"
-mkdir -m 0770 "$temp_dir/bash-ircbot" ||
+APP_TMP="$temp_dir/bash-ircbot.$$"
+mkdir -m 0770 "$APP_TMP" ||
     die "failed to make temp directory, check your config"
 
 # add temp dir for plugins
-PLUGIN_TEMP="$temp_dir/bash-ircbot/plugin"
+PLUGIN_TEMP="$APP_TMP/plugin"
 mkdir "$PLUGIN_TEMP" ||
     die "failed to create plugin temp dir"
 # this is for plugins, so export it
@@ -162,7 +162,7 @@ exit_status=0
 quit_prg() {
     exec 3<&-
     exec 4<&-
-    rm -rf "$temp_dir/bash-ircbot"
+    rm -rf -- "$APP_TMP"
     exit "$exit_status"
 }
 trap 'quit_prg' SIGINT SIGTERM
@@ -203,7 +203,7 @@ reload_config() {
     fi
     # pass change for nickserv
     if [[ "$NICKSERV" != "$_nickserv" ]]; then
-        printf "%s\r\n" "NICKSERV IDENTIFY $NICKSERV" >&3
+        printf '%s\r\n' "NICKSERV IDENTIFY $NICKSERV" >&3
     fi
 
     # persist channel invites
@@ -284,7 +284,7 @@ post_ident() {
     # ident with nickserv
     if [[ -n "$NICKSERV" ]]; then
         # bypass logged send_cmd/send_msg
-        printf "%s\r\n" "NICKSERV IDENTIFY $NICKSERV" >&3
+        printf '%s\r\n' "NICKSERV IDENTIFY $NICKSERV" >&3
     fi
 }
 
@@ -300,7 +300,7 @@ send_log() {
         STDOUT)
             # shellcheck disable=2183
             [[ -n "$LOG_STDOUT" ]] &&
-                printf "%(%Y-%m-%d %H:%M:%S)T %s\n" '-1' "${2//[$'\n'$'\r']/}"
+                printf '%(%Y-%m-%d %H:%M:%S)T %s\n' '-1' "${2//[$'\n'$'\r']/}"
             return
         ;;
         WARNING) log_lvl=3 ;;
@@ -310,7 +310,7 @@ send_log() {
     esac
 
     (( log_lvl >= LOG_LEVEL )) &&
-        printf "*** %s *** %s\n" "$1" "$2"
+        printf '*** %s *** %s\n' "$1" "$2"
 }
 
 # Send arguments to irc server.
@@ -491,7 +491,7 @@ handle_privmsg() {
         # most servers require this "in spirit"
         # tell them what we are
         if [[ "$6" = $'\001VERSION\001' ]]; then
-            echo -e ":mn $3 \001VERSION $VERSION\001"
+            echo ":mn $3 "$'\001'"VERSION $VERSION"$'\001'
             echo ":ld CTCP VERSION -> $3 <$3>"
             return
         fi
@@ -556,18 +556,12 @@ handle_privmsg() {
 # start communication #
 #######################
 
-# ncat uses half-close and
-# will not know if the server
-# closed unless two buffered
-# writes fail
-# fd's on linux should be buffered
-# so no race condition
-if [[ -z "$BASH_TCP" ]]; then
-    while sleep "${HALFCLOSE_CHECK:-3}m"; do
-        echo -ne '\r\n' >&3
-        echo -ne '\r\n' >&3
-    done &
-fi
+[[ -z "$TIMEOUT_CHECK" ]] &&
+    TIMEOUT_CHECK=300
+# keeks the connection active.
+while sleep "$(( TIMEOUT_CHECK / 2 ))"; do
+    send_msg "PING :$NICK"
+done &
 
 send_log "DEBUG" "COMMUNICATION START"
 # pass if server is private
@@ -581,15 +575,21 @@ send_msg "USER $NICK +i * :$NICK"
 # IRC event loop
 # note if the irc sends lines longer than
 # 1024 bytes, it may fail to parse
-while read -u 4 -r -n 1024 user command channel message; do
-    # if ping request
-    if [[ "$user" == "PING" ]]; then
-        send_msg "PONG $command"
-        continue
-    elif [[ "$user" == 'ERROR' ]]; then # probably banned?
-       send_log "CRITICAL" "${command:1} $channel $message"
-       break
-    fi
+while read -u 4 -r -n 1024\
+    -t "$TIMEOUT_CHECK" \
+    user command channel message
+do
+    # check for high level commands from the ircd
+    case "$user" in
+        PING) # have to reply
+            send_msg "PONG $command"
+            continue
+        ;;
+        ERROR) # banned?
+            send_log "CRITICAL" "${command:1} $channel $message"
+            break
+        ;;
+    esac
     # needs to be declared here
     # prior to any parsing
     kick="${message% :*}"
@@ -613,7 +613,7 @@ while read -u 4 -r -n 1024 user command channel message; do
     # handle commands here
     case $command in
         # any channel message
-        PRIVMSG) 
+        PRIVMSG)
             # this step has to occur in the main loop sadly
             if [[ -n "$ANTISPAM" ]]; then
                 check_spam "$channel" "$user" "$cmd" ||
@@ -722,6 +722,9 @@ while read -u 4 -r -n 1024 user command channel message; do
             send_msg "NICK $NICK"
             send_log "NICK" "NICK CHANGED TO $NICK"
         ;;
+        PONG)
+            send_log 'DEBUG' 'RECV -> PONG'
+        ;;
         # not an official command, this is for getting
         # key stateful variable from the bot for mock testing
         __DEBUG)
@@ -739,5 +742,5 @@ while read -u 4 -r -n 1024 user command channel message; do
         ;;
     esac
 done
-send_log 'CRITICAL' 'Exited Event loop, exiting'
+send_log 'CRITICAL' 'Exited Event loop; timed out or disconnected.'
 exit_failure

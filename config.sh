@@ -136,9 +136,8 @@ ANTISPAM_TIMEOUT=10
 # max number of commands a user gets in a time period
 ANTISPAM_COUNT=3
 
-# time in minutes to check for closed socket
-# this is applicable if you use ncat
-HALFCLOSE_CHECK=3
+# time in seconds check for closed connection
+TIMEOUT_CHECK=300 # 5m
 
 ## variables for plugins ##
 
