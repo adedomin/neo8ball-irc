@@ -21,8 +21,8 @@ s/&#x27;/'/g
 s/&#39;/'/g
 s/&#x3[cC];/</g
 s/&#60;/</g
-s/&#x3[eE];/</g
-s/&#62;/</g
+s/&#x3[eE];/>/g
+s/&#62;/>/g
 s/&#x26;/\&/g
 s/&#38;/\&/g
 # currently does not support numeric character entities...

@@ -17,7 +17,7 @@ VERSION="bash-ircbot: v4.3.0"
 # help info
 usage() {
     cat << EOF >&2
-usage: $0 [-c config]"
+usage: $0 [-c config]
 
     -c --config=path    A config file
     -o --log-out=file   A file to log to instead of stdout.

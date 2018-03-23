@@ -145,7 +145,7 @@ TIMEOUT_CHECK=300 # 5m
 # to use OpenWeatherMap plugin
 export OWM_KEY="your owm key"
 
-# your persistant storage here, 
+# your persistant storage here,
 # comment out to disabable weatherdb.sh
 export PERSIST_LOC="/tmp"
 
