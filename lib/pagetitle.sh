@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright 2017 prussian <genunrest@gmail.com>
+# Copyright 2018 Anthony DeDominic <adedomin@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -47,13 +47,13 @@ then
             + (.description.captions[0].confidence*100|floor|tostring) + " "
             + .description.captions[0].text'
     )
-    echo -e ":m $1 ↑ \002Image\002 :: $mime (${dimension:-0x0} ${sizeof:-Unknown B}) :: \002Description\002 ${caption:-unknown error} :: \002Confidence\002 ${confidence:-0}%"
+    echo -e ":m $1 ↑ \\002Image\\002 :: $mime (${dimension:-0x0} ${sizeof:-Unknown B}) :: \\002Description\\002 ${caption:-unknown error} :: \\002Confidence\\002 ${confidence:-0}%"
     exit 0
 fi
 
 if [[ ! "$mime" =~ text/html|application/xhtml+xml ]]; then
     [ -n "$PAGETITLE_DISABLE_FILE" ] && exit
-    echo -e ":m $1 ↑ \002File\002 :: $mime (${sizeof:-Unknown})"
+    echo -e ":m $1 ↑ \\002File\\002 :: $mime (${sizeof:-Unknown})"
     exit 0
 fi
 

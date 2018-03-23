@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2017 dimattiami, prussian <genunrest@gmail.com>
+# Copyright 2017 dimattiami, Anthony DeDominic <adedomin@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ while read -r definition; do
     DEF_NUM+=1
     (( ${#definition} > 400 )) &&
         definition="${definition:0:400}..."
-    echo -e ":m $1 "$'\002'"${msg:0:100}\002 :: $definition"
+    echo -e ":m $1 "$'\002'"${msg:0:100}\\002 :: $definition"
     (( DEF_NUM >= COUNT )) && break
 done < <(
     curl --silent --fail "$DICTIONARY" \

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright 2018 kjensenxz <kenneth@jensen.cf>, Anthony DeDominic
+# Copyright 2018 kjensenxz <kenneth@jensen.cf>, Anthony DeDominic <adedomin@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,15 +46,15 @@ for arg in $4; do
 done
 
 if [ -z "$q" ]; then
-    EXAMPLE_RFCs=( \
-    439 527 748 968 1097 1149 1215 1216 1313 
-    1437 1438 1605 1606 1607 1776 1882 1924 
-    1925 1926 1927 2100 2321 2322 2323 2324 
-    2325 2410 2549 2550 2551 2795 3091 3092 
-    3093 3251 3252 3514 3751 4041 4824 5241 
-    5242 5513 5514 5841 5984 6214 6217 6592 
-    6919 6921 7168 7169 7511 7514 8135 8136 
-    8140
+    EXAMPLE_RFCs=(
+        439 527 748 968 1097 1149 1215 1216 1313
+        1437 1438 1605 1606 1607 1776 1882 1924
+        1925 1926 1927 2100 2321 2322 2323 2324
+        2325 2410 2549 2550 2551 2795 3091 3092
+        3093 3251 3252 3514 3751 4041 4824 5241
+        5242 5513 5514 5841 5984 6214 6217 6592
+        6919 6921 7168 7169 7511 7514 8135 8136
+        8140
     )
 
     q=${EXAMPLE_RFCs[ $RANDOM % ${#EXAMPLE_RFCs[@]} ]}

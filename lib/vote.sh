@@ -70,7 +70,7 @@ if [ ! -d "$VOTE_LOCK" ] && [ "$5" != 'vote' ]; then
 fi
 
 if [ "$5" = 'standings' ]; then
-    echo -e ":m $1 \002Current Standings\002 $(< "$ISSUE")"
+    echo -e ":m $1 \\002Current Standings\\002 $(< "$ISSUE")"
     standings "$1"
     exit 0
 fi
@@ -90,19 +90,19 @@ if [ "$5" = 'vote' ]; then
     echo "$v" > "$ISSUE"
 
     echo ":m $1 A vote on the issue ( ${v:0:200} ) has started and will finish in $DURATION seconds."
-    echo -e ":m $1 Use \002.yes\002 or \002.no\002 to vote;" \
-        "\002.standings\002 to view current results."
-    
+    echo -e ":m $1 Use \\002.yes\\002 or \\002.no\\002 to vote;" \
+        "\\002.standings\\002 to view current results."
+
     sleep "${DURATION}s"
-    echo -e ":m $1 \002Vote results\002 $v"
+    echo -e ":m $1 \\002Vote results\\002 $v"
     standings "$1"
     rm -rf -- "$VOTE_LOCK"
 
 elif [ "$5" = 'yes' ]; then
     echo "$2" >> "$YES"
-    echo -e ":mn $3 Your \002yes\002 vote was cast."
+    echo -e ":mn $3 Your \\002yes\\002 vote was cast."
 
 elif [ "$5" = 'no' ]; then
     echo "$2" >> "$NO"
-    echo -e ":mn $3 Your \002no\002 vote was cast."
+    echo -e ":mn $3 Your \\002no\\002 vote was cast."
 fi

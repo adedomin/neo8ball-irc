@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright 2016 prussian <genunrest@gmail.com>
+# Copyright 2018 Anthony DeDominic <adedomin@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -82,11 +82,11 @@ else
     CURR_CELS=$'\003'"03$CURR_CELS"$'\003'
 fi
 
-echo -e ":m $1 "$'\002'"${loc}\002 ::" \
-    "\002Conditions\002 $COND ::" \
-    "\002Temp\002 $CURR_CELS °C | $CURR_FAHR °F ::" \
-    "\002Humidity\002 $HUMIDITY% ::" \
-    "\002More\002 http://openweathermap.org/city/$city_id"
+echo -e ":m $1 "$'\002'"${loc}\\002 ::" \
+    "\\002Conditions\\002 $COND ::" \
+    "\\002Temp\\002 $CURR_CELS °C | $CURR_FAHR °F ::" \
+    "\\002Humidity\\002 $HUMIDITY% ::" \
+    "\\002More\\002 http://openweathermap.org/city/$city_id"
 
 # valid station... so save it
 if [ -n "$SAVE" ]; then

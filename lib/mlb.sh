@@ -38,7 +38,7 @@ for arg in $4; do
             pushd "$FOLLOW_LOCK" || exit
             # shellcheck disable=SC2035
             kill -15 *
-            popd
+            popd || true
             rm -rf -- "$FOLLOW_LOCK"
             echo ":m $1 Unfollowed game."
             exit 0
@@ -106,7 +106,7 @@ done < <(
 
 if [[ -n "$LIST_GAME" ]]; then
     [[ -z "$LIST_GAMES" ]] && LIST_GAMES="   No games today."
-    printf ":m $1 %(%b %d)T EST - %s\n" -1 "${LIST_GAMES:3}"
+    printf ':m %s %(%b %d)T EST - %s\n' "$1" -1 "${LIST_GAMES:3}"
     exit 0
 fi
 

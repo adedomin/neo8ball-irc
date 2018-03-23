@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright 2017 prussian <genunrest@gmail.com>, underdoge <eduardo.chapa@gmail.com>
+# Copyright 2017 Anthony DeDominic <adedomin@gmail.com>, underdoge <eduardo.chapa@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -84,10 +84,10 @@ while read -r id2 likes dislikes views duration title; do
     [ -z "$title" ] && exit 0
     duration="${duration:2}"
     echo -e ":m $1" \
-        $'\002'"${title}\002 (${duration,,}) "$'\003'"09::\003 https://youtu.be/${id2} "$'\003'"09::\003" \
-        $'\003'"03\u25B2 $(numfmt --grouping "$likes")\003 "$'\003'"09::\003" \
-        $'\003'"04\u25BC $(numfmt --grouping "$dislikes")\003 "$'\003'"09::\003" \
-        "\002Views\002 $(numfmt --grouping "$views")"
+        $'\002'"${title}\\002 (${duration,,}) "$'\003'"09::\\003 https://youtu.be/${id2} "$'\003'"09::\\003" \
+        $'\003'"03\\u25B2 $(numfmt --grouping "$likes")\\003 "$'\003'"09::\\003" \
+        $'\003'"04\\u25BC $(numfmt --grouping "$dislikes")\\003 "$'\003'"09::\\003" \
+        "\\002Views\\002 $(numfmt --grouping "$views")"
 done < <(
     curl "${stats}" 2>/dev/null |
     jq -r '.items[0],.items[1],.items[2] //empty |

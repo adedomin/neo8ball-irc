@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright 2017 QUiNTZ & prussian
+# Copyright 2017 QUiNTZ, prussian
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -70,7 +70,7 @@ while read -r uri title; do
     title="$(
         HTML_CHAR_ENT_TO_UTF8 <<< "$title"
     )"
-    echo -e ":m $1 "$'\002'"${title}\002 :: ${url}"
+    echo ":m $1 "$'\002'"${title}"$'\002'" :: ${url}"
 done < <(
     # changes seem to create duplicates
     # stupid uniq isn't removing the uniqes either

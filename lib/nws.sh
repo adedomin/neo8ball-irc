@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright 2017 prussian <genunrest@gmail.com>
+# Copyright 2018 Anthony DeDominic <adedomin@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -143,13 +143,13 @@ else
     W_TEMP="N/A"
 fi
 
-echo -e ":m $1 \002${LOC}\002 :: ${CONDITIONS} ::" \
-    "\002Temp\002 ${TEMP_COL}${TEMP}\003 ::" \
-    "\002Windchill\002 ${WTEMP_COL}${W_TEMP}\003 ::" \
-    "\002Wind\002 $WIND ::" \
-    "\002Humidity\002 ${HUMIDITY}% ::" \
-    "\002Dewpoint\002 ${DEW} ::" \
-    "\002Pressure\002 ${PRESSURE}"
+echo -e ":m $1 \\002${LOC}\\002 :: ${CONDITIONS} ::" \
+    "\\002Temp\\002 ${TEMP_COL}${TEMP}\\003 ::" \
+    "\\002Windchill\\002 ${WTEMP_COL}${W_TEMP}\\003 ::" \
+    "\\002Wind\\002 $WIND ::" \
+    "\\002Humidity\\002 ${HUMIDITY}% ::" \
+    "\\002Dewpoint\\002 ${DEW} ::" \
+    "\\002Pressure\\002 ${PRESSURE}"
 
 # valid station... so save it
 if [ -n "$SAVE" ]; then
