@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v4.3.0"
+VERSION="bash-ircbot: v5.0.0"
 
 # help info
 usage() {
@@ -448,8 +448,9 @@ check_spam() {
 }
 
 # check if nick is in ignore list
-# also check if nick is associated with spam, if enabled
+#
 # $1 - nick to check
+# $2 - whole message to filter bots ?
 check_ignore() {
     if [[ -n "${ignore_hash[$1]}" ]]; then
         send_log "DEBUG" "IGNORED -> $1"
