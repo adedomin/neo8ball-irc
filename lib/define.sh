@@ -14,7 +14,7 @@
 # limitations under the License.
 
 declare -i COUNT
-COUNT=3
+COUNT=1
 LAST=
 msg="$4"
 for arg in $4; do

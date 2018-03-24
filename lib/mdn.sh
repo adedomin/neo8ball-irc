@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 declare -i COUNT
-COUNT=3
+COUNT=1
 
 q="$4"
 for arg in $4; do

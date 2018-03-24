@@ -72,8 +72,11 @@ done
 
 # find default configuration path
 # location script's directory
-[[ -z "$CONFIG_PATH" ]] && 
-    CONFIG_PATH="$(dirname "$0")/config.sh"
+[[ -z "$CONFIG_PATH" ]] && {
+    CONFIG_PATH="${BASH_SOURCE[0]%/*}/config.sh"
+    [[ "$CONFIG_PATH" == "${BASH_SOURCE[0]}/config.sh" ]] &&
+        CONFIG_PATH="./config.sh"
+}
 
 # load configuration
 if [[ -f "$CONFIG_PATH" ]]; then
@@ -375,6 +378,24 @@ send_cmd() {
     done
 }
 
+# Match a string to the list of configured regexps to check
+# $1      - string to try and match
+# @return - regex command that should be ran
+# @exit   - zero for match, nonzero for no match
+check_regexp() {
+    declare -i i
+
+    for (( i=0; i < ${#REGEX[@]}; ++i )); do
+        if [[ "$1" =~ ${REGEX[i]} ]]; then
+            [[ -x "$LIB_PATH/${REGEX_CMD[i]}" ]] || return 1
+            echo "$i"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
 # stripped down version of privmsg checker
 # determines if message qualifies for spam
 # filtering
@@ -382,12 +403,15 @@ send_cmd() {
 # $1 - channel
 # $2 - username
 # $3 - command
+# $4 - full message
 check_spam() {
     local cmd
     cmd="${3:1}"
+    # shellcheck disable=SC2153
     if [[ "$1" != "$NICK" &&
-          -z "${COMMANDS["${cmd:-zzzz}"]}" &&
-          "$3" != ?(@)$NICK?(:|,) ]]
+          -z "${COMMANDS[${cmd:-zzzz}]}" &&
+          "$3" != ?(@)$NICK?(:|,) ]] &&
+        ! check_regexp "$4" >/dev/null
     then
         return 0
     fi
@@ -400,11 +424,11 @@ check_spam() {
         temp+=1
 
     declare -i counter current
-    # shellcheck disable=2183
-    printf -v current "%(%s)T" -1
+    # shellcheck disable=SC2034
+    current='SECONDS'
 
     (( ttime == 0 )) &&
-        ttime="$current"
+        ttime='current'
     counter="( current - ttime ) / ${ANTISPAM_TIMEOUT:-10}"
     if (( counter > 0 )); then
         ttime='current'
@@ -536,22 +560,15 @@ handle_privmsg() {
         return
     esac
 
-    # fallback regex check on message
-    # arguemnt string is the fully matched string
-    # odd number index should be the plugin
-    # even should be command
-    # 
-    # an extra argument of type match which is the full text that matched the regexp
-    declare -i i
-    for (( i=0; i<${#REGEX[@]}; i=i+2 )); do
-        if [[ "$6" =~ ${REGEX[$i]} ]]; then
-            [[ -x "$LIB_PATH/${REGEX[i+1]}" ]] || return
-            "$LIB_PATH/${REGEX[i+1]}" \
-                "$1" "$2" "$3" "$6" "${REGEX[$i]}" "${BASH_REMATCH[0]}"
-            echo ":ld REGEX EVENT -> ${REGEX[$i]}: $1 <$3> $6"
-            return
-        fi
-    done
+    # regexp check.
+    if RMATCH_IND="$(check_regexp "$6")"; then
+        "$LIB_PATH/${REGEX_CMD[RMATCH_IND]}" \
+            "$1" "$2" "$3" "$6" \
+            "${REGEX[RMATCH_IND]}" \
+            "${BASH_REMATCH[0]}"
+        echo ":ld REGEX EVENT -> ${REGEX[RMATCH_IND]}: $1 <$3> $6 (${BASH_REMATCH[0]})"
+        return
+    fi
 }
 
 #######################
@@ -618,7 +635,7 @@ do
         PRIVMSG)
             # this step has to occur in the main loop sadly
             if [[ -n "$ANTISPAM" ]]; then
-                check_spam "$channel" "$user" "$cmd" ||
+                check_spam "$channel" "$user" "$cmd" "$message" ||
                     continue
             fi
             check_ignore "$user" &&
@@ -638,7 +655,7 @@ do
             [[ -z "$READ_NOTICE" ]] && continue
             # this step has to occur in the main loop sadly
             if [[ -n "$ANTISPAM" ]]; then
-                check_spam "$channel" "$user" "$cmd" ||
+                check_spam "$channel" "$user" "$cmd" "$message" ||
                     continue
             fi
             check_ignore "$user" &&

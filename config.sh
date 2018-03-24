@@ -8,6 +8,8 @@ NICKSERV=
 SERVER="irc.rizon.net"
 # channels to join
 CHANNELS=("#prussian" "#prussian2")
+#
+CHANNEL_BLACKLIST=("#badchan")
 # supplimentary channels to join from file
 INVITE_FILE="/tmp/invite-channel-list"
 
@@ -97,21 +99,17 @@ COMMANDS=(
 
 # regex patterns
 # if you need more fine grained control
-# uses bash regex language
-#
-# NOTE: as of the latest version
-# regex is changed to an array
-# this is to ensure strict ordering.
-# the program expects the array to order
-# them in the format of
-# 'REGEX' 'command'
-# or in other words, every even index (first index is 0) 
-# should be a regex and every uneven index should be 
-# the plugin to execute
+# uses bash regexp language
 REGEX=(
-'youtube.com|youtu.be' 'youtube.sh'
+'youtube.com|youtu.be'
 # literally anything can be a url nowadays
-'(https?)://[^ ]+' 'pagetitle.sh'
+'(https?)://[^ ]+'
+)
+# BREAKING: the index of the regexp above
+# is used to determine the command in this array to exec
+REGEX_CMD=(
+'youtube.sh'
+'pagetitle.sh'
 )
 
 # list of nicks to ignore from, such as other bots
