@@ -51,7 +51,7 @@ if [ -z "$q" ]; then
     exit 0
 fi
 
-NPM="https://www.npmjs.com/search/suggestions?q=$q&size=${COUNT}"
+NPM="https://www.npmjs.com/search/suggestions?q=$(URI_ENCODE "$q")&size=${COUNT}"
 
 {
     curl \
