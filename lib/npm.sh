@@ -51,7 +51,7 @@ if [ -z "$q" ]; then
     exit 0
 fi
 
-NPM="https://www.npmjs.com/-/search?text=$(URI_ENCODE "$q")&from=0&size=${COUNT}"
+NPM="https://www.npmjs.com/search/suggestions?q=$q&size=${COUNT}"
 
 {
     curl \
@@ -61,18 +61,15 @@ NPM="https://www.npmjs.com/-/search?text=$(URI_ENCODE "$q")&from=0&size=${COUNT}
 } | jq -r --arg BOLD $'\002' \
         --arg CHANNEL "$1" \
         --arg COUNT "$COUNT" '
-    if (.objects[0]) then
-        .objects[0:($COUNT | tonumber)][]
+    if (.[0]) then
+        .[0:($COUNT | tonumber)][]
     else
-        {
-          package: {
-            name: "No npm module found"
-            , links: { npm: "" }
-            , description: ""
-          }
+      {
+        name: "No npm module found"
+        , links: { npm: "" }
+        , description: ""
       }
     end
-    | .package
     | ":m \($CHANNEL) \($BOLD)" + .name + $BOLD +
       " " + .links.npm + " " +
       .description[0:150]
