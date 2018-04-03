@@ -139,8 +139,8 @@ export PLUGIN_TEMP
 #declare -A user_modes
 
 # populate invites array to prevent duplicate entries
-if [[ -n "$INVITE_FILE" ]]; then
-    declare -A invites
+declare -A invites
+if [[ -f "$INVITE_FILE" ]]; then
     while read -r channel; do
         invites[$channel]=1
     done < "$INVITE_FILE"
@@ -211,7 +211,7 @@ reload_config() {
 
     # persist channel invites
     # shellcheck disable=SC2207
-    [[ -n "$INVITE_FILE" ]] &&
+    [[ -f "$INVITE_FILE" ]] &&
         CHANNELS+=($(< "$INVITE_FILE"))
 
     declare -A uniq_chans
@@ -278,7 +278,7 @@ post_ident() {
     # join chans
     local _channels
     # shellcheck disable=SC2207
-    [[ -n "$INVITE_FILE" ]] &&
+    [[ -f "$INVITE_FILE" ]] &&
         CHANNELS+=($(< "$INVITE_FILE"))
     printf -v _channels ",%s" "${CHANNELS[@]}"
     # channels are repopulated on JOIN commands
@@ -518,8 +518,8 @@ handle_privmsg() {
         # most servers require this "in spirit"
         # tell them what we are
         if [[ "$6" = $'\001VERSION\001' ]]; then
-            echo ":mn $3 "$'\001'"VERSION $VERSION"$'\001'
             echo ":ld CTCP VERSION -> $3 <$3>"
+            echo ":mn $3 "$'\001'"VERSION $VERSION"$'\001'
             return
         fi
 
@@ -531,9 +531,9 @@ handle_privmsg() {
             cmd="${PRIVMSG_DEFAULT_CMD:-help}"
         fi
         [[ -x "$LIB_PATH/${COMMANDS[$cmd]}" ]] || return
+        echo ":ld PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $4"
         "$LIB_PATH/${COMMANDS[$cmd]}" \
             "$3" "$2" "$3" "$4" "$cmd"
-        echo ":ld PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $4"
         return
     fi
 
@@ -541,9 +541,9 @@ handle_privmsg() {
     if [[ "$5" = ?(@)$NICK?(:|,) ]]; then
         # shellcheck disable=SC2153
         [[ -x "$LIB_PATH/$HIGHLIGHT" ]] || return
+        echo ":ld HIGHLIGHT EVENT -> $1 <$3>  $4"
         "$LIB_PATH/$HIGHLIGHT" \
             "$1" "$2" "$3" "$4" "$5"
-        echo ":ld HIGHLIGHT EVENT -> $1 <$3>  $4"
         return
     fi
 
@@ -555,19 +555,19 @@ handle_privmsg() {
         cmd="${5:1}"
         [[ -n "${COMMANDS[$cmd]}" &&
             -x "$LIB_PATH/${COMMANDS[$cmd]}" ]] || return
+        echo ":ld COMMAND EVENT -> $cmd: $1 <$3> $4"
         "$LIB_PATH/${COMMANDS[$cmd]}" \
             "$1" "$2" "$3" "$4" "$cmd"
-        echo ":ld COMMAND EVENT -> $cmd: $1 <$3> $4"
         return
     esac
 
     # regexp check.
     if RMATCH_IND="$(check_regexp "$6")"; then
+        echo ":ld REGEX EVENT -> ${REGEX[RMATCH_IND]}: $1 <$3> $6 (${BASH_REMATCH[0]})"
         "$LIB_PATH/${REGEX_CMD[RMATCH_IND]}" \
             "$1" "$2" "$3" "$6" \
             "${REGEX[RMATCH_IND]}" \
             "${BASH_REMATCH[0]}"
-        echo ":ld REGEX EVENT -> ${REGEX[RMATCH_IND]}: $1 <$3> $6 (${BASH_REMATCH[0]})"
         return
     fi
 }
