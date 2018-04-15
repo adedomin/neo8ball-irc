@@ -47,7 +47,7 @@ for arg in $4; do
             msg="${msg#* }"
         ;;
         -h|--help)
-            echo ":m $1 usage: $5 [-y --yes-no] query?"
+            echo ":m $1 usage: $5 [-y --yes-no] query? [y/n]"
             echo ":m $1 usage: $5 <choice a> or <choice b>?"
             echo ":m $1 answers y/n questions or decides between two choices."
             exit 0
@@ -58,10 +58,16 @@ for arg in $4; do
     esac
 done
 
+# alternate yes or no form
+case "$msg" in
+    *' or '*) ;;
+    *'? y/n') msg="${msg%' y/n'}"; YN=1 ;;
+esac
+
 # need better random source ???
 declare -i RAND_MAX=32767 rand_val="$RANDOM"
 
-reg='(.*) or (.*)\?' # decide
+reg='^(.*) or (.*)\?$' # decide
 if [[ "$msg" =~ $reg ]]; then
     echo ":m $1 $3: ${BASH_REMATCH[(rand_val % 2)+1]}"
 elif [[ "$msg" = *\? ]]; then
