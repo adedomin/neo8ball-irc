@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v5.0.0"
+VERSION="bash-ircbot: v5.1.0"
 
 # help info
 usage() {
@@ -715,6 +715,7 @@ do
         NICK)
             if [[ "$user" = "$NICK" ]]; then
                 channel="${channel:1}"
+                [[ -z "$orig_nick" ]] && orig_nick="$NICK"
                 NICK="${channel%$'\r'}"
                 send_log "NICK" "NICK CHANGED TO $NICK"
             fi
@@ -738,7 +739,15 @@ do
         # Nickname is already in use
         # add crap and try the new nick
         433|432)
+            [[ -z "$orig_nick" ]] && orig_nick="$NICK"
             NICK="${NICK}_"
+            case "$NICK" in
+                # attempted to change nick 4 times
+                "${orig_nick}"____)
+                    send_log 'CRITICAL' 'FAILED TO CHANGE NICK THREE TIMES'
+                    break
+                ;;
+            esac
             send_msg "NICK $NICK"
             send_log "NICK" "NICK CHANGED TO $NICK"
         ;;
