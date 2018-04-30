@@ -15,10 +15,12 @@
 # limitations under the License.
 
 # strip control code numeric entities
-s/&#0*\([0-2][0-9]\|3[0-1]\);//g
-s/&#x0*[0-1][a-fA-F0-9];//g
+s/&#\(0*[0-9]\|0*[1-2][0-9]\|0*3[0-2]\);//g
+s/&#x\(0*[[:xdigit:]]\|0*1[[:xdigit:]]\);//g
 # handle numeric entities
 /&#x\?[[:xdigit:]]*;/ {
+    # remove NULs
+    s/\x00//g
     # prevent shell escape by re-encoding ' as char entities
     s/'/\&#x27;/g
     # prepare pattern space to execute printf
