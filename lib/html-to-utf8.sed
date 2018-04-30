@@ -25,8 +25,12 @@ s/&#x3[eE];/>/g
 s/&#62;/>/g
 s/&#x26;/\&/g
 s/&#38;/\&/g
-# currently does not support numeric character entities...
-s/&#x\?[[:xdigit:]]*;/�/g
+# /e is a GNUism by the way.
+# also kind of scary given it's literally
+# executing /bin/sh -c on that string
+# \U is also a bashism... I think.
+s/&#\([[:digit:]]\{1,10\}\);/printf '\\U'"$(printf '%x' '\1')"/ge
+s/&#x\([[:xdigit:]]\{1,8\}\);/printf '\\U\1'/ge
 
 s/&exclamation;/!/g
 s/&quot;/"/g
