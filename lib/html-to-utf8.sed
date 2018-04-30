@@ -14,23 +14,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+/&#x\?[[:xdigit:]]*;/ {
+    # prevent shell escape by re-encoding ' as char entities
+    s/'/\&#x27;/g
+    # prepare pattern space to execute printf
+    s/^/printf '%s' '/
+    s/$/'/
+
+    # handle decimal entities
+    s/&#\([[:digit:]]\{1,10\}\);/'"$(printf '\\U'"$(printf '%x' "$(( 10#\1 ))")")"'/g
+    # hex escape
+    # $'' and \U are bashism. sue me
+    s/&#x\([[:xdigit:]]\{1,8\}\);/'$'\\U\1''/g
+    # executing /bin/sh -c on the pattern space. yolo...
+    e
+}
+
 # common numer char entities...
-s/&#x22;/"/g
-s/&#34;/"/g
-s/&#x27;/'/g
-s/&#39;/'/g
-s/&#x3[cC];/</g
-s/&#60;/</g
-s/&#x3[eE];/>/g
-s/&#62;/>/g
-s/&#x26;/\&/g
-s/&#38;/\&/g
-# /e is a GNUism by the way.
-# also kind of scary given it's literally
-# executing /bin/sh -c on that string
-# \U is also a bashism... I think.
-s/&#\([[:digit:]]\{1,10\}\);/printf '\\U'"$(printf '%x' '\1')"/ge
-s/&#x\([[:xdigit:]]\{1,8\}\);/printf '\\U\1'/ge
+#s/&#x22;/"/g
+#s/&#34;/"/g
+#s/&#x27;/'/g
+#s/&#39;/'/g
+#s/&#x3[cC];/</g
+#s/&#60;/</g
+#s/&#x3[eE];/>/g
+#s/&#62;/>/g
+#s/&#x26;/\&/g
+#s/&#38;/\&/g
 
 s/&exclamation;/!/g
 s/&quot;/"/g
