@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Copyright 2018 Anthony DeDominic <adedomin@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,63 +13,96 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# TODO: revisit count opt
-declare -i COUNT
-COUNT=1
-
-# new arg parser
+q="$4"
 for arg in $4; do
     case "$arg" in
-        # TODO: revisit count opt
         -h|--help)
-            echo ":m $1 usage: $5 [query]"
+            echo ":m $1 usage: $5 [-A|-B] [query]"
             echo ":m $1 find or get random verse from either the kjv bible or the quran."
             exit 0
         ;;
+        -A|--after)
+            LAST=a
+        ;;
+        -B|--before)
+            LAST=b
+        ;;
+        --after=*)
+            case "${arg#*=}" in
+                [1-2]) grep_args=('-A' "${arg#*=}") ;;
+            esac
+        ;;
+        --before=*)
+            case "${arg#*=}" in
+                [1-2]) grep_args=('-B' "${arg#*=}") ;;
+            esac
+        ;;
         *)
-            break
+            case "$LAST" in
+                '') break ;;
+                a) case "${arg#*=}" in
+                    [1-2]) grep_args=('-A' "$arg") ;;
+                esac ;;
+                b) case "${arg#*=}" in
+                    [1-2]) grep_args=('-B' "$arg") ;;
+                esac ;;
+            esac
+            unset LAST
         ;;
     esac
+    if [[ "$q" == "${q#* }" ]]; then
+        q=
+        break
+    else
+        q="${q#* }"
+    fi
 done
 
-if [ "$5" = 'quran' ]; then
+if [[ "$5" = 'quran' ]]; then
     table='quran'
     BIBLE_SOURCE="$QURAN_SOURCE"
 else
     table='king_james'
 fi
 
-if [ -n "$BIBLE_DB" ] && [ -f "$BIBLE_DB" ]; then
+if [[ -n "$BIBLE_DB" && -f "$BIBLE_DB" ]]; then
 
-    if [ -z "$4" ]; then
-        printf ":m $1 %s\n" "$(sqlite3 "$BIBLE_DB" <<< "SELECT * FROM $table ORDER BY RANDOM() LIMIT $COUNT;")"
-        exit 0
+    if [[ -z "$q" ]]; then
+        printf ":m $1 %s\\n" "$(sqlite3 "$BIBLE_DB" <<< "SELECT * FROM $table ORDER BY RANDOM() LIMIT 1;")"
+        exit
     fi
 
-    q="${4//\'/\'\'}"
+    q="${q//\'/\'\'}"
     if [[ "$q" =~ [-.:\{\}] ]]; then
         q="\"$q\""
     fi
 
     verse="$(sqlite3 "$BIBLE_DB" << EOF
-SELECT * FROM $table 
-WHERE $table 
-MATCH '$q' 
-ORDER BY rank 
-LIMIT $COUNT;
+SELECT * FROM $table
+WHERE $table
+MATCH '$q'
+ORDER BY rank
+LIMIT 1;
 EOF
     )"
-    
-    echo ":m $1 ${verse:-Nothing Found}"
 
-elif [ -n "$BIBLE_SOURCE" ] && [ -f "$BIBLE_SOURCE" ]; then
-    
-    if [ -z "$4" ]; then
-        printf ":m $1 %s" "$(shuf -n"$COUNT" "$BIBLE_SOURCE")"
-        exit 0
+    if [[ "${#grep_args[@]}" == 2 && -n "$verse" ]]; then
+        grep "${grep_args[@]}" -F -- "$verse" "$BIBLE_SOURCE"
+    else
+        echo ":m $1 ${verse:-Nothing Found}"
     fi
 
-    verse="$(grep -F -m "$COUNT" "$4" "$BIBLE_SOURCE")"
+elif [[ -n "$BIBLE_SOURCE" && -f "$BIBLE_SOURCE" ]]; then
+
+    if [[ -z "$q" ]]; then
+        printf ":m $1 %s" "$(shuf -n1 "$BIBLE_SOURCE")"
+        exit
+    fi
+
+    verse="$(
+        grep "${grep_args[@]}" -F -i -m 1 -- \
+            "$q" "$BIBLE_SOURCE"
+    )"
     echo ":m $1 ${verse:-Nothing Found}"
 
 else
