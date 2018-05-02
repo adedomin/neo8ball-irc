@@ -87,7 +87,8 @@ EOF
     )"
 
     if [[ "${#grep_args[@]}" == 2 && -n "$verse" ]]; then
-        grep "${grep_args[@]}" -F -- "$verse" "$BIBLE_SOURCE"
+        grep "${grep_args[@]}" -F -- "$verse" "$BIBLE_SOURCE" \
+        | { while read -r; do printf ":m $1 %s\\n" "$REPLY"; done }
     else
         echo ":m $1 ${verse:-Nothing Found}"
     fi
@@ -101,7 +102,8 @@ elif [[ -n "$BIBLE_SOURCE" && -f "$BIBLE_SOURCE" ]]; then
 
     verse="$(
         grep "${grep_args[@]}" -F -i -m 1 -- \
-            "$q" "$BIBLE_SOURCE"
+            "$q" "$BIBLE_SOURCE" \
+        | { while read -r; do printf ":m $1 %s\\n" "$REPLY"; done } 
     )"
     echo ":m $1 ${verse:-Nothing Found}"
 
