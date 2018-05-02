@@ -17,8 +17,9 @@ q="$4"
 for arg in $4; do
     case "$arg" in
         -h|--help)
-            echo ":m $1 usage: $5 [-A|-B] [query]"
+            echo ":m $1 usage: $5 [--before=#|--after=#] [query]"
             echo ":m $1 find or get random verse from either the kjv bible or the quran."
+            echo ":m $1 You can optionally select up to 2 more verses before or after the one found."
             exit 0
         ;;
         -A|--after)
