@@ -227,6 +227,12 @@ reload_config() {
             send_cmd <<< ":j $uniq_chan"
         fi
     done
+
+    unset ignore_hash
+    declare -A ignore_hash
+    for ign in "${IGNORE[@]}"; do
+        ignore_hash[$ign]=1
+    done
 }
 trap 'reload_config' SIGHUP SIGWINCH
 
