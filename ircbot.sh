@@ -229,7 +229,7 @@ reload_config() {
     done
 
     unset ignore_hash
-    declare -A ignore_hash
+    declare -Ag ignore_hash
     for ign in "${IGNORE[@]}"; do
         ignore_hash[$ign]=1
     done
