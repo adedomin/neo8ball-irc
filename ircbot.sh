@@ -584,10 +584,13 @@ handle_privmsg() {
 
 [[ -z "$TIMEOUT_CHECK" ]] &&
     TIMEOUT_CHECK=300
-# keeks the connection active.
-while sleep "$(( TIMEOUT_CHECK / 2 ))"; do
-    send_msg "PING :$NICK"
-done &
+# keeps the connection active.
+# don't bother if we are in testing mode.
+if [[ -z "$MOCK_CONN_TEST" ]]; then
+    while sleep "$(( TIMEOUT_CHECK / 2 ))"; do
+        send_msg "PING :$NICK"
+    done &
+fi
 
 send_log "DEBUG" "COMMUNICATION START"
 # pass if server is private
