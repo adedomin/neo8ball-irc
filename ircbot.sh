@@ -584,13 +584,10 @@ handle_privmsg() {
 
 [[ -z "$TIMEOUT_CHECK" ]] &&
     TIMEOUT_CHECK=300
-# keeps the connection active.
-if [[ -z "$BASH_TCP" ]]; then
-    while sleep "$TIMEOUT_CHECK"; do
-        printf '\r\n' >&3
-        printf '\r\n' >&3
-    done &
-fi
+# keeks the connection active.
+while sleep "$(( TIMEOUT_CHECK / 2 ))"; do
+    send_msg "PING :$NICK"
+done &
 
 send_log "DEBUG" "COMMUNICATION START"
 # pass if server is private
@@ -604,7 +601,8 @@ send_msg "USER $NICK +i * :$NICK"
 # IRC event loop
 # note if the irc sends lines longer than
 # 1024 bytes, it may fail to parse
-while read -u 4 -r -n 1024 \
+while read -u 4 -r -n 1024\
+    -t "$TIMEOUT_CHECK" \
     user command channel message
 do
     # check for high level commands from the ircd
