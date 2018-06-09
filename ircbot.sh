@@ -97,7 +97,7 @@ if [[ -f "$CONFIG_PATH" ]]; then
     # shellcheck disable=SC1090
     . "$CONFIG_PATH"
 else
-    printf '%s' "*** CRITICAL *** no configuration" >&2
+    echo2 '*** CRITICAL *** no configuration'
     usage
 fi
 
