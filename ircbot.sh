@@ -12,13 +12,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v5.2.0"
+VERSION="bash-ircbot: v5.3.0"
+
+echo1() {
+    printf '%s\n' "$*"
+}
+
+echo2() {
+    printf >&2 '%s\n' "$*"
+}
 
 # help info
 usage() {
-    printf >&2 '%s\n' \
-'usage: '"$0"' [-c config] [-o logfile]
+    echo2 \
+'usage: '"$0"' [-c config] [-o logfile] [-t]
 
+    -t --timestamp      timestamp logs using iso-8601
+                        NOTE: (not needed with journald)
     -c --config=path    A config file
     -o --log-out=file   A file to log to instead of stdout.
     -h --help           This message
@@ -31,8 +41,9 @@ For testing, you can set MOCK_CONN_TEST=<anything>'
     exit 1
 }
 
+
 die() {
-    echo "*** CRITICAL *** $1" >&2
+    echo2 "*** CRITICAL *** $1"
     exit 1
 }
 
@@ -54,6 +65,10 @@ while (( $# > 0 )); do
         --log-out=*)
             exec 1<>"${1#*=}"
             exec 2>&1
+        ;;
+        -t|--timestamp)
+            LOG_TSTAMP_FORMAT='%(%Y-%m-%dT%H:%M:%S%z)T '
+            LOG_TSTAMP_ARG1=-1
         ;;
         -h|--help)
             usage
@@ -82,7 +97,7 @@ if [[ -f "$CONFIG_PATH" ]]; then
     # shellcheck disable=SC1090
     . "$CONFIG_PATH"
 else
-    echo "*** CRITICAL *** no configuration" >&2
+    printf '%s' "*** CRITICAL *** no configuration" >&2
     usage
 fi
 
@@ -97,7 +112,7 @@ fi
 # check for ncat, use bash tcp otherwise
 # fail hard if user wanted tls and ncat not found
 if ! type ncat >/dev/null 2>&1; then
-    echo "*** NOTICE *** ncat not found; using bash tcp"
+    echo1 "*** NOTICE *** ncat not found; using bash tcp"
     [[ -n "$TLS" ]] &&
         die "TLS does not work with bash tcp"
     BASH_TCP=a
@@ -105,7 +120,7 @@ fi
 
 # use default nick if not set, should be set
 if [[ -z "$NICK" ]]; then
-    echo "*** NOTICE *** nick was not specified; using ircbashbot"
+    echo1 "*** NOTICE *** nick was not specified; using ircbashbot"
     NICK="ircbashbot"
 fi
 
@@ -141,6 +156,7 @@ export PLUGIN_TEMP
 declare -A invites
 if [[ -f "$INVITE_FILE" ]]; then
     while read -r channel; do
+        [[ -z "$channel" ]] && continue
         invites[$channel]=1
     done < "$INVITE_FILE"
 fi
@@ -257,7 +273,7 @@ if [[ -n "$MOCK_CONN_TEST" ]]; then
 elif [[ -z "$BASH_TCP" ]]; then
     coproc {
         ncat "${TLS_OPTS[@]}" "$SERVER" "${PORT:-6667}"
-        echo 'ERROR :ncat has terminated'
+        echo1 'ERROR :ncat has terminated'
     }
     # coprocs are a bit weird
     # subshells may not be able to r/w to these fd's normally
@@ -310,7 +326,7 @@ send_log() {
         STDOUT)
             # shellcheck disable=2183
             [[ -n "$LOG_STDOUT" ]] &&
-                printf '%(%Y-%m-%d %H:%M:%S)T %s\n' '-1' "${2//[$'\n'$'\r']/}"
+                printf '%(%Y-%m-%d %H:%M:%S%z)T %s\n' '-1' "${2//[$'\n'$'\r']/}"
             return
         ;;
         WARNING) log_lvl=3 ;;
@@ -320,7 +336,7 @@ send_log() {
     esac
 
     (( log_lvl >= LOG_LEVEL )) &&
-        printf '*** %s *** %s\n' "$1" "$2"
+        printf "$LOG_TSTAMP_FORMAT"'*** %s *** %s\n' $LOG_TSTAMP_ARG1 "$1" "$2"
 }
 
 # Send arguments to irc server.
@@ -384,16 +400,17 @@ send_cmd() {
 }
 
 # Match a string to the list of configured regexps to check
-# $1      - string to try and match
-# @return - regex command that should be ran
-# @exit   - zero for match, nonzero for no match
+# $1       - string to try and match
+# @return  - regex command that should be ran
+# @exit    - zero for match, nonzero for no match
+# @mutates - REPLY with index
 check_regexp() {
     declare -i i
 
     for (( i=0; i < ${#REGEX[@]}; ++i )); do
         if [[ "$1" =~ ${REGEX[i]} ]]; then
             [[ -x "$LIB_PATH/${REGEX_CMD[i]}" ]] || return 1
-            echo "$i"
+            REPLY="$i"
             return 0
         fi
     done
@@ -416,7 +433,7 @@ check_spam() {
     if [[ "$1" != "$NICK" &&
           -z "${COMMANDS[${cmd:-zzzz}]}" &&
           "$3" != ?(@)$NICK?(:|,) ]] &&
-        ! check_regexp "$4" >/dev/null
+        ! check_regexp "$4"
     then
         return 0
     fi
@@ -523,20 +540,20 @@ handle_privmsg() {
         # most servers require this "in spirit"
         # tell them what we are
         if [[ "$6" = $'\001VERSION\001' ]]; then
-            echo ":ld CTCP VERSION -> $3 <$3>"
-            echo ":mn $3 "$'\001'"VERSION $VERSION"$'\001'
+            echo1 ":ld CTCP VERSION -> $3 <$3>"
+            echo1 ":mn $3 "$'\001'"VERSION $VERSION"$'\001'
             return
         fi
 
         cmd="$5"
         # if invalid command
         if [[ -z "${COMMANDS[$cmd]}" ]]; then
-            echo ":m $3 --- Invalid Command ---"
+            echo1 ":m $3 --- Invalid Command ---"
             # basically your "help" command
             cmd="${PRIVMSG_DEFAULT_CMD:-help}"
         fi
         [[ -x "$LIB_PATH/${COMMANDS[$cmd]}" ]] || return
-        echo ":ld PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $4"
+        echo1 ":ld PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $4"
         "$LIB_PATH/${COMMANDS[$cmd]}" \
             "$3" "$2" "$3" "$4" "$cmd"
         return
@@ -546,7 +563,7 @@ handle_privmsg() {
     if [[ "$5" = ?(@)$NICK?(:|,) ]]; then
         # shellcheck disable=SC2153
         [[ -x "$LIB_PATH/$HIGHLIGHT" ]] || return
-        echo ":ld HIGHLIGHT EVENT -> $1 <$3>  $4"
+        echo1 ":ld HIGHLIGHT EVENT -> $1 <$3>  $4"
         "$LIB_PATH/$HIGHLIGHT" \
             "$1" "$2" "$3" "$4" "$5"
         return
@@ -560,15 +577,16 @@ handle_privmsg() {
         cmd="${5:1}"
         [[ -n "${COMMANDS[$cmd]}" &&
             -x "$LIB_PATH/${COMMANDS[$cmd]}" ]] || return
-        echo ":ld COMMAND EVENT -> $cmd: $1 <$3> $4"
+        echo1 ":ld COMMAND EVENT -> $cmd: $1 <$3> $4"
         "$LIB_PATH/${COMMANDS[$cmd]}" \
             "$1" "$2" "$3" "$4" "$cmd"
         return
     esac
 
     # regexp check.
-    if RMATCH_IND="$(check_regexp "$6")"; then
-        echo ":ld REGEX EVENT -> ${REGEX[RMATCH_IND]}: $1 <$3> $6 (${BASH_REMATCH[0]})"
+    if check_regexp "$6"; then
+        declare -i RMATCH_IND="$REPLY"
+        echo1 ":ld REGEX EVENT -> ${REGEX[RMATCH_IND]}: $1 <$3> $6 (${BASH_REMATCH[0]})"
         "$LIB_PATH/${REGEX_CMD[RMATCH_IND]}" \
             "$1" "$2" "$3" "$6" \
             "${REGEX[RMATCH_IND]}" \
@@ -683,7 +701,7 @@ do
             send_cmd <<< ":j $message"
             send_log "INVITE" "<$user> $message "
             [[ -n "$INVITE_FILE" && "${invites[$message]}" != 1 ]] && {
-                echo "$message" >> "$INVITE_FILE"
+                echo1 "$message" >> "$INVITE_FILE"
                 invites[$message]=1
             }
         ;;
@@ -703,6 +721,11 @@ do
                 for i in "${!CHANNELS[@]}"; do
                     if [[ "${CHANNELS[$i]}" = "$channel" ]]; then
                         unset CHANNELS["$i"]
+                        if [[ -n "${invites[$channel]}" ]]; then
+                            unset invites["$channel"]
+                            printf '%s\n' "${!invites[@]}" \
+                                > "$INVITE_FILE"
+                        fi
                     fi
                 done
                 send_log "PART" "$channel"
@@ -715,6 +738,11 @@ do
                 for i in "${!CHANNELS[@]}"; do
                     if [[ "${CHANNELS[$i]}" = "$channel" ]]; then
                         unset CHANNELS["$i"]
+                        if [[ -n "${invites[$channel]}" ]]; then
+                            unset invites["$channel"]
+                            printf '%s\n' "${!invites[@]}" \
+                                > "$INVITE_FILE"
+                        fi
                     fi
                 done
                 send_log "KICK" "<$user> $channel [Reason: ${message#*:}]"
@@ -768,13 +796,13 @@ do
             # disable this if not in mock testing mode
             [[ -z "$MOCK_CONN_TEST" ]] && continue
             case $message in
-                channels) echo "${CHANNELS[*]}" >&3 ;;
-                nickname) echo "$NICK" >&3 ;;
-                nickparse) echo "$user" >&3 ;;
-                hostparse) echo "$host" >&3 ;;
-                chanparse) echo "$channel" >&3 ;;
-                msgparse) echo "$message" >&3 ;;
-                *) echo "$message" >&3 ;;
+                channels)  echo1 "${CHANNELS[*]}" >&3 ;;
+                nickname)  echo1 "$NICK"    >&3 ;;
+                nickparse) echo1 "$user"    >&3 ;;
+                hostparse) echo1 "$host"    >&3 ;;
+                chanparse) echo1 "$channel" >&3 ;;
+                msgparse)  echo1 "$message" >&3 ;;
+                *)         echo1 "$message" >&3 ;;
             esac
         ;;
     esac

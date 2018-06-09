@@ -7,7 +7,7 @@ NICKSERV=
 # irc server
 SERVER="irc.rizon.net"
 # channels to join
-CHANNELS=("#prussian" "#prussian2")
+CHANNELS=("#prussian")
 # TODO: not implemented
 # CHANNEL_BLACKLIST=("#badchan")
 # supplimentary channels to join from file
