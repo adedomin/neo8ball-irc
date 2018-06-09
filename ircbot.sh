@@ -12,12 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v5.1.0"
+VERSION="bash-ircbot: v5.2.0"
 
 # help info
 usage() {
-    cat << EOF >&2
-usage: $0 [-c config]
+    printf >&2 '%s\n' \
+'usage: '"$0"' [-c config] [-o logfile]
 
     -c --config=path    A config file
     -o --log-out=file   A file to log to instead of stdout.
@@ -27,8 +27,7 @@ If no configuration path is found or CONFIG_PATH is not set,
 ircbot will assume the configuration is in the same directory
 as the script.
 
-For testing, you can set MOCK_CONN_TEST=<anything>
-EOF
+For testing, you can set MOCK_CONN_TEST=<anything>'
     exit 1
 }
 
