@@ -64,7 +64,7 @@ WIKI="https://en.wikipedia.org/w/api.php?action=opensearch&format=json&formatver
     if ((.[1] | length) > 0) then
         [.[1][0:($COUNT | tonumber)],.[2][0:($COUNT | tonumber)],.[3][0:($COUNT | tonumber)]]
         | transpose
-        | map(":m \($CHAN) \u0002\(.[0])\u0002 :: \(.[1][0:85]) ... \(.[2])")
+        | map(":m \($CHAN) \u0002\(.[0])\u0002 :: \(.[1][0:360]) - \(.[2])")
         | .[]
     else
         ":m \($CHAN) No Results."
