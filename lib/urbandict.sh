@@ -76,28 +76,38 @@ NEW_URBAN="http://api.urbandictionary.com/v0/define?term=$(URI_ENCODE "$q")"
         --location \
         "$NEW_URBAN" \
     || echo null
-} | jq  --arg BOLD $'\002' \
-        --arg CHANNEL "$1" \
-        --arg COUNT "$COUNT" \
-        --arg DEFNUM "$DEFINITION" \
-        --arg WORD "$q" \
-        -r '
-    if ($DEFNUM != "") then
-        if (.list[($DEFNUM | tonumber) - 1]) then
-            .list[($DEFNUM | tonumber) - 1]
+} | jq --arg CHANNEL "$1" \
+       --arg COUNT "$COUNT" \
+       --arg DEFNUM "$DEFINITION" \
+       --arg WORD "$q" \
+       -r '
+
+    .list | length as $sizeof
+    | if ($DEFNUM != "") then
+        if (.[($DEFNUM | tonumber) - 1]) then
+            [.[($DEFNUM | tonumber) - 1]]
         else
-            { definition: "No Definition Found." }
+            [{ definition: "No Definition Found." }]
         end
     else
-        if (.list[0]) then
-            .list[0:($COUNT | tonumber)][]
+        if (.[0]) then
+            .[0:($COUNT | tonumber)]
         else
-            { definition: "No Definition Found." }
+            [{ definition: "No Definition Found." }]
         end
     end
-    | ":m \($CHANNEL) \($BOLD)\($WORD)\($BOLD) :: \(.definition[0:400])"
-    | sub("\r|\n"; " "; "g")
+    | to_entries
+    | .[]
+    | if ($DEFNUM != "") then
+        .key = ($DEFNUM | tonumber) - 1
+      else
+        .
+    end
+    | ":m \($CHANNEL) \u0002\($WORD)\u0002 " +
+      "[\(.key + 1)/\($sizeof)] " +
+      ":: \(.value.definition[0:400] | gsub("\r"; ""))"
+    | sub("[\u0000\u0001\u0003-\u001f]"; " "; "g")
     | sub("  +"; " "; "g")
 '
 
-echo ":mn $3 See More: $URBAN"
+printf '%s\n' ":mn $3 See More: $URBAN"
