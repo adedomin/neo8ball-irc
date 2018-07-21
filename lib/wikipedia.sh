@@ -58,14 +58,13 @@ WIKI="https://en.wikipedia.org/w/api.php?action=opensearch&format=json&formatver
     curl --silent \
         --fail "$WIKI" \
     || echo null
-} | jq --arg BOLD $'\002' \
-       --arg CHAN "$1" \
+} | jq --arg CHAN "$1" \
        --arg COUNT "$COUNT" \
        -r '
     if ((.[1] | length) > 0) then
         [.[1][0:($COUNT | tonumber)],.[2][0:($COUNT | tonumber)],.[3][0:($COUNT | tonumber)]]
         | transpose
-        | map(":m \($CHAN) \($BOLD)\(.[0])\($BOLD) :: \(.[1][0:85]) ... \(.[2])")
+        | map(":m \($CHAN) \u0002\(.[0])\u0002 :: \(.[1][0:85]) ... \(.[2])")
         | .[]
     else
         ":m \($CHAN) No Results."
