@@ -89,10 +89,12 @@ if (( def_len > 0 )); then
             definition="${defs[i]}"
             (( ${#definition} > 400 )) &&
                 definition="${definition:0:400}..."
-            print_def "$1" "$i" "$def_len"
+            print_def "$1" "$(( i + 1 ))" "$def_len"
         done
     else
-        definition="${defs[DEFINITION]}"
+        (( DEFINITION > def_len )) &&
+            DEFINITION=1
+        definition="${defs[DEFINITION - 1]}"
         print_def "$1" "$DEFINITION" "$def_len"
     fi
     echo ":mn $3 See More: $DICTIONARY"
