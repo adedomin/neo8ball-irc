@@ -13,21 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-declare -i COUNT
-COUNT=1
+declare -i COUNT=1
 LAST=
 msg="$4"
 for arg in $4; do
     case "$arg" in
         -c|--count)
-            LAST='C'
-            msg="${msg#* }"
+            LAST='c'
         ;;
         --count=*)
             echo "${arg#*=}" >&2
             [[ "${arg#*=}" =~ ^[1-3]$ ]] &&
                 COUNT="${arg#*=}"
-            msg="${msg#* }"
+        ;;
+        -d|--defintion)
+            LAST='d'
+        ;;
+        --definition=*)
+            [[ "${arg#*=}" =~ ^(1[0-9]|[1-9])$ ]] &&
+                declare -i DEFINITION="${arg#*=}"
         ;;
         -h|--help)
             echo ":m $1 usage: $5 [--count=#-to-ret] query"
@@ -36,10 +40,15 @@ for arg in $4; do
         ;;
         *)
             [ -z "$LAST" ] && break
-            LAST=
-            [[ "$arg" =~ ^[1-3]$ ]] &&
-                COUNT="$arg"
-            msg="${msg#* }"
+            if [ "$LAST" = 'd' ]; then
+                declare -i DEFINITION
+                [[ "$arg" =~ ^(1[0-9]|[1-9])$ ]] &&
+                    declare -i DEFINITION="$arg"
+            else
+                [[ "$arg" =~ ^[1-3]$ ]] &&
+                    COUNT="$arg"
+            fi
+            unset LAST
         ;;
     esac
     if [[ "$msg" == "${msg#* }" ]]; then
@@ -50,36 +59,42 @@ for arg in $4; do
     fi
 done
 
-if [ -z "$msg" ]; then
+if [[ -z "$msg" ]]; then
     echo ":mn $3 This command requires a search query"
     exit 0
 fi
 
 DICTIONARY="https://en.wiktionary.org/w/index.php?title=${msg% *}&printable=yes"
-declare -i DEF_NUM
-DEF_NUM=0
 
-while read -r definition; do
-    DEF_NUM+=1
-    (( ${#definition} > 400 )) &&
-        definition="${definition:0:400}..."
-    echo -e ":m $1 "$'\002'"${msg:0:100}\\002 :: $definition"
-    (( DEF_NUM >= COUNT )) && break
-done < <(
-    curl --silent --fail "$DICTIONARY" \
-    | xmllint --xpath '/html/body/div/div/div/div/ol/li' - \
-    | sed 's@<\(a\|/a\|span\|/span\)[^>]*>@@g' \
-    | html2 \
-    | sed -n '
-        /^\/html\/body\/li=[[:space:]]*$/d
-        /^\/html\/body\/li=/ {
-          s@/html/body/li=@@p
-        }
-    ' \
-    | head -n 3
+mapfile -t defs < <(
+    xpath -q -e \
+'//div[@class = "mw-parser-output"]/*/span[@id = "Verb" or @id = "Noun" or @id = "Adjective"]/ancestor::*/following-sibling::ol[1]/li' <(
+        curl --silent --fail "$DICTIONARY"
+    ) | sed '
+        s@</\?\(li\|a\|span\)[^>]*>@@g
+        /<[^>]*>/d
+    '
 )
 
-if (( DEF_NUM > 0 )); then
+print_def() {
+    printf ':m %s \002%s\002 [%d/%d] :: %s\n' \
+        "$1" "${msg:0:100}" "$2" "$3" \
+        "${definition}"
+}
+
+declare -i i def_len="${#defs[@]}"
+if (( def_len > 0 )); then
+    if [[ -z "$DEFINITION" ]]; then
+        for (( i=0; i < COUNT; ++i )); do
+            definition="${defs[i]}"
+            (( ${#definition} > 400 )) &&
+                definition="${definition:0:400}..."
+            print_def "$1" "$i" "$def_len"
+        done
+    else
+        definition="${defs[DEFINITION]}"
+        print_def "$1" "$DEFINITION" "$def_len"
+    fi
     echo ":mn $3 See More: $DICTIONARY"
 else
     echo ":m $1 No definition found"
