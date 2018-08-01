@@ -83,6 +83,7 @@ print_def() {
 }
 
 declare -i i def_len="${#defs[@]}"
+(( COUNT > DEFINITION )) && COUNT="$def_len"
 if (( def_len > 0 )); then
     if [[ -z "$DEFINITION" ]]; then
         for (( i=0; i < COUNT; ++i )); do
