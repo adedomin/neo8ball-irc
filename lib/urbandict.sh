@@ -77,7 +77,7 @@ NEW_URBAN="http://api.urbandictionary.com/v0/define?term=$(URI_ENCODE "$q")"
         --location \
         "$NEW_URBAN" \
     || echo null
-} | sed 's/\\[rn]/ /g' \
+} | sed 's/\\[rn]\(\\[rn]\)*/ /g' \
     | jq --arg CHANNEL "$1" \
        --arg COUNT "$COUNT" \
        --arg DEFNUM "$DEFINITION" \
