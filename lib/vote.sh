@@ -102,7 +102,7 @@ case "$5" in
             "${BOLD}.standings${BOLD} to view current results."
 
         sleep "${DURATION}s"
-        echo -e ":m $1 ${BOLD}Vote results${BOLD} $v"
+        printf '%s\n' ":m $1 ${BOLD}Vote results${BOLD} $v"
         standings "$1"
         rm -rf -- "$VOTE_LOCK"
     ;;
