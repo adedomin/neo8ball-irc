@@ -18,13 +18,23 @@ YES="$VOTE_LOCK/yes"
 NO="$VOTE_LOCK/no"
 ISSUE="$VOTE_LOCK/issue"
 DURATION="120"
+BOLD=$'\002'
+COLOR=$'\003'
+
+# $1 - user
+already_vote_check() {
+    grep -q -F -- "$1" "$YES" "$NO" && {
+        printf '%s\n' ":mn $3 You have already voted."
+        exit 0
+    }
+}
 
 # $1 - channel name
 standings() {
     yes="$(wc -l < "$YES")"
     no="$(wc -l  < "$NO")"
-    echo -e ":m $1 Yes "$'\003'"03${yes:-0}"
-    echo -e ":m $1 No  "$'\003'"04${no:-0}"
+    printf '%s\n' ":m $1 Yes ${COLOR}03${yes:-0}" \
+                  ":m $1 No  ${COLOR}04${no:-0}"
 }
 
 # parse args
@@ -35,16 +45,17 @@ for key in $4; do
             LAST='d'
         ;;
         --duration=*)
-            DURATION="${key#*=}" 
-            [[ "$DURATION" =~ ^[0-9]*$ ]] || 
+            DURATION="${key#*=}"
+            [[ "$DURATION" =~ ^[0-9]*$ ]] ||
                 DURATION=120
-            (( DURATION > 30 && DURATION < 3601 )) || 
+            (( DURATION > 30 && DURATION < 3601 )) ||
                 DURATION=120
         ;;
         -h|--help)
-            echo ":m $1 usage: $5 [--duration=#] <y/n question>"
-            echo ":m $1 create a vote for a given question."
-            echo ":m $1 duration option must be between 30 to 3600 seconds."
+            printf '%s\n' \
+                ":m $1 usage: $5 [--duration=#] <y/n question>" \
+                ":m $1 create a vote for a given question." \
+                ":m $1 duration option must be between 30 to 3600 seconds."
             exit 0
         ;;
         *)
@@ -64,45 +75,45 @@ for key in $4; do
     fi
 done
 
-if [ ! -d "$VOTE_LOCK" ] && [ "$5" != 'vote' ]; then
-    echo ":m $1 No vote in progress; please use .vote question"
+if [[ ! -d "$VOTE_LOCK" && "$5" != 'vote' ]]; then
+    printf '%s\n' ":m $1 No vote in progress; please use .vote question"
     exit 0
 fi
 
-if [ "$5" = 'standings' ]; then
-    echo -e ":m $1 \\002Current Standings\\002 $(< "$ISSUE")"
-    standings "$1"
-    exit 0
-fi
-
-if [ "$5" != 'vote' ] && 
-    grep -q -F "$2" "$YES" "$NO" 2>/dev/null
-then
-    echo ":mn $3 You have already voted."
-    exit 0
-fi
-
-if [ "$5" = 'vote' ]; then
-    if ! mkdir "$VOTE_LOCK" 2>/dev/null; then
-        echo ":m $1 A vote is already in progress."
+case "$5" in
+    standings)
+        printf '%s\n' \
+            ":m $1 ${BOLD}Current Standings${BOLD} $(< "$ISSUE")"
+        standings "$1"
         exit 0
-    fi
-    echo "$v" > "$ISSUE"
+    ;;
+    vote)
+        if ! mkdir "$VOTE_LOCK" 2>/dev/null; then
+            printf '%s\n' ":m $1 A vote is already in progress."
+            exit 0
+        fi
+        printf '%s\n' "$v" > "$ISSUE"
 
-    echo ":m $1 A vote on the issue ( ${v:0:200} ) has started and will finish in $DURATION seconds."
-    echo -e ":m $1 Use \\002.yes\\002 or \\002.no\\002 to vote;" \
-        "\\002.standings\\002 to view current results."
+        printf '%s %s\n' \
+            ":m $1 A vote on the issue ( ${v:0:200} ) has started and" \
+            "will finish in $DURATION seconds."
+        printf '%s %s\n' \
+            ":m $1 Use ${BOLD}.yes${BOLD} or ${BOLD}.no${BOLD} to vote;" \
+            "${BOLD}.standings${BOLD} to view current results."
 
-    sleep "${DURATION}s"
-    echo -e ":m $1 \\002Vote results\\002 $v"
-    standings "$1"
-    rm -rf -- "$VOTE_LOCK"
-
-elif [ "$5" = 'yes' ]; then
-    echo "$2" >> "$YES"
-    echo -e ":mn $3 Your \\002yes\\002 vote was cast."
-
-elif [ "$5" = 'no' ]; then
-    echo "$2" >> "$NO"
-    echo -e ":mn $3 Your \\002no\\002 vote was cast."
-fi
+        sleep "${DURATION}s"
+        echo -e ":m $1 ${BOLD}Vote results${BOLD} $v"
+        standings "$1"
+        rm -rf -- "$VOTE_LOCK"
+    ;;
+    yes)
+        already_vote_check "$2"
+        printf '%s\n' "$2" >> "$YES"
+        printf '%s\n' ":mn $3 Your ${BOLD}yes${BOLD} vote was cast."
+    ;;
+    no)
+        already_vote_check "$2"
+        printf '%s\n' "$2" >> "$NO"
+        printf '%s\n' ":mn $3 Your ${BOLD}no${BOLD} vote was cast."
+    ;;
+esac
