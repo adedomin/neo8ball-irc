@@ -34,8 +34,55 @@ Example systemd Service
     [Service]
     User=bots
     ExecStart=/bin/bash /home/bots/src/neo8ball-irc/ircbot.sh
-    ExecReload=/bin/kill -HUP $MAINPID
+    ExecReload=/bin/kill -HUP \$MAINPID
     Restart=on-failure
 
     [Install]
     WantedBy=multi-user.target
+
+Developing New Plugins
+-----------------------
+
+bash-ircbot by default only responds to CTCP VERSION messages.
+To make the bot do anything else, you must develop your own plugins.
+
+Below is a guide which explains how your plugins can communicate with bash-ircbot.
+
+### Arguments
+
+Pugins receive five (six for regexp) arguments:
+
+  1. The channel the message came from; (ALT) the user the message came from if it is a private message event.
+  2. User's vhost (use to be date and time)
+  3. The nickname the message came from
+  4. The message itself
+  5. name of the command it matched; (ALT) the library path if highlight; (ALT2) the string that matched a regex event
+  6. If event is a regexp one, the sixth argument is the matched text in the regexp.
+
+### Interacting with the channels
+
+Plugins communicate with bash-ircbot through stdout.
+Plugins can write to stderr for logging, however it is recommended
+that they use the log command instead.
+Plugins must print out a command string using the below syntax:
+
+    :j #chan          - join a channel
+    :j #chan,#..      - join multiple channels
+    :l #chan          - leave a channel
+    :l #chan,#..      - leave multiple channels
+    :m #chan message  - send message to channel or user
+    :mn #chan message - send notice to channel or user
+    :n new_nick       - change nick (might be removed)
+    :l[ewid] log_msg  - send a string to the (e)rror|(w)arn|(i)nfo|(d)ebug log
+    :r anything       - send raw irc command; e.g. PRIVMSG #chan :hi
+
+All commands start with a colon (:), the command letter(s) and the arguments.
+All the commands that take multi-space arguments already have the colon appended to the front of them, except for raw commands.
+
+So do not do something like:
+
+    :m #chan :this is a multi-space message.
+
+just do:
+
+    :m #chan this is a multi-space message.
