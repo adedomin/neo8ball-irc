@@ -86,3 +86,14 @@ So do not do something like:
 just do:
 
     :m #chan this is a multi-space message.
+
+### State
+
+State, and mutexes are ultimately the plugin's responsibility;
+only a temporary path and environment variables are provided by neo8ball to plugins.
+The environment variable, PLUGIN_TEMP, will be populated with the temporary directory.
+A plugin can use this path to store temporary state.
+This directory is removed when neo8ball stops.
+
+Configurations, such as API keys, can be provided as exported environment variables.
+Simply add a line like: `export PLUGIN_VARIABLE_NAME=value` in config.sh.
