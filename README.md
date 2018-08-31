@@ -89,9 +89,9 @@ just do:
 
 ### State
 
-State, and mutexes are ultimately the plugin's responsibility;
+State, and mutexes are ultimately the *plugin's responsibility*;
 only a temporary path and environment variables are provided by neo8ball to plugins.
-The environment variable, PLUGIN_TEMP, will be populated with the temporary directory.
+The environment variable, `PLUGIN_TEMP`, will be populated with the temporary directory.
 A plugin can use this path to store temporary state.
 This directory is removed when neo8ball stops.
 
