@@ -43,10 +43,10 @@ Example systemd Service
 Developing New Plugins
 -----------------------
 
-bash-ircbot by default only responds to CTCP VERSION messages.
+neo8ball by default only responds to CTCP VERSION messages.
 To make the bot do anything else, you must develop your own plugins.
 
-Below is a guide which explains how your plugins can communicate with bash-ircbot.
+Below is a guide which explains how your plugins can communicate with neo8ball.
 
 ### Arguments
 
@@ -61,7 +61,7 @@ Pugins receive five (six for regexp) arguments:
 
 ### Interacting with the channels
 
-Plugins communicate with bash-ircbot through stdout.
+Plugins communicate with neo8ball through stdout.
 Plugins can write to stderr for logging, however it is recommended
 that they use the log command instead.
 Plugins must print out a command string using the below syntax:
