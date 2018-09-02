@@ -16,6 +16,7 @@
 declare -i COUNT=1
 LAST=
 msg="$4"
+query_type='@id = "Verb" or @id = "Noun" or @id = "Adjective"'
 for arg in $4; do
     case "$arg" in
         -c|--count)
@@ -33,9 +34,23 @@ for arg in $4; do
             [[ "${arg#*=}" =~ ^(1[0-9]|[1-9])$ ]] &&
                 declare -i DEFINITION="${arg#*=}"
         ;;
+        -n|--noun)
+            type_of=Noun
+            query_type='@id = "Noun"'
+        ;;
+        -v|--verb)
+            type_of=Verb
+            query_type='@id = "Verb"'
+        ;;
+        -a|--adjective)
+            type_of=Adjective
+            query_type='@id = "Adjective"'
+        ;;
         -h|--help)
-            echo ":m $1 usage: $5 [--count=#-to-ret] query"
-            echp ":m $1 defines a given word."
+            printf '%s\n' \
+                ":m $1 usage: $5 [-nva] [--defintion=#-to-get] [--count=#-to-ret] query"
+            printf '%s\n' \
+                ":m $1 defines a given word. -n:--noun -v:--verb -a:--adjective"
             exit 0
         ;;
         *)
@@ -64,11 +79,11 @@ if [[ -z "$msg" ]]; then
     exit 0
 fi
 
-DICTIONARY="https://en.wiktionary.org/w/index.php?title=${msg% *}&printable=yes"
+DICTIONARY="https://en.wiktionary.org/w/index.php?title=$(URI_ENCODE "${msg}")&printable=yes"
 
 mapfile -t defs < <(
     xpath -q -e \
-'//div[@class = "mw-parser-output"]/*/span[@id = "Verb" or @id = "Noun" or @id = "Adjective"]/ancestor::*/following-sibling::ol[1]/li' <(
+'//div[@class = "mw-parser-output"]/*/span['"$query_type"']/ancestor::*/following-sibling::ol[1]/li' <(
         curl --silent --fail "$DICTIONARY"
     ) | sed '
         s@</\?\(li\|a\|span\)[^>]*>@@g
@@ -78,7 +93,7 @@ mapfile -t defs < <(
 
 print_def() {
     printf ':m %s \002%s\002 [%d/%d] :: %s\n' \
-        "$1" "${msg:0:100}" "$2" "$3" \
+        "$1" "${type_of:+$type_of: }${msg:0:100}" "$2" "$3" \
         "${definition}"
 }
 
