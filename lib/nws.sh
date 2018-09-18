@@ -43,12 +43,12 @@ for a in $4; do
 done
 
 if [ -z "$arg" ]; then
-    arg=$(GET_LOC "NWS~$3")
-    if [ -z "$arg" ]; then
+    if ! GET_LOC "NWS~$3"; then
         echo ":mn $3 you must set a default location first"
         echo ":mn $3 use --save STATION"
         exit 0
     fi
+    arg="$REPLY"
 fi
 
 if [ -n "$SEARCH" ]; then

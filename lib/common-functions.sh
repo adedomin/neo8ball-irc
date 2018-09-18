@@ -69,36 +69,43 @@ reladate() {
 export -f reladate
 
 # get default location for user
-# $1     - user
-# return - location
+# $1      - user
+# return  - 1 on failure
+# mutates - REPLY with value
 GET_LOC() {
-    [ -z "$PERSIST_LOC" ] && PERSIST_LOC="$PLUGIN_TEMP"
+    [[ -z "$PERSIST_LOC" ]] && PERSIST_LOC="$PLUGIN_TEMP"
     local weatherdb="$PERSIST_LOC/weather-defaults.db"
-    IFS=':' read -r _ arg < <(
-        grep "^$1:" "$weatherdb"
+    REPLY=$(
+        awk -v user="$1" -- '
+            index($0, user":") == 1 {
+                print substr($0, length(user)+2)
+                found = 1
+                exit
+            }
+            END { if (!found) exit 1; else exit 0 }
+        ' "$weatherdb"
     )
-    echo "$arg"
 }
 export -f GET_LOC
 
 # save location ($2) for user ($1)
 # for weather plugins
-# $1: user
-# $2: location
+# $1     - user
+# $2     - location
+# return - nonzero on failure
 SAVE_LOC() {
-    [ -z "$PERSIST_LOC" ] && PERSIST_LOC="$PLUGIN_TEMP"
+    [[ -z "$PERSIST_LOC" ]] && PERSIST_LOC="$PLUGIN_TEMP"
     local weatherdb="$PERSIST_LOC/weather-defaults.db"
-    local weatherdb_tmp="$weatherdb.$$.tmp"
-    if [ ! -f "$weatherdb" ]; then
-        touch "$weatherdb"
-    fi
+    [[ ! -f "$weatherdb" ]] && true > "$weatherdb"
+    local weatherdb_tmp="$weatherdb.tmp"
 
-    if ! mkdir "$weatherdb.lock"; then
-        (( ${3:-0} > 1 )) && return 1
-        sleep 1s
-        "$0" "$@"
-        return
-    fi
+    local lock="$PLUGIN_TEMP/weatherdb.save-lock"
+    [[ ! -f "$lock" ]] && (
+        umask 177
+        true > "$lock"
+    )
+    exec 40<> "$lock"
+    flock --exclusive --wait 2 40 || return
 
     if ! awk -F : \
         -v user="$1" \
@@ -108,16 +115,17 @@ SAVE_LOC() {
         END { print user ":" location }' \
         "$weatherdb" \
     > "$weatherdb_tmp"; then
-        rmdir "$weatherdb.lock"
-        rm -f "$weatherdb_tmp"
+        rm -f -- "$weatherdb_tmp"
+        exec 40<&-
         return 1
     fi
 
-    rmdir "$weatherdb.lock"
-    if ! mv "$weatherdb_tmp" "$weatherdb"; then
-        rm -f "$weatherdb_tmp"
+    if ! mv -- "$weatherdb_tmp" "$weatherdb"; then
+        rm -f -- "$weatherdb_tmp"
+        exec 40<&-
         return 1
     fi
+    exec 40<&-
 }
 export -f SAVE_LOC
 
