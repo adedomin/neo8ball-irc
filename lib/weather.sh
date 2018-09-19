@@ -40,19 +40,18 @@ for key in $4; do
     fi
 done
 
-if [ -z "$arg" ]; then
-    if ! GET_LOC "$3"; then
+if [[ -z "$arg" ]]; then
+    if ! arg="$(GET_LOC "$3")"; then
         echo ":mn $3 you must set a default location first"
         echo ":mn $3 use --save location"
         exit 0
     fi
-    arg="$REPLY"
 fi
 
 WEATHER+="$(URI_ENCODE "$arg")"
 RES=$(curl "${WEATHER}" 2>/dev/null)
 
-if [ -z "$RES" ]; then
+if [[ -z "$RES" ]]; then
     echo ":m $1 no weather information"
     exit 0
 fi

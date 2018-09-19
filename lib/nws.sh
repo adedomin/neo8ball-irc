@@ -42,22 +42,21 @@ for a in $4; do
     fi
 done
 
-if [ -z "$arg" ]; then
-    if ! GET_LOC "NWS~$3"; then
+if [[ -z "$arg" ]]; then
+    if ! arg="$(GET_LOC "NWS~$3")"; then
         echo ":mn $3 you must set a default location first"
         echo ":mn $3 use --save STATION"
         exit 0
     fi
-    arg="$REPLY"
 fi
 
-if [ -n "$SEARCH" ]; then
-    if [ -z "$PERSIST_LOC" ]; then
+if [[ -n "$SEARCH" ]]; then
+    if [[ -z "$PERSIST_LOC" ]]; then
         echo ":mn $3 search is disabled"
         exit 0
     fi
 
-    if [ ! -f "$PERSIST_LOC/stations.txt" ]; then
+    if [[ ! -f "$PERSIST_LOC/stations.txt" ]]; then
         curl 'http://weather.rap.ucar.edu/surface/stations.txt' \
             -L 2>/dev/null \
         | sed '/^!/d' > "$PERSIST_LOC/stations.txt"
@@ -115,25 +114,25 @@ done < <(
     xml2 2>/dev/null
 )
 
-if [ -z "$LOC" ]; then
+if [[ -z "$LOC" ]]; then
     echo ":m $1 invalid station"
     echo ":m $1 find a station: .$5 --search <city or airport>"
     exit 0
 fi
 
 # add color to temps!!!
-if [ "$(bc -l <<< "$T_F >= 80.00")" -eq 1 ]; then
+if [[ "$(bc -l <<< "$T_F >= 80.00")" -eq 1 ]]; then
     TEMP_COL=$'\003'"04"
-elif [ "$(bc -l <<< "$T_F < 45.00")" -eq 1 ]; then
+elif [[ "$(bc -l <<< "$T_F < 45.00")" -eq 1 ]]; then
     TEMP_COL=$'\003'"02"
 else
     TEMP_COL=$'\003'"03"
 fi
 
-if [ -n "$W_TEMP" ]; then
-    if [ "$(bc -l <<< "$WT_F >= 80.00")" -eq 1 ]; then
+if [[ -n "$W_TEMP" ]]; then
+    if [[ "$(bc -l <<< "$WT_F >= 80.00")" -eq 1 ]]; then
         WTEMP_COL=$'\003'"04"
-    elif [ "$(bc -l <<< "$WT_F < 45.00")" -eq 1 ]; then
+    elif [[ "$(bc -l <<< "$WT_F < 45.00")" -eq 1 ]]; then
         WTEMP_COL=$'\003'"02"
     else
         WTEMP_COL=$'\003'"03"
@@ -152,7 +151,7 @@ echo -e ":m $1 \\002${LOC}\\002 :: ${CONDITIONS} ::" \
     "\\002Pressure\\002 ${PRESSURE}"
 
 # valid station... so save it
-if [ -n "$SAVE" ]; then
+if [[ -n "$SAVE" ]]; then
     if ! SAVE_LOC "NWS~$3" "$arg"; then
         echo ":mn $3 there was a problem saving your defaults"
         echo ":logw NWS -> failed to save $arg for $3"

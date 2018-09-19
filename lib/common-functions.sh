@@ -15,7 +15,8 @@
 
 # common function used in plugins
 
-# $1 - message to uri encode
+# $1     - message to uri encode
+# stdout - uri encoded string
 URI_ENCODE() {
     echo -nE "$1" \
     | curl -Gso /dev/null \
@@ -71,20 +72,18 @@ export -f reladate
 # get default location for user
 # $1      - user
 # return  - 1 on failure
-# mutates - REPLY with value
+# stdout  - user's location
 GET_LOC() {
     [[ -z "$PERSIST_LOC" ]] && PERSIST_LOC="$PLUGIN_TEMP"
     local weatherdb="$PERSIST_LOC/weather-defaults.db"
-    REPLY=$(
-        awk -v user="$1" -- '
-            index($0, user":") == 1 {
-                print substr($0, length(user)+2)
-                found = 1
-                exit
-            }
-            END { if (!found) exit 1; else exit 0 }
-        ' "$weatherdb"
-    )
+    awk -v user="$1" -- '
+        index($0, user":") == 1 {
+            print substr($0, length(user)+2)
+            found = 1
+            exit
+        }
+        END { if (!found) exit 1; else exit 0 }
+    ' "$weatherdb"
 }
 export -f GET_LOC
 
