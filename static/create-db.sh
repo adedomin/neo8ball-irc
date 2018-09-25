@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # Copyright 2017 prussian <genunrest@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,27 +15,26 @@
 
 # Create king james and quran sqlite3 db, for full text searching
 
-printf '%s\n' '--- creating db ---'
+printf '%s\n' '--- creating db: kjbible-quran.db ---'
 rm -f -- kjbible-quran.db
-{
-    printf '%s\n' \
-        "CREATE VIRTUAL TABLE king_james USING fts5(
-            book, verse, tokenize = 'porter unicode61'
-        );
-        CREATE VIRTUAL TABLE quran USING fts5(
-            vid, verse, tokenize = 'porter unicode61'
-        );
-        BEGIN TRANSACTION;"
-    awk -F'|' -- '
-        function esc(str) {
-            gsub(/\047/, "\047\047", str)
-            return "\047" str "\047"
-        }
-        {
-            if (FILENAME == "king-james.txt") table = "king_james"
-            else table = "quran"
-            print "INSERT INTO " table " VALUES (" esc($1) ", " esc($2) ");"
-        }
-    ' king-james.txt quran-allah-ver.txt
-    printf '%s\n' 'COMMIT TRANSACTION;'
-} | sqlite3 kjbible-quran.db
+awk -F'|' -- '
+    BEGIN {
+        print "CREATE VIRTUAL TABLE king_james USING fts5("
+        print "  book, verse, tokenize = \047porter unicode61\047"
+        print ");"
+        print "CREATE VIRTUAL TABLE quran USING fts5("
+        print "  vid, verse, tokenize = \047porter unicode61\047"
+        print ");"
+        print "BEGIN TRANSACTION;"
+    }
+    function esc(str) {
+        gsub(/\047/, "\047\047", str)
+        return "\047" str "\047"
+    }
+    {
+        if (FILENAME == "king-james.txt") table = "king_james"
+        else table = "quran"
+        print "INSERT INTO " table " VALUES (" esc($1) ", " esc($2) ");"
+    }
+    END { print "COMMIT TRANSACTION;" }
+' king-james.txt quran-allah-ver.txt | sqlite3 kjbible-quran.db
