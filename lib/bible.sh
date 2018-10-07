@@ -42,16 +42,17 @@ q="$4"
 for arg in $4; do
     case "$arg" in
         -h|--help)
-            echo ":m $1 usage: $5 [-A #|--after=#] [query]"
+            echo ":m $1 usage: $5 [+#|-A #|--after=#] [query]"
             echo ":m $1 find or get random verse from either the kjv bible or the quran."
             echo ":m $1 You can optionally select up to 9 more verses after the one found."
             exit 0
         ;;
+        +[1-9])
+            grep_args=('-A' "${arg#+}")
+            cnt="${arg#+}"
+        ;;
         -A|--after)
             LAST=a
-        ;;
-        -B|--before)
-            LAST=b
         ;;
         --after=*)
             case "${arg#*=}" in
