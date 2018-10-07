@@ -13,13 +13,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# $1 - the channel
+# $2 - the search string
+print_verses() {
+    {
+        grep "${grep_args[@]}" -F -i -m 1 -- \
+            "$2" "$BIBLE_SOURCE" ||
+                printf '%s\n' 'Nothing Found'
+    } | {
+        declare -i line_cnt=0
+        while read -r verse; do
+            [[ -z "$start" && "$verse" != 'Nothing Found' ]] && {
+                start="${verse%%' |'*}"
+                output+="$start${cnt:+-$cnt} | "
+            }
+            verse="${verse#*'| '}"
+            output+="$verse // "
+        done
+        while [[ -n "$output" ]] && (( line_cnt++ < 3 )); do
+            line="${output:0:350}"
+            output="${output:350}"
+            printf ":m $1 %s\\n" "$line"
+        done
+    }
+}
+
 q="$4"
 for arg in $4; do
     case "$arg" in
         -h|--help)
-            echo ":m $1 usage: $5 [--before=#|--after=#] [query]"
+            echo ":m $1 usage: $5 [-A #|--after=#] [query]"
             echo ":m $1 find or get random verse from either the kjv bible or the quran."
-            echo ":m $1 You can optionally select up to 2 more verses before or after the one found."
+            echo ":m $1 You can optionally select up to 9 more verses after the one found."
             exit 0
         ;;
         -A|--after)
@@ -30,22 +55,16 @@ for arg in $4; do
         ;;
         --after=*)
             case "${arg#*=}" in
-                [1-2]) grep_args=('-A' "${arg#*=}") ;;
-            esac
-        ;;
-        --before=*)
-            case "${arg#*=}" in
-                [1-2]) grep_args=('-B' "${arg#*=}") ;;
+                [1-9]) grep_args=('-A' "${arg#*=}")
+                       cnt="${arg#*=}" ;;
             esac
         ;;
         *)
             case "$LAST" in
                 '') break ;;
                 a) case "${arg#*=}" in
-                    [1-2]) grep_args=('-A' "$arg") ;;
-                esac ;;
-                b) case "${arg#*=}" in
-                    [1-2]) grep_args=('-B' "$arg") ;;
+                    [1-9]) grep_args=('-A' "$arg")
+                           cnt="$arg" ;;
                 esac ;;
             esac
             unset LAST
@@ -88,28 +107,18 @@ EOF
     )"
 
     if [[ "${#grep_args[@]}" == 2 && -n "$verse" ]]; then
-        grep "${grep_args[@]}" -F -m 1 -- "$verse" "$BIBLE_SOURCE" \
-        | { while read -r; do printf ":m $1 %s\\n" "$REPLY"; done }
+        print_verses "$1" "$verse"
     else
-        echo ":m $1 ${verse:-Nothing Found}"
+        printf ":m $1 %s\\n" "${verse:-Nothing Found}"
     fi
-
 elif [[ -n "$BIBLE_SOURCE" && -f "$BIBLE_SOURCE" ]]; then
-
+    
     if [[ -z "$q" ]]; then
         printf ":m $1 %s" "$(shuf -n1 "$BIBLE_SOURCE")"
         exit
     fi
 
-    verse="$(
-        grep "${grep_args[@]}" -F -i -m 1 -- \
-            "$q" "$BIBLE_SOURCE" \
-        | { while read -r; do printf ":m $1 %s\\n" "$REPLY"; done } 
-    )"
-    echo ":m $1 ${verse:-Nothing Found}"
-
+    print_verses "$1" "$q"
 else
-
     echo ":m $1 No bible available"
-
 fi
