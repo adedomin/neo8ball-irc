@@ -25,7 +25,7 @@ print_verses() {
         while read -r verse; do
             [[ -z "$start" && "$verse" != 'Nothing Found' ]] && {
                 start="${verse%%' |'*}"
-                output+="$start${cnt:+-$cnt} | "
+                output+="$start${cnt:++"$(( cnt + 1 ))"} | "
             }
             verse="${verse#*'| '}"
             output+="$verse // "
