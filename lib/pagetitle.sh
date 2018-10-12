@@ -9,12 +9,21 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
 # parse args
+CHAN="$1"
 URL="$6"
+
+# some people don't want page title in their channel
+case "$PAGETITLE_IGNORE" in
+    *$'\n'"$CHAN"$'\n'*) exit 0 ;;
+    "$CHAN"$'\n'*)       exit 0 ;;
+    *$'\n'"$CHAN")       exit 0 ;;
+    "$CHAN")             exit 0 ;;
+esac
 
 while read -r key val; do
     case ${key,,} in
@@ -27,14 +36,19 @@ while read -r key val; do
         ;;
     esac
 done < <(
-    curl -s -L --max-redirs 2 -m 10 -I "$URL"
+    curl --silent \
+        --location \
+        --max-redirs 2 \
+        --max-time 10 \
+        --head \
+        -- "$URL"
 )
 
-[ -z "$mime" ] && exit 0 
+[[ -z "$mime" ]] && exit 0
 
-if [[ "$mime" == image/* ]] && 
-    [ -n "$MS_COG_SERV" ] && 
-    [ -n "$MS_COG_KEY" ]
+if [[ "$mime" == image/* &&
+      -n "$MS_COG_SERV" &&
+      -n "$MS_COG_KEY" ]]
 then
     read -r dimension confidence caption < <(
         curl -f "$MS_COG_SERV" \
@@ -47,41 +61,39 @@ then
             + (.description.captions[0].confidence*100|floor|tostring) + " "
             + .description.captions[0].text'
     )
-    echo -e ":m $1 ↑ \\002Image\\002 :: $mime (${dimension:-0x0} ${sizeof:-Unknown B}) :: \\002Description\\002 ${caption:-unknown error} :: \\002Confidence\\002 ${confidence:-0}%"
+    printf '%s\n' ":m $1 ↑ "$'\002Image\002'" :: $mime (${dimension:-0x0} ${sizeof:-Unknown B}) :: "$'\002Description\002'" ${caption:-unknown error} :: "$'\002Confidence\002'" ${confidence:-0}%"
     exit 0
 fi
 
 if [[ ! "$mime" =~ text/html|application/xhtml+xml ]]; then
-    [ -n "$PAGETITLE_DISABLE_FILE" ] && exit
-    echo -e ":m $1 ↑ \\002File\\002 :: $mime (${sizeof:-Unknown})"
+    [[ -n "$PAGETITLE_DISABLE_FILE" ]] && exit
+    printf '%s\n' ":m $1 ↑ "$'\002File\002'" :: $mime (${sizeof:-Unknown})"
     exit 0
 fi
 
-{
-    printf '%s' ":m $1 ↑ "$'\002'"Title"$'\002'" :: "
-    curl --silent \
-        --fail \
-        --compressed \
-        --location \
-        --max-redirs 2 \
-        --max-time 10 \
-        "$URL" \
-    | sed -n '
-        /<title[^>]*>.*<\/title>/I {
-          s@.*<title[^>]*>\(.*\)</title>.*@\1@Ip
-          q
-        }
-        /<title[^>]*>/I {
-          :next
-          N
-          /<\/title>/I {
-            s@.*<title[^>]*>\(.*\)</title>.*@\1@Ip
-            q
-          }
-          $! b next
-        }' \
-    | HTML_CHAR_ENT_TO_UTF8 \
-    | tr '\r\n' ' ' \
-    | head --bytes=400
-    echo
-}
+printf '%s' ":m $1 ↑ "$'\002Title\002'" :: "
+curl --silent \
+    --fail \
+    --compressed \
+    --location \
+    --max-redirs 2 \
+    --max-time 10 \
+    -- "$URL" \
+| sed -n '
+    /<title[^>]*>.*<\/title>/I {
+      s@.*<title[^>]*>\(.*\)</title>.*@\1@Ip
+      q
+    }
+    /<title[^>]*>/I {
+      :next
+      N
+      /<\/title>/I {
+        s@.*<title[^>]*>\(.*\)</title>.*@\1@Ip
+        q
+      }
+      $! b next
+    }' \
+| HTML_CHAR_ENT_TO_UTF8 \
+| tr '\r\n' ' ' \
+| head --bytes=350
+echo
