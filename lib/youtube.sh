@@ -33,7 +33,7 @@ for key in $4; do
             exit 0
         ;;
         *)
-            [ -z "$LAST" ] && break
+            [[ -z "$LAST" ]] && break
             LAST=
             [[ "$key" =~ ^[1-3]$ ]] &&
                 COUNT="$key"
@@ -45,14 +45,14 @@ for key in $4; do
     else
         MATCH="${MATCH#* }"
     fi
-done 
+done
 
-if [ -z "$MATCH" ]; then
+if [[ -z "$MATCH" ]]; then
     echo ":mn $3 This command requires a search query"
     exit 0
 fi
 
-if [ -z "$YOUTUBE_KEY" ]; then
+if [[ -z "$YOUTUBE_KEY" ]]; then
     echo ":mn $3 this command is disabled; no api key"
     exit 0
 fi
@@ -60,9 +60,7 @@ fi
 if [ -n "$6" ]; then
     COUNT=1
     ids="$(grep -Po '(?<=watch\?v=)[^&?\s]*|(?<=youtu\.be/)[^?&\s]*' <<< "$MATCH")"
-fi
-
-if [ -z "$ids" ]; then
+else
     youtube="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=$(URI_ENCODE "$MATCH")&maxResults=${COUNT}&key=${YOUTUBE_KEY}"
     while read -r id; do
         if [ -z "$ids" ]; then
@@ -78,10 +76,12 @@ if [ -z "$ids" ]; then
     )
 fi
 
+[[ -z "$ids" ]] && exit 0
+
 stats="https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${ids}&key=${YOUTUBE_KEY}"
 
 while read -r id2 likes dislikes views duration title; do
-    [ -z "$title" ] && exit 0
+    [[ -z "$title" ]] && exit 0
     duration="${duration:2}"
     echo -e ":m $1" \
         $'\002'"${title}\\002 (${duration,,}) "$'\003'"09::\\003 https://youtu.be/${id2} "$'\003'"09::\\003" \
