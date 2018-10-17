@@ -80,14 +80,15 @@ fi
 
 stats="https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${ids}&key=${YOUTUBE_KEY}"
 
-while read -r id2 likes dislikes views duration title; do
+while read -r id2 likes dislikes views duration published title; do
     [[ -z "$title" ]] && exit 0
     duration="${duration:2}"
     echo -e ":m $1" \
         $'\002'"${title}\\002 (${duration,,}) "$'\003'"09::\\003 https://youtu.be/${id2} "$'\003'"09::\\003" \
         $'\003'"03\\u25B2 $(numfmt --grouping "$likes")\\003 "$'\003'"09::\\003" \
         $'\003'"04\\u25BC $(numfmt --grouping "$dislikes")\\003 "$'\003'"09::\\003" \
-        "\\002Views\\002 $(numfmt --grouping "$views")"
+        "\\002Views\\002 $(numfmt --grouping "$views") ::" \
+        "\\002Created\\002 ${published%%T*}"
 done < <(
     curl "${stats}" 2>/dev/null |
     jq -r '.items[0],.items[1],.items[2] //empty |
@@ -96,5 +97,6 @@ done < <(
         .statistics.dislikeCount + " " +
         .statistics.viewCount + " " +
         .contentDetails.duration + " " +
+        .snippet.publishedAt + " " +
         .snippet.title'
 )
