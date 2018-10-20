@@ -17,13 +17,9 @@
 CHAN="$1"
 URL="$6"
 
-# some people don't want page title in their channel
-case "$PAGETITLE_IGNORE" in
-    *$'\n'"$CHAN"$'\n'*) exit 0 ;;
-    "$CHAN"$'\n'*)       exit 0 ;;
-    *$'\n'"$CHAN")       exit 0 ;;
-    "$CHAN")             exit 0 ;;
-esac
+# some channels don't want page title info
+CHANNEL_IN_IGNORE_LIST "$CHAN" "$PAGETITLE_IGNORE" &&
+    exit 0
 
 while read -r key val; do
     case ${key,,} in

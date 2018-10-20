@@ -136,3 +136,21 @@ HTML_CHAR_ENT_TO_UTF8() {
     sed -f "$LIB_PATH/html-to-utf8.sed"
 }
 export -f HTML_CHAR_ENT_TO_UTF8
+
+# Checks if a channel is in a *_IGNORE style environment variable
+# SEE: config.sh -> PAGETITLE_IGNORE
+#
+# $1     - channel name
+# $2     - *_IGNORE variable, contains newline separated channel names
+# return - returns code 0 if variable found, 1 otherwise
+CHANNEL_IN_IGNORE_LIST() {
+    [[ -z "$2" || -z "$1" ]] && return 1
+    case "$2" in
+        *$'\n'"$1"$'\n'*) return 0 ;;
+        "$1"$'\n'*)       return 0 ;;
+        *$'\n'"$1")       return 0 ;;
+        "$1")             return 0 ;;
+    esac
+    return 1
+}
+export -f CHANNEL_IN_IGNORE_LIST

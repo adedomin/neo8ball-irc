@@ -58,6 +58,8 @@ if [[ -z "$YOUTUBE_KEY" ]]; then
 fi
 
 if [ -n "$6" ]; then
+    CHANNEL_IN_IGNORE_LIST "$1" "$YOUTUBE_IGNORE" &&
+        exit 0
     COUNT=1
     ids="$(grep -Po '(?<=watch\?v=)[^&?\s]*|(?<=youtu\.be/)[^?&\s]*' <<< "$MATCH")"
 else

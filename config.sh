@@ -155,21 +155,30 @@ export PERSIST_LOC="/tmp"
 export BIBLE_SOURCE="$(dirname "$0")/static/king-james.txt"
 export QURAN_SOURCE="$(dirname "$0")/static/quran-allah-ver.txt"
 
+# newline separated channels to disable pagetitle plugin in
+# RESTRICTIONS:
+# be careful to remove trailing/leading spaces from channels
+# has to be a string due to bash EXPORT restrictions
+export PAGETITLE_IGNORE='
+#nopagetitle
+'
+
+# newline separated channels to disable the
+# youtube regexp match mode
+# same issues as with PAGETITLE_IGNORE
+export YOUTUBE_IGNORE='
+#noyoutuberegexp
+'
+
 # list of channels to not print moose in
 # some channels may insta ban if multiple lines are written rapidly
-# has to be string due to bash export limitations
+# same issues as with PAGETITLE_IGNORE
 export MOOSE_IGNORE="
 #nomoose
 "
 # sleep timeout to prevent moose spam
 export MOOSE_SLEEP_TIMER='5s'
 
-# newline separated channels to disable pagetitle plugin in
-# be careful to remove trailing/leading spaces from channels
-# has to be a string due to bash EXPORT restrictions
-export PAGETITLE_IGNORE='
-#nopagetitle
-'
 # MS Cognitive Services Computer Vision API (describe)
 # for enhanced insight on images in lib/pagetitle.sh
 export MS_COG_SERV='https://westcentralus.api.cognitive.microsoft.com/vision/v1.0/describe'

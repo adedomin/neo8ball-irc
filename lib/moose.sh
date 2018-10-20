@@ -15,18 +15,14 @@
 
 MOOSE_URL='https://moose.ghetty.space'
 
-if [ -n "$MOOSE_IGNORE" ]; then
-    for channel in $MOOSE_IGNORE; do
-        if [ "$channel" = "$1" ]; then
-            echo ":mn $3 moose command disabled on $1"
-            exit 0
-        fi
-    done
-fi
+# moose is verbose and can create a lot of noise
+CHANNEL_IN_IGNORE_LIST "$1" "$MOOSE_IGNORE" && {
+    echo ":mn $3 moose command disabled on $1"
+    exit 0
+}
 
 q="$4"
-LAST=
-SEARCH=0
+SEARCH=
 for arg in $4; do
     case "$arg" in
         -l|--latest)
@@ -38,12 +34,7 @@ for arg in $4; do
             break
         ;;
         -s|--search)
-            LAST='s'
-        ;;
-        --search=*)
-            SEARCH="${arg#*=}"
-            [[ "$SEARCH" =~ ^[0-9]+$ ]] ||
-                SEARCH=0
+            SEARCH=1
         ;;
         -n|--no-shade)
             DISABLE_SHADE=1
@@ -54,14 +45,11 @@ for arg in $4; do
             exit 0
         ;;
         --)
-            q="${q:3}"
+            q="${q#*-- }"
             break
         ;;
         *)
-            [ "$LAST" != 's' ] && break
-            LAST=
-            [[ "$arg" =~ ^[0-9]+$ ]] ||
-                SEARCH="$arg"
+            break
         ;;
     esac
     if [[ "$q" == "${q#* }" ]]; then
@@ -72,14 +60,14 @@ for arg in $4; do
     fi
 done
 
-if [ -n "$SEARCH" ]; then
+if [[ -n "$SEARCH" ]]; then
     # shellcheck disable=2034
-    if [ -z "$q" ]; then
+    if [[ -z "$q" ]]; then
         echo ":m $1 search command requires a query"
         exit 0
     fi
     MOOSE_SEARCH="$(
-        curl "$MOOSE_URL/gallery/newest?p=${SEARCH}&q=$(URI_ENCODE "$q")" \
+        curl "$MOOSE_URL/gallery/newest?p=0&q=$(URI_ENCODE "$q")" \
             2>/dev/null
     )"
     if [ "$MOOSE_SEARCH" = '[]' ]; then
@@ -159,7 +147,7 @@ MOOSE_SHADING=()
 if [ "$MOOSE_SHADED" = 'true' ]; then
     while read -r line; do
         MOOSE_SHADING+=("$line")
-    done < <( 
+    done < <(
         jq -r '.shade' <<< "$MOOSE"
     )
 fi
@@ -264,7 +252,7 @@ for line in "${MOOSE_IMAGE[@]}"; do
             out+="${KCOL}${color}${symbol}${KCOL}"
         fi
     done
-    echo -e ":m $1 \u200B$out"
+    echo -e ":m $1 \\u200B$out"
     shade_lineno+=1
     sleep "0.3s"
 done 
