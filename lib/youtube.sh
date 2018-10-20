@@ -57,48 +57,72 @@ if [[ -z "$YOUTUBE_KEY" ]]; then
     exit 0
 fi
 
-if [ -n "$6" ]; then
+if [[ -n "$6" ]]; then
     CHANNEL_IN_IGNORE_LIST "$1" "$YOUTUBE_IGNORE" &&
         exit 0
     COUNT=1
     ids="$(grep -Po '(?<=watch\?v=)[^&?\s]*|(?<=youtu\.be/)[^?&\s]*' <<< "$MATCH")"
 else
     youtube="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=$(URI_ENCODE "$MATCH")&maxResults=${COUNT}&key=${YOUTUBE_KEY}"
-    while read -r id; do
-        if [ -z "$ids" ]; then
-            ids=$id
-        else
-            ids=$ids,$id
-        fi
-
-    done < <(
-        curl "${youtube}" -f 2>/dev/null |
-        jq -r '.items[0],.items[1],.items[2] //empty |
-               .id.videoId'
-    )
+    ids="$(
+        {
+            curl --silent --fail "${youtube}" ||
+                echo null
+        } | jq -r '
+            if (.items)
+                [ .items[0:3][] | id.videoId ]
+                | join(",")
+            else
+                empty
+            end
+        '
+    )"
 fi
 
 [[ -z "$ids" ]] && exit 0
 
 stats="https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${ids}&key=${YOUTUBE_KEY}"
 
-while read -r id2 likes dislikes views duration published title; do
-    [[ -z "$title" ]] && exit 0
-    duration="${duration:2}"
-    echo -e ":m $1" \
-        $'\002'"${title}\\002 (${duration,,}) "$'\003'"09::\\003 https://youtu.be/${id2} "$'\003'"09::\\003" \
-        $'\003'"03\\u25B2 $(numfmt --grouping "$likes")\\003 "$'\003'"09::\\003" \
-        $'\003'"04\\u25BC $(numfmt --grouping "$dislikes")\\003 "$'\003'"09::\\003" \
-        "\\002Views\\002 $(numfmt --grouping "$views") ::" \
-        "\\002Created\\002 ${published%%T*}"
-done < <(
-    curl "${stats}" 2>/dev/null |
-    jq -r '.items[0],.items[1],.items[2] //empty |
-        .id + " " +
-        .statistics.likeCount + " " +
-        .statistics.dislikeCount + " " +
-        .statistics.viewCount + " " +
-        .contentDetails.duration + " " +
-        .snippet.publishedAt + " " +
-        .snippet.title'
-)
+{
+    curl --silent --fail "${stats}" ||
+        echo null
+} | jq --arg CHANNEL "$1" \
+    -r 'def rev_string:
+            explode
+            | reverse
+            | implode
+        ;
+        def group_digits:
+            def _group:
+                if (. | length) > 3 then
+                    .[0:3] + ",", (.[3:] | _group)
+                else
+                    .
+                end
+            ;
+            . | tostring
+            | rev_string
+            | [ _group ] | join("")
+            | rev_string
+        ;
+        if (.items) then
+            .items[0:3][]
+            | ":m \($CHANNEL) \u0002" + .snippet.title + "\u0002 (" + (
+                .contentDetails.duration | ascii_downcase
+            ) + ") :: " +
+            "https://youtu.be/" + .id + " :: " +
+            "\u0003" + "03" + "\u25b2 " + (
+                .statistics.likeCount | group_digits
+            ) + "\u0003" + " :: " +
+            "\u0003" + "04" + "\u25bc " + (
+                .statistics.dislikeCount | group_digits
+            ) + "\u0003" + " :: " +
+            "\u0002Views\u0002 " + (
+                .statistics.viewCount | group_digits
+            ) + " :: " +
+            "\u0002by\u0002 " + .snippet.channelTitle +
+            " \u0002at\u0002 " + .snippet.publishedAt
+        else
+            empty
+        end
+'
