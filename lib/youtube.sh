@@ -70,7 +70,7 @@ else
                 echo null
         } | jq -r '
             if (.items) then
-                [ .items[0:3][] | id.videoId ]
+                [ .items[0:3][] | .id.videoId ]
                 | join(",")
             else
                 empty
