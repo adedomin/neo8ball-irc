@@ -69,7 +69,7 @@ else
             curl --silent --fail "${youtube}" ||
                 echo null
         } | jq -r '
-            if (.items)
+            if (.items) then
                 [ .items[0:3][] | id.videoId ]
                 | join(",")
             else
