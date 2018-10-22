@@ -95,20 +95,20 @@ stats="https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,cont
         def group_digits:
             def _group:
                 if (. | length) > 3 then
-                    .[0:3] + ",", (.[3:] | _group)
+                    .[0:3] + "," + (.[3:] | _group)
                 else
                     .
                 end
             ;
             . | tostring
             | rev_string
-            | [ _group ] | join("")
+            | _group
             | rev_string
         ;
         if (.items) then
             .items[0:3][]
             | ":m \($CHANNEL) \u0002" + .snippet.title + "\u0002 (" + (
-                .contentDetails.duration | ascii_downcase
+                .contentDetails.duration[2:] | ascii_downcase
             ) + ") :: " +
             "https://youtu.be/" + .id + " :: " +
             "\u0003" + "03" + "\u25b2 " + (
@@ -121,7 +121,7 @@ stats="https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,cont
                 .statistics.viewCount | group_digits
             ) + " :: " +
             "\u0002by\u0002 " + .snippet.channelTitle +
-            " \u0002at\u0002 " + .snippet.publishedAt
+            " \u0002on\u0002 " + .snippet.publishedAt[0:10]
         else
             empty
         end
