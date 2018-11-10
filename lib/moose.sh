@@ -248,7 +248,7 @@ for line in "${MOOSE_IMAGE[@]}"; do
             color="${COLOR["${line:$i:1}"]}"
             if [[ "$MOOSE_SHADED" = 'true' ]]; then
                 shade="${shade_line:$i:1}"
-                symbol="${SHADERS[shade]}"
+                symbol="${SHADERS[$shade]}"
                 [[ "$shade" = '3' ]] && color+=",$color"
             else
                 color+=",$color"
