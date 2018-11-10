@@ -66,17 +66,21 @@ if [[ -n "$SEARCH" ]]; then
         echo ":m $1 search command requires a query"
         exit 0
     fi
-    MOOSE_SEARCH="$(
-        curl "$MOOSE_URL/gallery/newest?p=0&q=$(URI_ENCODE "$q")" \
-            2>/dev/null
-    )"
-    if [ "$MOOSE_SEARCH" = '[]' ]; then
-        echo ":m $1 no moose found"
-        exit 0
-    fi
-    echo ":m $1 Moose Found: $(
-        jq '.[] | .name' <<< "$MOOSE_SEARCH" | tr '\n' ' '
-    )"
+    {
+        curl --silent --fail "$MOOSE_URL/gallery/newest?p=0&q=$(URI_ENCODE "$q")" ||
+            echo '"moose service is down."'
+    } | jq --arg CHANNEL "$1" \
+            -r 'if type == "array" and (. | length) > 0 then
+                    ":m \($CHANNEL) Found: \"\u0002" + (
+                        map(.name) | join("\u0002\", \"\u0002")
+                    ) + "\u0002\"."
+                elif type == "string" then
+                    ":m \($CHANNEL) \u0002\(.)\u0002"
+                else
+                    ":m \($CHANNEL) \u0002no moose found.\u0002"
+                end
+    ' | tr -d '\r\n'
+    echo
     exit
 fi
 
@@ -126,7 +130,7 @@ MOOSE="$(
 )"
 MOOSE_ERR="$(jq -r '.status' <<< "$MOOSE")"
 # check for error
-if [ "$MOOSE_ERR" = 'error' ] || [ -z "$MOOSE" ]; then
+if [[ "$MOOSE_ERR" == 'error' || -z "$MOOSE" ]]; then
     echo ":m $1 404 - Make it @ $MOOSE_URL/#?edit=$(URI_ENCODE "$4")"
     rmdir "$MOOSE_LOCK" 2>/dev/null
     exit 0
@@ -134,17 +138,17 @@ fi
 # extract name
 MOOSE_NAME="$(jq -r '.name' <<< "$MOOSE")"
 MOOSE_DATE="$(jq -r '.created' <<< "$MOOSE")"
-[ -z "$DISABLE_SHADE" ] && 
+[[ -z "$DISABLE_SHADE" ]] &&
     MOOSE_SHADED="$(jq -r '.shaded' <<< "$MOOSE")"
 MOOSE_IMAGE=()
 while read -r line; do
     MOOSE_IMAGE+=("$line")
-done < <( 
+done < <(
     jq -r '.image' <<< "$MOOSE"
 )
 
 MOOSE_SHADING=()
-if [ "$MOOSE_SHADED" = 'true' ]; then
+if [[ "$MOOSE_SHADED" = 'true' ]]; then
     while read -r line; do
         MOOSE_SHADING+=("$line")
     done < <(
@@ -158,10 +162,10 @@ for (( i=0; i<${#MOOSE_IMAGE[@]}; i++ )); do
     line="${MOOSE_IMAGE[$i]}"
     line="${line//t}"
     line="${line// }"
-    if [ -z "$line" ]; then
-        unset MOOSE_IMAGE["$i"]
-        [ "$MOOSE_SHADED" = 'true' ] &&
-            unset MOOSE_SHADING["$i"]
+    if [[ -z "$line" ]]; then
+        unset MOOSE_IMAGE'[i]'
+        [[ "$MOOSE_SHADED" == 'true' ]] &&
+            unset MOOSE_SHADING'[i]'
     else
         break
     fi
@@ -174,13 +178,13 @@ MOOSE_SHADING=("${MOOSE_SHADING[@]}")
 # trim moose image
 #check from down up
 for (( i=${#MOOSE_IMAGE[@]}; i>=0; i-- )); do
-    line="${MOOSE_IMAGE[$i]}"
+    line="${MOOSE_IMAGE[i]}"
     line="${line//t}"
     line="${line// }"
-    if [ -z "$line" ]; then
-        unset MOOSE_IMAGE["$i"]
-        [ "$MOOSE_SHADED" = 'true' ] &&
-            unset MOOSE_SHADING["$i"]
+    if [[ -z "$line" ]]; then
+        unset MOOSE_IMAGE'[i]'
+        [[ "$MOOSE_SHADED" == 'true' ]] &&
+            unset MOOSE_SHADING'[i]'
     else
         break
     fi
@@ -193,19 +197,19 @@ MOOSE_SHADING=("${MOOSE_SHADING[@]}")
 # trim from left to right
 for (( i=0; i<${#MOOSE_IMAGE}; i++ )); do
     for (( j=0; j<${#MOOSE_IMAGE[@]}; j++ )); do
-        line="${MOOSE_IMAGE[$j]}"
-        if [ "${line:0:1}" != 't' ]; then 
+        line="${MOOSE_IMAGE[j]}"
+        if [[ "${line:0:1}" != 't' ]]; then
             noleft=1
             break
         fi
     done
-    [ -n "$noleft" ] && break
+    [[ -n "$noleft" ]] && break
     for (( j=0; j<${#MOOSE_IMAGE[@]}; j++ )); do
-        line="${MOOSE_IMAGE[$j]}"
-        MOOSE_IMAGE[$j]="${line:1}"
-        if [ "$MOOSE_SHADED" = 'true' ]; then
-            sline="${MOOSE_SHADING[$j]}"
-            MOOSE_SHADING[$j]="${sline:1}"
+        line="${MOOSE_IMAGE[j]}"
+        MOOSE_IMAGE[j]="${line:1}"
+        if [[ "$MOOSE_SHADED" = 'true' ]]; then
+            sline="${MOOSE_SHADING[j]}"
+            MOOSE_SHADING[j]="${sline:1}"
         fi
     done
 done
@@ -214,38 +218,38 @@ unset noleft
 # trim from right to left
 for (( i=0; i<${#MOOSE_IMAGE}; i++ )); do
     for (( j=0; j<${#MOOSE_IMAGE[@]}; j++ )); do
-        line="${MOOSE_IMAGE[$j]}"
-        if [ "${line: -1}" != 't' ]; then 
+        line="${MOOSE_IMAGE[j]}"
+        if [[ "${line: -1}" != 't' ]]; then 
             noleft=1
             break
         fi
     done
-    [ -n "$noleft" ] && break
+    [[ -n "$noleft" ]] && break
     for (( j=0; j<${#MOOSE_IMAGE[@]}; j++ )); do
-        line="${MOOSE_IMAGE[$j]}"
+        line="${MOOSE_IMAGE[j]}"
         MOOSE_IMAGE[$j]="${line:0:-1}"
-        if [ "$MOOSE_SHADED" = 'true' ]; then
-            sline="${MOOSE_SHADING[$j]}"
-            MOOSE_SHADING[$j]="${sline:0:-1}"
+        if [[ "$MOOSE_SHADED" = 'true' ]]; then
+            sline="${MOOSE_SHADING[j]}"
+            MOOSE_SHADING[j]="${sline:0:-1}"
         fi
     done
 done
 
-[ "$MOOSE_SHADED" = 'true' ] && declare -i shade_lineno
-[ "$MOOSE_SHADED" != 'true' ] && symbol="${SHADERS['3']}"
+[[ "$MOOSE_SHADED" == 'true' ]] && declare -i shade_lineno
+[[ "$MOOSE_SHADED" != 'true' ]] && symbol="${SHADERS['3']}"
 for line in "${MOOSE_IMAGE[@]}"; do
     out=''
-    [ "$MOOSE_SHADED" = 'true' ] && 
-        shade_line="${MOOSE_SHADING["$shade_lineno"]}"
+    [[ "$MOOSE_SHADED" = 'true' ]] &&
+        shade_line="${MOOSE_SHADING[shade_lineno]}"
     for (( i=0; i<${#line}; i++ )); do
         if [ "${line:$i:1}" = 't' ]; then
             out+=' '
         else
             color="${COLOR["${line:$i:1}"]}"
-            if [ "$MOOSE_SHADED" = 'true' ]; then
+            if [[ "$MOOSE_SHADED" = 'true' ]]; then
                 shade="${shade_line:$i:1}"
-                symbol="${SHADERS["$shade"]}"
-                [ "$shade" = '3' ] && color+=",$color"
+                symbol="${SHADERS[shade]}"
+                [[ "$shade" = '3' ]] && color+=",$color"
             else
                 color+=",$color"
             fi
@@ -255,9 +259,9 @@ for line in "${MOOSE_IMAGE[@]}"; do
     echo -e ":m $1 \\u200B$out"
     shade_lineno+=1
     sleep "0.3s"
-done 
+done
 outstring=""
-if [ "$q" = 'latest' ] || [ "${q:-random}" = 'random' ]; then
+if [[ "$q" = 'latest' || "${q:-random}" = 'random' ]]; then
     outstring+=$'\002'"$MOOSE_NAME"$'\002'" -"
 fi
 echo ":m $1 $outstring Created $(reladate "$MOOSE_DATE")"
