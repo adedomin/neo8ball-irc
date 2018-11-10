@@ -40,48 +40,48 @@ reladate() {
         past_suffix="ago"
     else
         past_suffix="from now"
-        diff=$(( -diff ))
+        diff='-diff'
     fi
 
     format_str=()
     if (( diff >= 31536000 )); then
         unit='year'
-        amt=$(( diff / 31536000 ))
+        amt='diff / 31536000'
         (( amt > 1 )) && unit+='s'
         format_str+=("$amt $unit")
-        diff=$(( diff - ( amt * 31536000) ))
+        diff='diff - ( amt * 31536000)'
     fi
     if (( diff >= 604800 )); then
         unit='week'
-        amt=$(( diff / 604800 ))
+        amt='diff / 604800'
         (( amt > 1 )) && unit+='s'
         format_str+=("$amt $unit")
-        diff=$(( diff - ( amt * 604800 ) ))
+        diff='diff - ( amt * 604800 )'
     fi
     if (( diff >= 86400 )); then
         unit='day'
-        amt=$(( diff / 86400 ))
+        amt='diff / 86400'
         (( amt > 1 )) && unit+='s'
         format_str+=("$amt $unit")
-        diff=$(( diff - ( amt * 86400 ) ))
+        diff='diff - ( amt * 86400 )'
     fi
     if (( diff >= 3600 )); then
         unit='hour'
-        amt=$(( diff / 3600 ))
+        amt='diff / 3600'
         (( amt > 1 )) && unit+='s'
         format_str+=("$amt $unit")
-        diff=$(( diff - ( amt * 3600 ) ))
+        diff='diff - ( amt * 3600 )'
     fi
     if (( diff >= 60 )); then
         unit='minute'
-        amt=$(( diff / 60 ))
+        amt='diff / 60'
         (( amt > 1 )) && unit+='s'
         format_str+=("$amt $unit")
-        diff=$(( diff - ( amt * 60 ) ))
+        diff='diff - ( amt * 60 )'
     fi
     if (( diff  > 0 )); then
         unit='second'
-        amt=diff
+        amt='diff'
         (( amt > 1 )) && unit+='s'
         format_str+=("$amt $unit")
         diff=0
