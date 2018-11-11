@@ -270,6 +270,7 @@ send_throttle() {
     [[ -z "$SEND_LIMIT_BURST" ]] && SEND_LIMIT_BURST=12
     [[ -z "$SEND_LIMIT_WINDOW" ]] && SEND_LIMIT_WINDOW=4
     [[ -z "$SEND_LIMIT_BURST_RESTORE" ]] && SEND_LIMIT_BURST_RESTORE=4
+
     while read -r; do
         (( SECONDS - window < 0 )) && window="$SECONDS"
         counter='( SECONDS - window ) / SEND_LIMIT_WINDOW'
@@ -280,6 +281,7 @@ send_throttle() {
             delay_ind='delay_ind - counter'
             (( delay_ind < 0 )) && delay_ind=0
         fi
+
         if (( cmds_sent < SEND_LIMIT_BURST )); then
             cmds_sent='cmds_sent + 1'
             printf '%s\r\n' "$REPLY"

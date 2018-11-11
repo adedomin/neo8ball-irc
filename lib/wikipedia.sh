@@ -52,7 +52,7 @@ if [ -z "$q" ]; then
     exit 0
 fi
 
-WIKI="https://en.wikipedia.org/w/api.php?action=opensearch&format=json&formatversion=2&search=$(URI_ENCODE "$q")&namespace=0&limit=${COUNT}&suggest=false"
+WIKI="https://en.wikipedia.org/w/api.php?action=opensearch&format=json&formatversion=2&search=$(URI_ENCODE "$q")&namespace=0&limit=${COUNT}&suggest=false&redirects=resolve"
 
 {
     curl --silent \
