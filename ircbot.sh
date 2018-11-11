@@ -260,16 +260,19 @@ trap 'reload_config' SIGHUP SIGWINCH
 #
 # <STDIN> - series of irc messages to send
 send_throttle() {
+    declare -i window="$SECONDS"
+    declare -i cmds_sent=0 delay_ind=0 counter=0
     declare -i delay_maxind="${#SEND_LIMIT_DELAYS[@]}"
     (( delay_maxind < 1 )) && {
         delay_maxind=1
         SEND_LIMIT_DELAYS=('0.33')
     }
-    declare -i window="$SECONDS"
-    declare -i cmds_sent=0 delay_ind=0 counter=0
+    [[ -z "$SEND_LIMIT_BURST" ]] && SEND_LIMIT_BURST=12
+    [[ -z "$SEND_LIMIT_WINDOW" ]] && SEND_LIMIT_WINDOW=4
+    [[ -z "$SEND_LIMIT_BURST_RESTORE" ]] && SEND_LIMIT_BURST_RESTORE=4
     while read -r; do
         (( SECONDS - window < 0 )) && window="$SECONDS"
-        counter='( SECONDS - window ) / '"${SEND_LIMIT_WINDOW:-5}"
+        counter='( SECONDS - window ) / SEND_LIMIT_WINDOW'
         if (( counter > 0 )); then
             window="$SECONDS"
             cmds_sent='cmds_sent - ( SEND_LIMIT_BURST_RESTORE * counter )'
