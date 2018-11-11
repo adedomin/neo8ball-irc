@@ -260,24 +260,32 @@ trap 'reload_config' SIGHUP SIGWINCH
 #
 # <STDIN> - series of irc messages to send
 send_throttle() {
+    declare -i delay_maxind="${#SEND_LIMIT_DELAYS[@]}"
+    (( delay_maxind < 1 )) && {
+        delay_maxind=1
+        SEND_LIMIT_DELAYS=('0.33')
+    }
     declare -i window="$SECONDS"
-    declare -i cmds_sent=0
+    declare -i cmds_sent=0 delay_ind=0 counter=0
     while read -r; do
-        # echo2 "$window - $SECONDS = $(( SECONDS - window ))"
-        (( SECONDS - window > SEND_LIMIT_WINDOW ||
-           SECONDS - window < 0 )) && {
+        (( SECONDS - window < 0 )) && window="$SECONDS"
+        counter='( SECONDS - window ) / '"${SEND_LIMIT_WINDOW:-5}"
+        if (( counter > 0 )); then
             window="$SECONDS"
-            cmds_sent=0
-        }
-        # echo2 "$cmds_sent < $SEND_LIMIT_DELAY = $(( cmds_sent < SEND_LIMIT_DELAY ))"
-        if (( cmds_sent++ < SEND_LIMIT_DELAY )); then
+            cmds_sent='cmds_sent - ( SEND_LIMIT_BURST_RESTORE * counter )'
+            (( cmds_sent < 0 )) && cmds_sent=0
+            delay_ind='delay_ind - counter'
+            (( delay_ind < 0 )) && delay_ind=0
+        fi
+        if (( cmds_sent < SEND_LIMIT_BURST )); then
+            cmds_sent='cmds_sent + 1'
             printf '%s\r\n' "$REPLY"
-        elif (( cmds_sent >= SEND_LIMIT_DROP )); then
-            echo2 '*** WARNING *** dropped output -> '"$REPLY"
         else
-            echo2 '*** WARNING *** Sending too fast.'
-            sleep "$SEND_LIMIT_TIMEOUT"s
+            echo2 '*** THROTTLE *** Sending too fast, delaying -> '"${SEND_LIMIT_DELAYS[delay_ind]}"
+            sleep "${SEND_LIMIT_DELAYS[delay_ind]}"s
             printf '%s\r\n' "$REPLY"
+            (( delay_ind + 1 < delay_maxind )) &&
+                delay_ind='delay_ind + 1'
         fi
     done
 }
@@ -309,7 +317,6 @@ elif [[ -z "$BASH_TCP" ]]; then
     exec 3<> "/dev/fd/${COPROC[1]}"
     exec 4<> "/dev/fd/${COPROC[0]}"
 else
-    echo2 bashtcp
     exec 4<> "/dev/tcp/${SERVER}/${PORT}" ||
         die "Cannot connect to ($SERVER) on port ($PORT)"
     coproc {

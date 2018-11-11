@@ -35,7 +35,7 @@ READ_NOTICE=
 # 2 - INFO
 # 3 - WARN
 # 4 - ERR/CRIT
-LOG_LEVEL=1
+LOG_LEVEL=2
 # leave blank to not write messages to stdout
 LOG_STDOUT=
 
@@ -127,7 +127,7 @@ GATEWAY=(
 # anti spam feature
 # prevent users from abusing your bot
 # set to blank to disable
-ANTISPAM=yes
+ANTISPAM=
 # a new command allowance is given every x amount of seconds
 # time in seconds to grant an allowance
 ANTISPAM_TIMEOUT=10
@@ -137,20 +137,24 @@ ANTISPAM_COUNT=3
 # rate control
 # prevent the bot from sending too much noise
 # within a defined window
-SEND_LIMIT_DELAY=14
-# number of commands to stack up before dropping output
-SEND_LIMIT_DROP=18
+# number of commands to allow for "bursting"
+SEND_LIMIT_BURST=12
+# number of burst commands to restore at the end of a window
+SEND_LIMIT_BURST_RESTORE=4
 # time in seconds for how long a send window lasts
-SEND_LIMIT_WINDOW=6
-# time in seconds
-SEND_LIMIT_TIMEOUT='0.5'
+# at the end of each window, x amount of commands are restored
+# for bursting and the delay penalty is reduced by one
+SEND_LIMIT_WINDOW=4
+# time in seconds to increase the send delay when
+# over burst
+SEND_LIMIT_DELAYS=('0.25' '0.33' '0.50' '0.66' '1')
 
 # time in seconds check for closed connection
 TIMEOUT_CHECK=300 # 5m
 
 ## variables for plugins ##
 
-# comment out if you don't want 
+# comment out if you don't want
 # to use OpenWeatherMap plugin
 export OWM_KEY="your owm key"
 
