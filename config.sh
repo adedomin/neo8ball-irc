@@ -134,6 +134,17 @@ ANTISPAM_TIMEOUT=10
 # max number of commands a user gets in a time period
 ANTISPAM_COUNT=3
 
+# rate control
+# prevent the bot from sending too much noise
+# within a defined window
+SEND_LIMIT_DELAY=14
+# number of commands to stack up before dropping output
+SEND_LIMIT_DROP=18
+# time in seconds for how long a send window lasts
+SEND_LIMIT_WINDOW=6
+# time in seconds
+SEND_LIMIT_TIMEOUT='0.5'
+
 # time in seconds check for closed connection
 TIMEOUT_CHECK=300 # 5m
 
@@ -177,7 +188,9 @@ export MOOSE_IGNORE="
 #nomoose
 "
 # sleep timeout to prevent moose spam
-export MOOSE_SLEEP_TIMER='5s'
+export MOOSE_SLEEP_TIMER='10s'
+# delay in seconds (supports decimal assuming gnu sleep)
+export MOOSE_OUTPUT_DELAY='0.3s'
 
 # MS Cognitive Services Computer Vision API (describe)
 # for enhanced insight on images in lib/pagetitle.sh

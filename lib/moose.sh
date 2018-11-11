@@ -258,7 +258,7 @@ for line in "${MOOSE_IMAGE[@]}"; do
     done
     echo -e ":m $1 \\u200B$out"
     shade_lineno+=1
-    sleep "0.3s"
+    sleep "${MOOSE_OUTPUT_DELAY:-0.3s}"
 done
 outstring=""
 if [[ "$q" = 'latest' || "${q:-random}" = 'random' ]]; then
