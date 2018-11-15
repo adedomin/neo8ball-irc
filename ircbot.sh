@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v5.3.0"
+VERSION="bash-ircbot: v5.5.0"
 
 echo1() {
     printf '%s\n' "$*"
@@ -20,6 +20,17 @@ echo1() {
 
 echo2() {
     printf >&2 '%s\n' "$*"
+}
+
+# a sleep that uses bash's read -t <sec> feature
+#
+# $1 - time in seconds (fractional) to sleep for
+sleep_builtin() {
+    case "$1" in *[!0-9.]*)
+        send_log 'ERROR' "Invalid time value for sleep: $1"
+        return 1
+    esac
+    ! read -r -u 1 -t "$1"
 }
 
 # help info
@@ -287,7 +298,7 @@ send_throttle() {
             printf '%s\r\n' "$REPLY"
         else
             echo2 '*** THROTTLE *** Sending too fast, delaying -> '"${SEND_LIMIT_DELAYS[delay_ind]}"
-            sleep "${SEND_LIMIT_DELAYS[delay_ind]}"s
+            sleep_builtin "${SEND_LIMIT_DELAYS[delay_ind]}"
             printf '%s\r\n' "$REPLY"
             (( delay_ind + 1 < delay_maxind )) &&
                 delay_ind='delay_ind + 1'
@@ -404,42 +415,55 @@ send_cmd() {
         case $cmd in
             :j|:join)
                 send_msg "JOIN $arg"
-                ;;
+            ;;
+            :jd|:delay-join)
+                sleep_builtin "$arg"
+                send_msg "JOIN $other"
+            ;;
             :l|:leave)
                 send_msg "PART $arg :$other"
-                ;;
+            ;;
             :m|:message)
                 send_msg "PRIVMSG $arg :$other"
-                ;;
+            ;;
+            :md|:delay-message)
+                sleep_builtin "$arg"
+                send_msg "PRIVMSG ${other% *} :${other#* }"
+            ;;
             :mn|:notice)
                 send_msg "NOTICE $arg :$other"
-                ;;
+            ;;
+            :nd|:delay-notice)
+                sleep_builtin "$arg"
+                send_msg "NOTICE ${other% *} :${other#* }"
+            ;;
             :c|:ctcp)
                 send_msg "PRIVMSG $arg :"$'\001'"$other"$'\001'
-                ;;
+            ;;
             :n|:nick)
                 send_msg "NICK $arg"
-                ;;
+            ;;
             :q|:quit)
                 send_msg "QUIT :$arg $other"
-                ;;
+            ;;
             :r|:raw)
                 send_msg "$arg $other"
-                ;;
+            ;;
             :le|:loge)
                 send_log "ERROR" "$arg $other"
-                ;;
+            ;;
             :lw|:logw)
                 send_log "WARNING" "$arg $other"
-                ;;
+            ;;
             :li|:log)
                 send_log "INFO" "$arg $other"
-                ;;
+            ;;
             :ld|:logd)
                 send_log "DEBUG" "$arg $other"
-                ;;
+            ;;
             *)
-                ;;
+                send_log "ERROR" "Invalid command: ($cmd) args: ($arg $other)"
+            ;;
         esac
     done
 }
@@ -649,7 +673,7 @@ handle_privmsg() {
 # keeps the connection active.
 # don't bother if we are in testing mode.
 if [[ -z "$MOCK_CONN_TEST" ]]; then
-    while sleep "$(( TIMEOUT_CHECK / 2 ))"; do
+    while sleep_builtin "$(( TIMEOUT_CHECK / 2 ))"; do
         send_msg "PING :$NICK"
     done &
 fi
@@ -743,12 +767,16 @@ do
         # bot was invited to channel
         # so join channel
         INVITE)
-            send_cmd <<< ":j $message"
+            # protect from potential bad index access
+            [[ -z "$message" ]] && continue
+            send_cmd <<< ":jd ${INVITE_DELAY:-2} $message"
             send_log "INVITE" "<$user> $message "
-            [[ -n "$INVITE_FILE" && "${invites[$message]}" != 1 ]] && {
+            if [[ -n "$INVITE_FILE" &&
+                  "${invites[$message]}" != 1 ]]
+            then
                 echo1 "$message" >> "$INVITE_FILE"
                 invites[$message]=1
-            }
+            fi
         ;;
         # when the bot joins a channel
         JOIN)
@@ -762,6 +790,8 @@ do
         ;;
         # when the bot leaves a channel
         PART)
+            # protect from potential bad index access
+            [[ -z "$channel" ]] && continue
             if [[ "$user" = "$NICK" ]]; then
                 for i in "${!CHANNELS[@]}"; do
                     if [[ "${CHANNELS[$i]}" = "$channel" ]]; then
@@ -779,6 +809,8 @@ do
         # only way for the bot to be removed
         # from a channel, other than config reload
         KICK)
+            # protect from potential bad index access
+            [[ -z "$channel" ]] && continue
             if [[ "$kick" = "$NICK" ]]; then
                 for i in "${!CHANNELS[@]}"; do
                     if [[ "${CHANNELS[$i]}" = "$channel" ]]; then

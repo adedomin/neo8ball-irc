@@ -12,6 +12,9 @@ CHANNELS=("#prussian")
 # CHANNEL_BLACKLIST=("#badchan")
 # supplimentary channels to join from file
 INVITE_FILE="/tmp/invite-channel-list"
+# delay joining on invite to prevent potential flood kicks (rizon)
+# number is in seconds, can be fractional.
+INVITE_DELAY=3
 
 # port number
 PORT="6697"
