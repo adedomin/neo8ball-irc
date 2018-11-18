@@ -22,17 +22,6 @@ echo2() {
     printf >&2 '%s\n' "$*"
 }
 
-# a sleep that uses bash's read -t <sec> feature
-#
-# $1 - time in seconds (fractional) to sleep for
-sleep_builtin() {
-    case "$1" in *[!0-9.]*)
-        send_log 'ERROR' "Invalid time value for sleep: $1"
-        return 1
-    esac
-    ! read -r -u 1 -t "$1"
-}
-
 # help info
 usage() {
     echo2 \
@@ -298,7 +287,7 @@ send_throttle() {
             printf '%s\r\n' "$REPLY"
         else
             echo2 '*** THROTTLE *** Sending too fast, delaying -> '"${SEND_LIMIT_DELAYS[delay_ind]}"
-            sleep_builtin "${SEND_LIMIT_DELAYS[delay_ind]}"
+            sleep "${SEND_LIMIT_DELAYS[delay_ind]}"
             printf '%s\r\n' "$REPLY"
             (( delay_ind + 1 < delay_maxind )) &&
                 delay_ind='delay_ind + 1'
@@ -417,7 +406,7 @@ send_cmd() {
                 send_msg "JOIN $arg"
             ;;
             :jd|:delay-join)
-                sleep_builtin "$arg"
+                sleep "$arg"
                 send_msg "JOIN $other"
             ;;
             :l|:leave)
@@ -427,14 +416,14 @@ send_cmd() {
                 send_msg "PRIVMSG $arg :$other"
             ;;
             :md|:delay-message)
-                sleep_builtin "$arg"
+                sleep "$arg"
                 send_msg "PRIVMSG ${other% *} :${other#* }"
             ;;
             :mn|:notice)
                 send_msg "NOTICE $arg :$other"
             ;;
             :nd|:delay-notice)
-                sleep_builtin "$arg"
+                sleep "$arg"
                 send_msg "NOTICE ${other% *} :${other#* }"
             ;;
             :c|:ctcp)
@@ -673,7 +662,7 @@ handle_privmsg() {
 # keeps the connection active.
 # don't bother if we are in testing mode.
 if [[ -z "$MOCK_CONN_TEST" ]]; then
-    while sleep_builtin "$(( TIMEOUT_CHECK / 2 ))"; do
+    while sleep "$(( TIMEOUT_CHECK / 2 ))"; do
         send_msg "PING :$NICK"
     done &
 fi
