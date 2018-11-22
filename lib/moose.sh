@@ -24,6 +24,11 @@ CHANNEL_IN_IGNORE_LIST "$1" "$MOOSE_IGNORE" && {
 if [[ -n "$6" ]]; then
     q="${4#* }"
     qcpy="${4#* }"
+    # case where moose is provided with no args.
+    [[ "$4" == "${4#* }" ]] && {
+        q=
+        qcpy=
+    }
 else
     q="$4"
     qcpy="$4"
