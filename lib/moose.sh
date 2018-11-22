@@ -21,9 +21,16 @@ CHANNEL_IN_IGNORE_LIST "$1" "$MOOSE_IGNORE" && {
     exit 0
 }
 
-q="$4"
+if [[ -n "$6" ]]; then
+    q="${4#* }"
+    qcpy="${4#* }"
+else
+    q="$4"
+    qcpy="$4"
+fi
+
 SEARCH=
-for arg in $4; do
+for arg in $qcpy; do
     case "$arg" in
         -l|--latest)
             q='latest'

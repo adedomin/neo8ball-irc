@@ -107,12 +107,14 @@ REGEX=(
 'youtube.com|youtu.be'
 # literally anything can be a url nowadays
 '(https?)://[^ ]+'
+'^moose'
 )
 # BREAKING: the index of the regexp above
 # is used to determine the command in this array to exec
 REGEX_CMD=(
 'youtube.sh'
 'pagetitle.sh'
+'moose.sh'
 )
 
 # list of nicks to ignore from, such as other bots
