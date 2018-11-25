@@ -66,6 +66,6 @@ mdn_search='https://developer.mozilla.org/en-US/search.json?q='"$(URI_ENCODE "$q
         { title: "No Results", exerpt: "", url: "" }
     end
     | ":m \($CHANNEL) \($BOLD)" + .title + $BOLD +
-      " " + .excerpt[0:85] + "... " +
+      " " + (.excerpt | gsub("</?mark>"; ""))[0:200] + " :: " +
       .url
 '
