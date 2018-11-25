@@ -63,7 +63,7 @@ mdn_search='https://developer.mozilla.org/en-US/search.json?q='"$(URI_ENCODE "$q
     -r 'if (.documents[0]) then
             .documents[0:($COUNT | tonumber)][]
     else
-        { title: "No Results", exerpt: "", url: "" }
+        { title: "No Results", excerpt: "", url: "" }
     end
     | ":m \($CHANNEL) \($BOLD)" + .title + $BOLD +
       " " + (.excerpt | gsub("</?mark>"; ""))[0:200] + " :: " +
