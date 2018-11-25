@@ -38,9 +38,9 @@ READ_NOTICE=
 # 2 - INFO
 # 3 - WARN
 # 4 - ERR/CRIT
-LOG_LEVEL=2
+LOG_LEVEL=1
 # leave blank to not write messages to stdout
-LOG_STDOUT=
+LOG_STDOUT=y
 
 ## DECLARE IRC events here ##
 
@@ -107,12 +107,14 @@ REGEX=(
 'youtube.com|youtu.be'
 # literally anything can be a url nowadays
 '(https?)://[^ ]+'
+'^moose'
 )
 # BREAKING: the index of the regexp above
 # is used to determine the command in this array to exec
 REGEX_CMD=(
 'youtube.sh'
 'pagetitle.sh'
+'moose.sh'
 )
 
 # list of nicks to ignore from, such as other bots
@@ -130,7 +132,7 @@ GATEWAY=(
 # anti spam feature
 # prevent users from abusing your bot
 # set to blank to disable
-ANTISPAM=
+ANTISPAM=yes
 # a new command allowance is given every x amount of seconds
 # time in seconds to grant an allowance
 ANTISPAM_TIMEOUT=10
