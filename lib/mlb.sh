@@ -111,7 +111,7 @@ if [[ -n "$LIST_GAME" ]]; then
 fi
 
 if [[ -z "$FOUND" ]]; then
-    echo ":m $1 $msg - not playing today."
+    printf ':m %s\n' "$1 That team is not playing today."
     exit 0
 fi
 
@@ -119,7 +119,7 @@ case "${api_data[0]}" in
     Pre*)
         echo ":m $1 ${BOLD}${api_data[7]}${BOLD}" \
             "@ ${BOLD}${api_data[3]}${BOLD}" \
-            "${api_data[1]} EST" 
+            "${api_data[1]} EST"
         exit 0
     ;;
     Final)
