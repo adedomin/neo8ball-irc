@@ -276,7 +276,7 @@ outstring=""
 if [[ "$q" = 'latest' || "${q:-random}" = 'random' ]]; then
     outstring+=$'\002'"$MOOSE_NAME"$'\002'" -"
 fi
-echo ":m $1 $outstring Created $(reladate "$MOOSE_DATE")"
+printf ':m %s\n' "$1 $outstring Created $(reladate "$MOOSE_DATE")"
 
 # prevent moose abuse
 sleep "${MOOSE_SLEEP_TIMER:-5s}"

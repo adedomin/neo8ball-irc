@@ -43,51 +43,38 @@ reladate() {
         diff='-diff'
     fi
 
-    format_str=()
     if (( diff >= 31536000 )); then
         unit='year'
         amt='diff / 31536000'
         (( amt > 1 )) && unit+='s'
-        format_str+=("$amt $unit")
-        diff='diff - ( amt * 31536000)'
-    fi
-    if (( diff >= 604800 )); then
+        format_str="$amt $unit"
+    elif (( diff >= 604800 )); then
         unit='week'
         amt='diff / 604800'
         (( amt > 1 )) && unit+='s'
-        format_str+=("$amt $unit")
-        diff='diff - ( amt * 604800 )'
-    fi
-    if (( diff >= 86400 )); then
+        format_str+="$amt $unit"
+    elif (( diff >= 86400 )); then
         unit='day'
         amt='diff / 86400'
         (( amt > 1 )) && unit+='s'
-        format_str+=("$amt $unit")
-        diff='diff - ( amt * 86400 )'
-    fi
-    if (( diff >= 3600 )); then
+        format_str="$amt $unit"
+    elif (( diff >= 3600 )); then
         unit='hour'
         amt='diff / 3600'
         (( amt > 1 )) && unit+='s'
-        format_str+=("$amt $unit")
-        diff='diff - ( amt * 3600 )'
-    fi
-    if (( diff >= 60 )); then
+        format_str="$amt $unit"
+    elif (( diff >= 60 )); then
         unit='minute'
         amt='diff / 60'
         (( amt > 1 )) && unit+='s'
-        format_str+=("$amt $unit")
-        diff='diff - ( amt * 60 )'
-    fi
-    if (( diff  > 0 )); then
+        format_str="$amt $unit"
+    else
         unit='second'
         amt='diff'
         (( amt > 1 )) && unit+='s'
-        format_str+=("$amt $unit")
-        diff=0
+        format_str="$amt $unit"
     fi
-    printf '%s ' "${format_str[@]}" "$past_suffix"
-    echo
+    printf '%s\n' "${format_str}" "$past_suffix"
 }
 export -f reladate
 
