@@ -74,7 +74,7 @@ reladate() {
         (( amt > 1 )) && unit+='s'
         format_str="$amt $unit"
     fi
-    printf '%s\n' "${format_str}" "$past_suffix"
+    printf '%s\n' "$format_str $past_suffix"
 }
 export -f reladate
 
