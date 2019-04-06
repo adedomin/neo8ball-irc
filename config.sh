@@ -10,6 +10,8 @@ SERVER="irc.rizon.net"
 CHANNELS=("#prussian")
 # TODO: not implemented
 # CHANNEL_BLACKLIST=("#badchan")
+# set to non-empty to disable automatic invite handling
+DISABLE_INVITES=
 # supplimentary channels to join from file
 INVITE_FILE="/tmp/invite-channel-list"
 # delay joining on invite to prevent potential flood kicks (rizon)

@@ -221,7 +221,7 @@ reload_config() {
     fi
     # pass change for nickserv
     if [[ "$NICKSERV" != "$_nickserv" ]]; then
-        printf '%s\n' "NICKSERV IDENTIFY $NICKSERV" >&3
+        printf '%s\r\n' "NICKSERV IDENTIFY $NICKSERV" >&3
     fi
 
     # persist channel invites
@@ -255,46 +255,6 @@ trap 'reload_config' SIGHUP SIGWINCH
 # Setup Connection #
 ####################
 
-# Throttle send rate to prevent spammers from abusing
-# the bot
-#
-# <STDIN> - series of irc messages to send
-send_throttle() {
-    declare -i window="$SECONDS"
-    declare -i cmds_sent=0 delay_ind=0 counter=0
-    declare -i delay_maxind="${#SEND_LIMIT_DELAYS[@]}"
-    (( delay_maxind < 1 )) && {
-        delay_maxind=1
-        SEND_LIMIT_DELAYS=('0.33')
-    }
-    [[ -z "$SEND_LIMIT_BURST" ]] && SEND_LIMIT_BURST=12
-    [[ -z "$SEND_LIMIT_WINDOW" ]] && SEND_LIMIT_WINDOW=4
-    [[ -z "$SEND_LIMIT_BURST_RESTORE" ]] && SEND_LIMIT_BURST_RESTORE=4
-
-    while read -r; do
-        (( SECONDS - window < 0 )) && window="$SECONDS"
-        counter='( SECONDS - window ) / SEND_LIMIT_WINDOW'
-        if (( counter > 0 )); then
-            window="$SECONDS"
-            cmds_sent='cmds_sent - ( SEND_LIMIT_BURST_RESTORE * counter )'
-            (( cmds_sent < 0 )) && cmds_sent=0
-            delay_ind='delay_ind - counter'
-            (( delay_ind < 0 )) && delay_ind=0
-        fi
-
-        if (( cmds_sent < SEND_LIMIT_BURST )); then
-            cmds_sent='cmds_sent + 1'
-            printf '%s\r\n' "$REPLY"
-        else
-            echo2 '*** THROTTLE *** Sending too fast, delaying -> '"${SEND_LIMIT_DELAYS[delay_ind]}"
-            sleep "${SEND_LIMIT_DELAYS[delay_ind]}"
-            printf '%s\r\n' "$REPLY"
-            (( delay_ind + 1 < delay_maxind )) &&
-                delay_ind='delay_ind + 1'
-        fi
-    done
-}
-
 TLS_OPTS=()
 [[ -n "$TLS"             ]] && TLS_OPTS+=(--ssl)
 [[ -n "$VERIFY_TLS"      ]] && TLS_OPTS+=(--ssl-verify)
@@ -312,8 +272,7 @@ if [[ -n "$MOCK_CONN_TEST" ]]; then
 # Connect to server otherwise
 elif [[ -z "$BASH_TCP" ]]; then
     coproc {
-        send_throttle \
-        | ncat "${TLS_OPTS[@]}" "$SERVER" "${PORT:-6667}"
+        ncat "${TLS_OPTS[@]}" "$SERVER" "${PORT:-6667}"
         echo1 'ERROR :ncat has terminated'
     }
     # coprocs are a bit weird
@@ -322,13 +281,9 @@ elif [[ -z "$BASH_TCP" ]]; then
     exec 3<> "/dev/fd/${COPROC[1]}"
     exec 4<> "/dev/fd/${COPROC[0]}"
 else
-    exec 4<> "/dev/tcp/${SERVER}/${PORT}" ||
+    exec 3<> "/dev/tcp/${SERVER}/${PORT}" ||
         die "Cannot connect to ($SERVER) on port ($PORT)"
-    coproc {
-        send_throttle >&4
-        echo1 'ERROR :send loop has terminated'
-    }
-    exec 3<> "/dev/fd/${COPROC[1]}"
+    exec 4<&3 "/dev/fd/${COPROC[1]}"
 fi
 
 ########################
@@ -355,7 +310,7 @@ post_ident() {
     # ident with nickserv
     if [[ -n "$NICKSERV" ]]; then
         # bypass logged send_cmd/send_msg
-        printf '%s\n' "NICKSERV IDENTIFY $NICKSERV" >&3
+        printf '%s\r\n' "NICKSERV IDENTIFY $NICKSERV" >&3
     fi
 }
 
@@ -389,7 +344,7 @@ send_log() {
 #
 # $* - multiple strings to be sent.
 send_msg() {
-    printf '%s\n' "$*" >&3
+    printf '%s\r\n' "$*" >&3
     send_log "DEBUG" "SENT -> $*"
 }
 
@@ -756,6 +711,7 @@ do
         # bot was invited to channel
         # so join channel
         INVITE)
+            [[ -n "$DISABLE_INVITES" ]] && continue
             # protect from potential bad index access
             [[ -z "$message" ]] && continue
             send_cmd <<< ":jd ${INVITE_DELAY:-2} $message"
