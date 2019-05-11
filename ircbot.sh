@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="bash-ircbot: v5.5.0"
+VERSION="bash-ircbot: v6.0.0"
 
 echo1() {
     printf '%s\n' "$*"
@@ -556,8 +556,6 @@ trusted_gateway() {
 # Bot Message Handler #
 #######################
 
-# ^A frame used in CTCP
-A_ctcp=$'\001'
 # TODO: note addition of usermode when available
 # handle PRIVMSGs and NOTICEs and
 # determine if the bot needs to react to message
@@ -575,10 +573,8 @@ handle_privmsg() {
         # most servers require this "in spirit"
         # tell them what we are
         if [[ "$6" = $'\001VERSION\001' ]]; then
-            send_cmd << EOF
-:ld CTCP VERSION -> $3 <$3>
-:mn $3 ${A_ctcp}VERSION $VERSION${A_ctcp}
-EOF
+            send_log "DEBUG" "CTCP VERSION -> $3 <$3>"
+            send_msg "NOTICE $3 :"$'\001'"VERSION $VERSION"$'\001'
             return
         fi
 
@@ -590,11 +586,10 @@ EOF
             cmd="${PRIVMSG_DEFAULT_CMD:-help}"
         fi
         [[ -x "$LIB_PATH/${COMMANDS[$cmd]}" ]] || return
-        {
-            echo1 ":ld PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $4"
+            send_log "DEBUG" "PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $4"
             "$LIB_PATH/${COMMANDS[$cmd]}" \
-                "$3" "$2" "$3" "$4" "$cmd"
-        } | send_cmd &
+                "$3" "$2" "$3" "$4" "$cmd" \
+            | send_cmd &
         return
     fi
 
@@ -603,11 +598,10 @@ EOF
         check_spam "$user" || return
         # shellcheck disable=SC2153
         [[ -x "$LIB_PATH/$HIGHLIGHT" ]] || return
-        {
-            echo1 ":ld HIGHLIGHT EVENT -> $1 <$3>  $4"
+            send_log "DEBUG" "HIGHLIGHT EVENT -> $1 <$3>  $4"
             "$LIB_PATH/$HIGHLIGHT" \
-                "$1" "$2" "$3" "$4" "$5"
-        } | send_cmd &
+                "$1" "$2" "$3" "$4" "$5" \
+             | send_cmd &
         return
     fi
 
@@ -620,11 +614,10 @@ EOF
         [[ -n "${COMMANDS[$cmd]}" &&
             -x "$LIB_PATH/${COMMANDS[$cmd]}" ]] || return
         check_spam "$user" || return
-        {
-            echo1 ":ld COMMAND EVENT -> $cmd: $1 <$3> $4"
+            send_log "DEBUG" "COMMAND EVENT -> $cmd: $1 <$3> $4"
             "$LIB_PATH/${COMMANDS[$cmd]}" \
-                "$1" "$2" "$3" "$4" "$cmd"
-        } | send_cmd &
+                "$1" "$2" "$3" "$4" "$cmd" \
+            | send_cmd &
         return
     esac
 
@@ -632,13 +625,12 @@ EOF
     if check_regexp "$6"; then
         check_spam "$user" || return
         declare -i RMATCH_IND="$REPLY"
-        {
-            echo1 ":ld REGEX EVENT -> ${REGEX[RMATCH_IND]}: $1 <$3> $6 (${BASH_REMATCH[0]})"
+            send_command "DEBUG" "REGEX EVENT -> ${REGEX[RMATCH_IND]}: $1 <$3> $6 (${BASH_REMATCH[0]})"
             "$LIB_PATH/${REGEX_CMD[RMATCH_IND]}" \
                 "$1" "$2" "$3" "$6" \
                 "${REGEX[RMATCH_IND]}" \
-                "${BASH_REMATCH[0]}"
-        } | send_cmd &
+                "${BASH_REMATCH[0]}" \
+            | send_cmd &
         return
     fi
 }
