@@ -107,6 +107,15 @@ else
     fail 'PING/PONG COMMAND'
 fi
 
+# send overly complex PING
+echo 'PING :hello, this is  a    multiword ping' >&"${COPROC[1]}"
+read -t 1 -u "${COPROC[0]}" -r pong string
+if [ "$string" = ':hello, this is  a    multiword ping'$'\r' ]; then
+    pass 'MULTIWORD PING/PONG COMMAND'
+else
+    fail 'MULTIWORD PING/PONG COMMAND'
+fi
+
 # send post ident
 echo ':doesnt@matter@user.host 004 doesntmatter :reg' >&"${COPROC[1]}"
 read -t 1 -u "${COPROC[0]}" -r join chanstring

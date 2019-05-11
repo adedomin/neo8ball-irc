@@ -290,6 +290,37 @@ fi
 # IRC Helper Functions #
 ########################
 
+parse_irc() {
+    local temp utemp
+    # split by whitespace
+    temp="$1"
+    utemp="${temp%% *}"
+    # clean and split out user information
+    # e.g. :user!useless@host ...etc
+    user="${utemp#:}" # : is multispace indicator,
+                       # all line likely have it and we don't want it
+    host="${user##*@}"
+    user="${user%%'!'*}"
+
+    temp="${temp#"$utemp"* }"
+    # parse command
+    # Command is one word string indicating what this
+    # line does, e.g PRIVMSG, NOTICE, INVITE, etc.
+    command="${temp%% *}"
+
+    temp="${temp#"$command"* }"
+    # parse channel
+    # should be a one word string starting with a #
+    # e.g. #channame
+    channel="${temp%% *}"
+
+    temp="${temp#"$channel"* }"
+    # message parse
+    # e.g. :a message here
+    message="${temp#:}"  # remove optional multispace indicator
+    message=${message%$'\r'} # irc lines are CRLF terminated
+}
+
 # After server "identifies" the bot
 # joins all channels
 # identifies with nickserv
@@ -435,26 +466,13 @@ check_regexp() {
 # determines if message qualifies for spam
 # filtering
 #
-# $1 - channel
-# $2 - username
-# $3 - command
-# $4 - full message
+# $1 - username
 check_spam() {
-    local cmd
-    cmd="${3:1}"
-    # shellcheck disable=SC2153
-    if [[ "$1" != "$NICK" &&
-          -z "${COMMANDS[${cmd:-zzzz}]}" &&
-          "$3" != ?(@)$NICK?(:|,) ]] &&
-        ! check_regexp "$4"
-    then
-        return 0
-    fi
-
+    [[ -z "$ANTISPAM" ]] && return 0
     # increment if command or hl event
     declare -i temp ttime
-    temp="${antispam_list[$2]% *}"
-    ttime="${antispam_list[$2]#* }"
+    temp="${antispam_list[$1]% *}"
+    ttime="${antispam_list[$1]#* }"
     (( temp <= ${ANTISPAM_COUNT:-3} )) &&
         temp+=1
 
@@ -472,12 +490,12 @@ check_spam() {
             temp=0
     fi
 
-    antispam_list[$2]="$temp $ttime"
+    antispam_list[$1]="$temp $ttime"
 
     if (( temp <= ${ANTISPAM_COUNT:-3} )); then
         return 0
     else
-        send_log "DEBUG" "SPAMMER -> $2"
+        send_log "DEBUG" "SPAMMER -> $1"
         return 1
     fi
 }
@@ -518,7 +536,8 @@ trusted_gateway() {
 
     # is a gateway user
     # this a mutation
-    read -r newuser newmsg <<< "$message"
+    newuser="${message%% *}"
+    newmsg="${message#* }"
     # new msg without the gateway username
     message="$newmsg"
     # delete any brackets and some special chars
@@ -537,6 +556,8 @@ trusted_gateway() {
 # Bot Message Handler #
 #######################
 
+# ^A frame used in CTCP
+A_ctcp=$'\001'
 # TODO: note addition of usermode when available
 # handle PRIVMSGs and NOTICEs and
 # determine if the bot needs to react to message
@@ -550,11 +571,14 @@ handle_privmsg() {
     # private message to us
     # 5th argument is the command name
     if [[ "$NICK" == "$1" ]]; then
+        check_spam "$user" || return
         # most servers require this "in spirit"
         # tell them what we are
         if [[ "$6" = $'\001VERSION\001' ]]; then
-            echo1 ":ld CTCP VERSION -> $3 <$3>"
-            echo1 ":mn $3 "$'\001'"VERSION $VERSION"$'\001'
+            send_cmd << EOF
+:ld CTCP VERSION -> $3 <$3>
+:mn $3 ${A_ctcp}VERSION $VERSION${A_ctcp}
+EOF
             return
         fi
 
@@ -566,19 +590,24 @@ handle_privmsg() {
             cmd="${PRIVMSG_DEFAULT_CMD:-help}"
         fi
         [[ -x "$LIB_PATH/${COMMANDS[$cmd]}" ]] || return
-        echo1 ":ld PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $4"
-        "$LIB_PATH/${COMMANDS[$cmd]}" \
-            "$3" "$2" "$3" "$4" "$cmd"
+        {
+            echo1 ":ld PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $4"
+            "$LIB_PATH/${COMMANDS[$cmd]}" \
+                "$3" "$2" "$3" "$4" "$cmd"
+        } | send_cmd &
         return
     fi
 
     # highlight event in message
     if [[ "$5" = ?(@)$NICK?(:|,) ]]; then
+        check_spam "$user" || return
         # shellcheck disable=SC2153
         [[ -x "$LIB_PATH/$HIGHLIGHT" ]] || return
-        echo1 ":ld HIGHLIGHT EVENT -> $1 <$3>  $4"
-        "$LIB_PATH/$HIGHLIGHT" \
-            "$1" "$2" "$3" "$4" "$5"
+        {
+            echo1 ":ld HIGHLIGHT EVENT -> $1 <$3>  $4"
+            "$LIB_PATH/$HIGHLIGHT" \
+                "$1" "$2" "$3" "$4" "$5"
+        } | send_cmd &
         return
     fi
 
@@ -590,20 +619,26 @@ handle_privmsg() {
         cmd="${5:1}"
         [[ -n "${COMMANDS[$cmd]}" &&
             -x "$LIB_PATH/${COMMANDS[$cmd]}" ]] || return
-        echo1 ":ld COMMAND EVENT -> $cmd: $1 <$3> $4"
-        "$LIB_PATH/${COMMANDS[$cmd]}" \
-            "$1" "$2" "$3" "$4" "$cmd"
+        check_spam "$user" || return
+        {
+            echo1 ":ld COMMAND EVENT -> $cmd: $1 <$3> $4"
+            "$LIB_PATH/${COMMANDS[$cmd]}" \
+                "$1" "$2" "$3" "$4" "$cmd"
+        } | send_cmd &
         return
     esac
 
     # regexp check.
     if check_regexp "$6"; then
+        check_spam "$user" || return
         declare -i RMATCH_IND="$REPLY"
-        echo1 ":ld REGEX EVENT -> ${REGEX[RMATCH_IND]}: $1 <$3> $6 (${BASH_REMATCH[0]})"
-        "$LIB_PATH/${REGEX_CMD[RMATCH_IND]}" \
-            "$1" "$2" "$3" "$6" \
-            "${REGEX[RMATCH_IND]}" \
-            "${BASH_REMATCH[0]}"
+        {
+            echo1 ":ld REGEX EVENT -> ${REGEX[RMATCH_IND]}: $1 <$3> $6 (${BASH_REMATCH[0]})"
+            "$LIB_PATH/${REGEX_CMD[RMATCH_IND]}" \
+                "$1" "$2" "$3" "$6" \
+                "${REGEX[RMATCH_IND]}" \
+                "${BASH_REMATCH[0]}"
+        } | send_cmd &
         return
     fi
 }
@@ -634,80 +669,48 @@ send_msg "USER $NICK +i * :$NICK"
 # IRC event loop
 # note if the irc sends lines longer than
 # 1024 bytes, it may fail to parse
-while read -u 4 -r -n 1024\
-    -t "$TIMEOUT_CHECK" \
-    user command channel message
-do
+while read -u 4 -r -n 1024 -t "$TIMEOUT_CHECK"; do
     # check for high level commands from the ircd
-    case "$user" in
-        PING) # have to reply
-            send_msg "PONG $command"
+    case "$REPLY" in
+        PING*) # have to reply
+            send_msg "PONG ${REPLY#PING *}"
             continue
         ;;
-        ERROR) # banned?
-            send_log "CRITICAL" "${command:1} $channel $message"
+        ERROR*) # banned?
+            send_log "CRITICAL" "${REPLY#:}"
             break
         ;;
     esac
-    # needs to be declared here
-    # prior to any parsing
-    kick="${message% :*}"
-    # clean and split out user information
-    host="${user##*@}"
-    user="${user%%\!*}"
-    user="${user:1}"
-    # remove leading colon and carriage return
-    message=${message:1}
-    message=${message%$'\r'}
+
+    parse_irc "$REPLY"
 
     # check if gateway nick
     trusted_gateway "$user"
 
+    # other helpful variable
+    ucmd="${message%% *}"
+    umsg="${message#* }"
+    # the user who was kicked in a KICK command
+    ukick="${message% :*}"
     # log message
     send_log "STDOUT" "$channel $command <$user> $message"
-
-    # split command from message
-    read -r cmd msg <<< "$message"
 
     # handle commands here
     case $command in
         # any channel message
         PRIVMSG)
-            # this step has to occur in the main loop sadly
-            if [[ -n "$ANTISPAM" ]]; then
-                check_spam "$channel" "$user" "$cmd" "$message" ||
-                    continue
-            fi
-            check_ignore "$user" &&
+            check_ignore "$user" || continue
             handle_privmsg \
                 "$channel" \
                 "$host" \
                 "$user" \
-                "$msg" \
-                "$cmd" \
-                "$message" \
-            | send_cmd &
+                "$umsg" \
+                "$ucmd" \
+                "$message"
         ;;
-        # any other channel message
-        # generally notices are not supposed
-        # to be responded to, as a bot
-        NOTICE)
-            [[ -z "$READ_NOTICE" ]] && continue
-            # this step has to occur in the main loop sadly
-            if [[ -n "$ANTISPAM" ]]; then
-                check_spam "$channel" "$user" "$cmd" "$message" ||
-                    continue
-            fi
-            check_ignore "$user" &&
-            handle_privmsg \
-                "$channel" \
-                "$host" \
-                "$user" \
-                "$msg" \
-                "$cmd" \
-                "$message" \
-            | send_cmd &
-        ;;
+        # bot ignores notices
+        #NOTICE)
+        #;;
         # bot was invited to channel
         # so join channel
         INVITE)
@@ -756,7 +759,7 @@ do
         KICK)
             # protect from potential bad index access
             [[ -z "$channel" ]] && continue
-            if [[ "$kick" = "$NICK" ]]; then
+            if [[ "$ukick" = "$NICK" ]]; then
                 for i in "${!CHANNELS[@]}"; do
                     if [[ "${CHANNELS[$i]}" = "$channel" ]]; then
                         unset CHANNELS["$i"]
