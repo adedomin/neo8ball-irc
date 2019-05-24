@@ -61,7 +61,27 @@ if [[ -n "$6" ]]; then
     CHANNEL_IN_IGNORE_LIST "$1" "$YOUTUBE_IGNORE" &&
         exit 0
     COUNT=1
-    ids="$(grep -Po '(?<=watch\?v=)[^&?\s]*|(?<=youtu\.be/)[^?&\s]*' <<< "$MATCH")"
+
+    if ! ids="$(
+        awk -v qstr="$MATCH" -- 'BEGIN {
+            len = split(qstr, q)
+            for (i=1; i<=len; ++i) {
+                if (ind = index(q[i], "youtu.be/")) {
+                    print substr(q[i], ind + 9)
+                    exit 0
+                }
+                if (ind = index(q[i], "youtube.com/watch?")) {
+                    form = substr(q[i], ind + 19)
+                    pos = index(form, "v=")
+                    print substr(form, pos + 2)
+                    exit 0
+                }
+            }
+            exit 1
+        }'
+    )"; then
+        exit 0
+    fi
 else
     youtube="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=$(URI_ENCODE "$MATCH")&maxResults=${COUNT}&key=${YOUTUBE_KEY}"
     ids="$(
