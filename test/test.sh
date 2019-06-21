@@ -53,9 +53,13 @@ EXIT_CODE=0
 RESTORE=$'\033[0m'
 FAIL='['$'\033[00;31m'"FAIL${RESTORE}]"
 PASS='['$'\033[00;32m'"PASS${RESTORE}]"
+PAD='      '
 
 fail() {
-    echo "$FAIL $*"
+    echo "$FAIL $1"
+    [ -n "$2" ] && {
+        echo "$PAD Expected: $2"
+    }
     EXIT_CODE=1
 }
 
@@ -82,7 +86,8 @@ read -t 1 -u "${COPROC[0]}" -r cmd nick
 if [ "$cmd" = 'NICK' ] && [ "$nick" = 'testnick' ]; then
     pass 'NICK COMMAND'
 else
-    fail 'NICK COMMAND'
+    fail 'NICK COMMAND' \
+        "$cmd == NICK && $nick == testnick"
 fi
 
 # test user cmd
@@ -104,7 +109,8 @@ read -t 1 -u "${COPROC[0]}" -r pong string
 if [ "$pong" = 'PONG' ] && [ "$string" = ':hello' ]; then
     pass 'PING/PONG COMMAND'
 else
-    fail 'PING/PONG COMMAND'
+    fail 'PING/PONG COMMAND' \
+        "$pong == PONG && $string == :hello"
 fi
 
 # send overly complex PING
@@ -113,7 +119,8 @@ read -t 1 -u "${COPROC[0]}" -r pong string
 if [ "$string" = ':hello, this is  a    multiword ping'$'\r' ]; then
     pass 'MULTIWORD PING/PONG COMMAND'
 else
-    fail 'MULTIWORD PING/PONG COMMAND'
+    fail 'MULTIWORD PING/PONG COMMAND' \
+        "${string%$'\r'} == ':hello, this is  a    multiword ping'"
 fi
 
 # send post ident
@@ -124,7 +131,8 @@ if  [ "$join" = 'JOIN' ] &&
 then
     pass 'post_ident function'
 else
-    fail 'post_ident function'
+    fail 'post_ident function' \
+        "$join == JOIN && $chanstring == #chan1,#chan2"
 fi
 # test that the bot attempted to identify for its nick
 read -t 1 -u "${COPROC[0]}" -r cmd ident pass
@@ -133,7 +141,8 @@ if [ "$cmd" = 'NICKSERV' ] &&
    [ "$pass" = 'testpass' ]; then
     pass 'nickserv identify'
 else
-    fail 'nickserv identify'
+    fail 'nickserv identify' \
+        "$cmd == NICKSERV && $ident == IDENTIFY && $pass == testpass"
 fi
 
 # test nick change feature p.1
@@ -143,7 +152,8 @@ read -t 1 -u "${COPROC[0]}" -r nick
 if [ "$nick" = 'testnick' ]; then
     pass "nick variable 1"
 else
-    fail "nick variable 1"
+    fail "nick variable 1" \
+        "$nick == testnick"
 fi
 
 # notify the user the nick is in use
@@ -152,7 +162,8 @@ read -t 1 -u "${COPROC[0]}" -r cmd nick
 if [ "$cmd" = 'NICK' ] && [ "$nick" = 'testnick_' ]; then
     pass '433 COMMAND (nick conflict)'
 else
-    fail '433 COMMAND (nick conflict)'
+    fail '433 COMMAND (nick conflict)' \
+        "$cmd == NICK && $nick == testnick_"
 fi
 
 # verify nick variable is what it reported
@@ -161,7 +172,8 @@ read -t 1 -u "${COPROC[0]}" -r nick
 if [ "$nick" = 'testnick_' ]; then
     pass "nick variable 2"
 else
-    fail "nick variable 2"
+    fail "nick variable 2" \
+        "$nick = testnick_"
 fi
 
 # channel joining
@@ -172,7 +184,8 @@ read -t 1 -u "${COPROC[0]}" -r channel
 if [ "$channel" = '#chan1 #chan2' ]; then
     pass "JOIN test"
 else
-    fail 'JOIN test'
+    fail 'JOIN test' \
+        "$channel == '#chan1 #chan2'"
 fi
 
 # channel PART test
@@ -182,7 +195,8 @@ read -t 1 -u "${COPROC[0]}" -r channel
 if [ "$channel" = '#chan1' ]; then
     pass 'PART test'
 else
-    fail 'PART test'
+    fail 'PART test' \
+        "$channel == #chan1"
 fi
 
 # channel KICK test
@@ -192,7 +206,8 @@ read -t 1 -u "${COPROC[0]}" -r channel
 if [ "$channel" = '' ]; then
     pass 'KICK test'
 else
-    fail 'KICK test'
+    fail 'KICK test' \
+        "$channel == ''"
 fi
 
 # test ctcp VERSION
@@ -204,7 +219,8 @@ if [ "$cmd" = 'NOTICE' ] &&
 then
     pass 'CTCP VERSION'
 else
-    fail 'CTCP VERSION'
+    fail 'CTCP VERSION' \
+        "$message =~ "$'\001VERSION bash-ircbot'
 fi
 
 # message parsing tests
@@ -214,7 +230,8 @@ read -t 1 -u "${COPROC[0]}" -r msgnick
 if [ "$msgnick" = 'some' ]; then
     pass 'IRC-LINE nick parse'
 else
-    fail 'IRC-LINE nick parse'
+    fail 'IRC-LINE nick parse' \
+        "$msgnick == some"
 fi
 
 # hostname parsing test
@@ -223,7 +240,8 @@ read -t 1 -u "${COPROC[0]}" -r msghost
 if [ "$msghost" = 'hostname' ]; then
     pass 'IRC-LINE host parse'
 else
-    fail 'IRC-LINE host parse'
+    fail 'IRC-LINE host parse' \
+        "$msghost = hostname"
 fi
 
 # chan parse
@@ -232,7 +250,8 @@ read -t 1 -u "${COPROC[0]}" -r msgchan
 if [ "$msgchan" = '#chan' ]; then
     pass 'IRC-LINE chan parse'
 else
-    fail 'IRC-LINE chan parse'
+    fail 'IRC-LINE chan parse' \
+        "$msgchan == #chan"
 fi
 
 # gateway user msg and username parse test
@@ -317,26 +336,27 @@ fi
 # should part all channels not in config
 # should join channels that are in the config
 # but are not joined to
-for itr in $(seq 4); do
+for itr in {1,2}; do
     read -t 1 -u "${COPROC[0]}" -r cmd channel unused
     if [ "$cmd" = 'JOIN' ]; then
-        if [ ! "$channel" = '#chan1' ] &&
-           [ ! "$channel" = '#chan2' ]
+        if [ "$channel" != '#chan1,#chan2' ]
         then
-            fail 'config reload 2 (channel part/join)'
+            fail 'config reload 2 (channel part/join)' \
+                "$channel == #chan1,#chan2"
             config_fail=2
             break
         fi
     elif [ "$cmd" = 'PART' ]; then
-        if [ ! "$channel" = '#chan3' ] &&
-           [ ! "$channel" = '#chan4' ]
+        if [ "$channel" != '#chan4,#chan3' ]
         then
-            fail 'config reload 2 (channel part/join)'
+            fail 'config reload 2 (channel part/join)' \
+                "$channel == #chan4,#chan3"
             config_fail=2
             break
         fi
     else
-        fail 'config reload 2 (channel part/join)'
+        fail 'config reload 2 (channel part/join)' \
+            "$cmd == JOIN || $cmd == PART"
         config_fail=2
         break
     fi
@@ -350,7 +370,8 @@ read -t 1 -u "${COPROC[0]}" -r nick
 if [ "$nick" = 'newnick' ]; then
     pass "NICK forced rename"
 else
-    fail "NICK forced rename"
+    fail "NICK forced rename" \
+        "$nick == newnick"
 fi
 
 cleanup

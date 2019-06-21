@@ -234,14 +234,28 @@ reload_config() {
         uniq_chans[$chan]+=1
     done
 
+    declare -a leave_list=()
+    declare -a join_list=()
+    local jlist='' llist=''
     for uniq_chan in "${!uniq_chans[@]}"; do
         (( ${#uniq_chans[$uniq_chan]} > 1 )) && continue
         if contains_chan "$uniq_chan" "${_channels[@]}"; then
-            send_cmd <<< ":l $uniq_chan"
+            leave_list+=("$uniq_chan")
         else
-            send_cmd <<< ":j $uniq_chan"
+            join_list+=("$uniq_chan")
         fi
     done
+
+    if [[ "${#join_list[@]}" -gt 0 ]]; then
+        printf -v jlist ',%s' "${join_list[@]}"
+        send_cmd <<< ':j '"${jlist:1}"
+    fi
+
+    if [[ "${#leave_list[@]}" -gt 0 ]]; then
+        printf -v llist ',%s' "${leave_list[@]}"
+        send_cmd <<< ':l '"${llist:1}"
+    fi
+    
 
     unset ignore_hash
     declare -Ag ignore_hash
@@ -578,7 +592,7 @@ handle_privmsg() {
             return
         fi
 
-        cmd="$5"
+        local cmd="$5"
         # if invalid command
         if [[ -z "${COMMANDS[$cmd]}" ]]; then
             echo1 ":m $3 --- Invalid Command ---"
