@@ -31,9 +31,6 @@ VERIFY_TLS=yes
 # IPC related files will use this root
 temp_dir=/tmp
 
-# read notice messages? spec say do not
-READ_NOTICE=
-
 # LOGGING
 # log levels
 # 1 - DEBUG
@@ -61,6 +58,8 @@ CMD_PREFIX=".,!"
 declare -gA COMMANDS
 # command names should be what to test for
 # avoid adding prefixes like .help
+# use as follows:
+#  ['one-word-command-string']='the command to execute'
 COMMANDS=(
 ["8"]="8ball.sh" 
 ["8ball"]="8ball.sh" 
@@ -102,21 +101,17 @@ COMMANDS=(
 ["rfc"]="rfc.sh"
 )
 
+declare -gA REGEX
 # regex patterns
 # if you need more fine grained control
 # uses bash regexp language
+# use as follows:
+#  ['YOUR REGEXP HERE']='the command to execute'
 REGEX=(
-'youtube.com|youtu.be'
+['youtube.com|youtu.be']='youtube.sh'
 # literally anything can be a url nowadays
-'(https?)://[^ ]+'
-'^moose'
-)
-# BREAKING: the index of the regexp above
-# is used to determine the command in this array to exec
-REGEX_CMD=(
-'youtube.sh'
-'pagetitle.sh'
-'moose.sh'
+['(https?)://[^ ]+']='pagetitle.sh'
+['^moose']='moose.sh'
 )
 
 # list of nicks to ignore from, such as other bots

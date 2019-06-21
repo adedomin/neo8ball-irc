@@ -461,14 +461,14 @@ send_cmd() {
 # $1       - string to try and match
 # @return  - regex command that should be ran
 # @exit    - zero for match, nonzero for no match
-# @mutates - REPLY with index
+# @mutates - REPLY with matching regexp
 check_regexp() {
-    declare -i i
+    local regex
 
-    for (( i=0; i < ${#REGEX[@]}; ++i )); do
-        if [[ "$1" =~ ${REGEX[i]} ]]; then
-            [[ -x "$LIB_PATH/${REGEX_CMD[i]}" ]] || return 1
-            REPLY="$i"
+    for regex in "${!REGEX[@]}"; do
+        if [[ "$1" =~ $regex ]]; then
+            [[ -x "$LIB_PATH/${REGEX["$regex"]}" ]] || return 1
+            REPLY="$regex"
             return 0
         fi
     done
@@ -600,10 +600,10 @@ handle_privmsg() {
             cmd="${PRIVMSG_DEFAULT_CMD:-help}"
         fi
         [[ -x "$LIB_PATH/${COMMANDS[$cmd]}" ]] || return
-            send_log "DEBUG" "PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $4"
-            "$LIB_PATH/${COMMANDS[$cmd]}" \
-                "$3" "$2" "$3" "$4" "$cmd" \
-            | send_cmd &
+        send_log "DEBUG" "PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $4"
+        "$LIB_PATH/${COMMANDS[$cmd]}" \
+            "$3" "$2" "$3" "$4" "$cmd" \
+        | send_cmd &
         return
     fi
 
@@ -612,10 +612,10 @@ handle_privmsg() {
         check_spam "$user" || return
         # shellcheck disable=SC2153
         [[ -x "$LIB_PATH/$HIGHLIGHT" ]] || return
-            send_log "DEBUG" "HIGHLIGHT EVENT -> $1 <$3>  $4"
-            "$LIB_PATH/$HIGHLIGHT" \
-                "$1" "$2" "$3" "$4" "$5" \
-             | send_cmd &
+        send_log "DEBUG" "HIGHLIGHT EVENT -> $1 <$3>  $4"
+        "$LIB_PATH/$HIGHLIGHT" \
+            "$1" "$2" "$3" "$4" "$5" \
+        | send_cmd &
         return
     fi
 
@@ -628,23 +628,23 @@ handle_privmsg() {
         [[ -n "${COMMANDS[$cmd]}" &&
             -x "$LIB_PATH/${COMMANDS[$cmd]}" ]] || return
         check_spam "$user" || return
-            send_log "DEBUG" "COMMAND EVENT -> $cmd: $1 <$3> $4"
-            "$LIB_PATH/${COMMANDS[$cmd]}" \
-                "$1" "$2" "$3" "$4" "$cmd" \
-            | send_cmd &
+        send_log "DEBUG" "COMMAND EVENT -> $cmd: $1 <$3> $4"
+        "$LIB_PATH/${COMMANDS[$cmd]}" \
+            "$1" "$2" "$3" "$4" "$cmd" \
+        | send_cmd &
         return
     esac
 
     # regexp check.
     if check_regexp "$6"; then
         check_spam "$user" || return
-        declare -i RMATCH_IND="$REPLY"
-            send_command "DEBUG" "REGEX EVENT -> ${REGEX[RMATCH_IND]}: $1 <$3> $6 (${BASH_REMATCH[0]})"
-            "$LIB_PATH/${REGEX_CMD[RMATCH_IND]}" \
-                "$1" "$2" "$3" "$6" \
-                "${REGEX[RMATCH_IND]}" \
-                "${BASH_REMATCH[0]}" \
-            | send_cmd &
+        local regex="$REPLY"
+        send_log "DEBUG" "REGEX EVENT -> $regex: $1 <$3> $6 (${BASH_REMATCH[0]})"
+        "$LIB_PATH/${REGEX["$regex"]}" \
+            "$1" "$2" "$3" "$6" \
+            "$regex" \
+            "${BASH_REMATCH[0]}" \
+        | send_cmd &
         return
     fi
 }
