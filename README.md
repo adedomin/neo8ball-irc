@@ -7,7 +7,7 @@ Usage
     usage: ./ircbot.sh [-c config] [-o logfile] [-t]
 
         -t --timestamp      Timestamp logs using iso-8601.
-        -c --config=path    A directory holding a neo8ball config.sh
+        -c --config=path    A neo8ball config.sh
         -o --log-out=file   A file to log to instead of stdout.
         -h --help           This message.
 
