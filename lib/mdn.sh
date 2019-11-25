@@ -15,6 +15,9 @@
 declare -i COUNT
 COUNT=1
 TOPIC=
+LIST_TOPICS=
+
+mdn_root='https://developer.mozilla.org/api/v1/search/en-US'
 
 q="$4"
 for arg in $4; do
@@ -32,8 +35,11 @@ for arg in $4; do
         --topic=*)
             TOPIC='&topic='"$(URI_ENCODE "${arg#*=}")"
         ;;
+        -l|--list-topics)
+            LIST_TOPICS=1
+        ;;
         -h|--help)
-            echo ":m $1 usage: $5 [--topic=topic-on-mdn] [--count=#-to-ret] query"
+            echo ":m $1 usage: $5 [--list-topics] [--topic=topic-on-mdn] [--count=#-to-ret] query"
             echo ":m $1 search MDN for javascript/web information."
             exit 0
         ;;
@@ -60,12 +66,30 @@ for arg in $4; do
     fi
 done
 
+if [ -n "$LIST_TOPICS" ]; then
+    {
+        curl --silent --fail \
+            "$mdn_root?q=na" || echo null
+    } | jq \
+        --arg CHANNEL "$1" \
+        --arg BOLD $'\002' \
+        -r 'if (.filters[0]) then
+              [ .filters[0].options[] | .slug ] | join (" ")
+        else
+            "Could not get available topics."
+        end
+        | ":m \($CHANNEL) \($BOLD)Topics\($BOLD): " + .[0:200]'
+    exit 0
+fi
+
 if [ -z "$q" ]; then
     echo ":mn $3 This command requires a search query, see --help for more info"
     exit 0
 fi
 
-mdn_search='https://developer.mozilla.org/api/v1/search/en-US?q='"$(URI_ENCODE "$q")""$TOPIC"
+mdn_search="$mdn_root"'?highlight=false&q='"$(URI_ENCODE "$q")""$TOPIC"
+
+
 
 {
     curl --silent \
@@ -75,13 +99,12 @@ mdn_search='https://developer.mozilla.org/api/v1/search/en-US?q='"$(URI_ENCODE "
     --arg COUNT "$COUNT" \
     --arg CHANNEL "$1" \
     --arg BOLD $'\002' \
-    --arg MDN_LOCATION 'https://developer.mozilla.org/' \
     -r 'if (.documents[0]) then
             .documents[0:($COUNT | tonumber)][]
     else
         { title: "No Results", excerpt: "", url: "" }
     end
     | ":m \($CHANNEL) \($BOLD)" + .title + $BOLD +
-      " " + (.excerpt | gsub("</?mark>"; ""))[0:200] + " :: " +
-     $MDN_LOCATION + .slug
+      " " + .excerpt[0:200] + " :: " +
+      "https://developer.mozilla.org/" + .slug
 '
