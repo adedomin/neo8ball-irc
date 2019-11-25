@@ -75,6 +75,7 @@ mdn_search='https://developer.mozilla.org/api/v1/search/en-US?q='"$(URI_ENCODE "
     --arg COUNT "$COUNT" \
     --arg CHANNEL "$1" \
     --arg BOLD $'\002' \
+    --arg MDN_LOCATION 'https://developer.mozilla.org/' \
     -r 'if (.documents[0]) then
             .documents[0:($COUNT | tonumber)][]
     else
@@ -82,5 +83,5 @@ mdn_search='https://developer.mozilla.org/api/v1/search/en-US?q='"$(URI_ENCODE "
     end
     | ":m \($CHANNEL) \($BOLD)" + .title + $BOLD +
       " " + (.excerpt | gsub("</?mark>"; ""))[0:200] + " :: " +
-      .url
+      \($MDN_LOCATION) + .slug
 '
