@@ -55,7 +55,6 @@ for arg in $4; do
                 ;;
             esac
             LAST=
-
         ;;
     esac
     if [[ "$q" == "${q#* }" ]]; then
@@ -66,7 +65,7 @@ for arg in $4; do
     fi
 done
 
-if [ -n "$LIST_TOPICS" ]; then
+if [[ -n "$LIST_TOPICS" ]]; then
     {
         curl --silent --fail \
             "$mdn_root?q=na" || echo null
@@ -82,14 +81,12 @@ if [ -n "$LIST_TOPICS" ]; then
     exit 0
 fi
 
-if [ -z "$q" ]; then
-    echo ":mn $3 This command requires a search query, see --help for more info"
+if [[ -z "$q" ]]; then
+    printf '%s\n' ":mn $3 This command requires a search query, see --help for more info"
     exit 0
 fi
 
 mdn_search="$mdn_root"'?highlight=false&q='"$(URI_ENCODE "$q")""$TOPIC"
-
-
 
 {
     curl --silent \
