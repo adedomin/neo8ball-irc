@@ -83,5 +83,5 @@ mdn_search='https://developer.mozilla.org/api/v1/search/en-US?q='"$(URI_ENCODE "
     end
     | ":m \($CHANNEL) \($BOLD)" + .title + $BOLD +
       " " + (.excerpt | gsub("</?mark>"; ""))[0:200] + " :: " +
-      \($MDN_LOCATION) + .slug
+     $MDN_LOCATION + .slug
 '
