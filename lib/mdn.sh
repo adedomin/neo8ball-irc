@@ -14,6 +14,7 @@
 # limitations under the License.
 declare -i COUNT
 COUNT=1
+TOPIC=
 
 q="$4"
 for arg in $4; do
@@ -25,16 +26,30 @@ for arg in $4; do
             [[ "${arg#*=}" =~ ^[1-3]$ ]] &&
                 COUNT="${arg#*=}"
         ;;
+        -t|--topic)
+            LAST=t
+        ;;
+        --topic=*)
+            TOPIC='&topic='"$(URI_ENCODE "${arg#*=}")"
+        ;;
         -h|--help)
-            echo ":m $1 usage: $5 [--count=#-to-ret] query"
+            echo ":m $1 usage: $5 [--topic=topic-on-mdn] [--count=#-to-ret] query"
             echo ":m $1 search MDN for javascript/web information."
             exit 0
         ;;
         *)
             [ -z "$LAST" ] && break
+            case "$LAST" in
+                c)
+                    [[ "$arg" =~ ^[1-3]$ ]] &&
+                        COUNT="$arg"
+                ;;
+                t)
+                    TOPIC='&topic='"$(URI_ENCODE "$arg")"
+                ;;
+            esac
             LAST=
-            [[ "$arg" =~ ^[1-3]$ ]] &&
-                COUNT="$arg"
+
         ;;
     esac
     if [[ "$q" == "${q#* }" ]]; then
@@ -50,7 +65,7 @@ if [ -z "$q" ]; then
     exit 0
 fi
 
-mdn_search='https://developer.mozilla.org/en-US/search.json?q='"$(URI_ENCODE "$q")"
+mdn_search='https://developer.mozilla.org/api/v1/search/en-US?q='"$(URI_ENCODE "$q")""$TOPIC"
 
 {
     curl --silent \
