@@ -47,6 +47,10 @@ LIB_PATH="${BASH_SOURCE[0]%/*}/lib/"
 # let other programs know where plugins are.
 export LIB_PATH
 
+# allows you to set a global useragent for curl using a .curlrc
+# as the same dir the config is in
+export CURL_HOME="${BASH_SOURCE[0]%/*}"
+
 # on highlight, call the following script/s
 HIGHLIGHT="8ball.sh"
 # default command to execute if no valid command matches
