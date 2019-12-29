@@ -43,7 +43,7 @@ LOG_STDOUT=y
 
 ## DECLARE IRC events here ##
 
-LIB_PATH="$(dirname "$0")/lib/"
+LIB_PATH="${BASH_SOURCE[0]%/*}/lib/"
 # let other programs know where plugins are.
 export LIB_PATH
 

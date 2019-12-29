@@ -13,38 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-declare -i COUNT
-COUNT=1
-
 # parse args
 q="$4"
 for key in $4; do
     case "$key" in
-        -c|--count)
-            LAST='c'
-        ;;
-        --count=*)
-            [[ "${key#*=}" =~ ^[1-3]$ ]] &&
-                COUNT="${key#*=}"
-        ;;
         -h|--help)
-            echo ":m $1 usage: $5 [--count=#-to-ret] query"
+            echo ":m $1 usage: $5 query"
             echo ":m $1 find a wikipedia article."
             exit 0
         ;;
         *)
-            [ -z "$LAST" ] && break
-            LAST=
-            [[ "$key" =~ ^[1-3]$ ]] &&
-                COUNT="$key"
+            break
         ;;
     esac
-    if [[ "$q" == "${q#* }" ]]; then
-        q=
-        break
-    else
-        q="${q#* }"
-    fi
 done
 
 if [ -z "$q" ]; then
@@ -52,20 +33,22 @@ if [ -z "$q" ]; then
     exit 0
 fi
 
-WIKI="https://en.wikipedia.org/w/api.php?action=opensearch&format=json&formatversion=2&search=$(URI_ENCODE "$q")&namespace=0&limit=${COUNT}&suggest=false&redirects=resolve"
+WIKI='https://en.wikipedia.org/api/rest_v1/page/summary/'"$(URI_ENCODE "$q")"
 
 {
     curl --silent \
+        --max-redirs 3 \
+        --location \
         --fail "$WIKI" \
     || echo null
 } | jq --arg CHAN "$1" \
-       --arg COUNT "$COUNT" \
        -r '
-    if ((.[1] | length) > 0) then
-        [.[1][0:($COUNT | tonumber)],.[2][0:($COUNT | tonumber)],.[3][0:($COUNT | tonumber)]]
-        | transpose
-        | map(":m \($CHAN) \u0002\(.[0])\u0002 :: \(.[2]) :: \(.[1][0:360])")
-        | .[]
+    if (. != null and .type != "disambiguation") then
+        ":m \($CHAN) \u0002\(.title)\u0002 :: \(.content_urls.desktop.page) :: " + 
+        ( .extract[0:350] | gsub("\n"; " "))
+    elif (. != null) then
+        ":m \($CHAN) \u0002\(.title)\u0002 :: \(.content_urls.desktop.page) :: " +
+        "\u0002Ambiguous\u0002 \(.extract[0:339] | gsub("\n"; " "))"
     else
         ":m \($CHAN) No Results."
     end
