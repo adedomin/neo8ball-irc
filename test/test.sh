@@ -215,12 +215,12 @@ echo -e ':testbot PRIVMSG testnick_ :\001VERSION\001' >&"${COPROC[1]}"
 read -t 1 -u "${COPROC[0]}" -r cmd channel message
 if [ "$cmd" = 'NOTICE' ] &&
    [ "$channel" = 'testbot' ] &&
-   [[ "$message" =~ $'\001VERSION bash-ircbot' ]]
+   [[ "$message" =~ $'\001VERSION neo8ball' ]]
 then
     pass 'CTCP VERSION'
 else
     fail 'CTCP VERSION' \
-        "$message =~ "$'\001VERSION bash-ircbot'
+        "$message =~ "$'\001VERSION neo8ball'
 fi
 
 # message parsing tests
