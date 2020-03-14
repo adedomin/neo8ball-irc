@@ -36,7 +36,7 @@ awk -F'|' -- '
     }
     {
         if (FILENAME == "king-james.txt") table = "king_james"
-	else if (FILENAME == "demon.txt") table = "demon"
+        else if (FILENAME == "demon.txt") table = "demon"
         else table = "quran"
         print "INSERT INTO " table " VALUES (" esc($1) ", " esc($2) ");"
     }
