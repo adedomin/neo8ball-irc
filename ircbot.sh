@@ -694,7 +694,10 @@ while read -u 4 -r -n 1024 -t "$TIMEOUT_CHECK"; do
 
     # other helpful variable
     ucmd="${message%% *}"
-    umsg="${message#* }"
+    umsg="${message#"$ucmd"}"
+    # in case $ucmd is the only string in the message.
+    # otherwise remove this argument
+    umsg="${umsg# }"
     # the user who was kicked in a KICK command
     ukick="${message% :*}"
     # log message
