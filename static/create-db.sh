@@ -25,6 +25,9 @@ awk -F'|' -- '
         print "CREATE VIRTUAL TABLE quran USING fts5("
         print "  vid, verse, tokenize = \047porter unicode61\047"
         print ");"
+        print "CREATE VIRTUAL TABLE demon USING fts5("
+        print "  vid, verse, tokenize = \047porter unicode61\047"
+        print ");"
         print "BEGIN TRANSACTION;"
     }
     function esc(str) {
@@ -33,8 +36,9 @@ awk -F'|' -- '
     }
     {
         if (FILENAME == "king-james.txt") table = "king_james"
+	else if (FILENAME == "demon.txt") table = "demon"
         else table = "quran"
         print "INSERT INTO " table " VALUES (" esc($1) ", " esc($2) ");"
     }
     END { print "COMMIT TRANSACTION;" }
-' king-james.txt quran-allah-ver.txt | sqlite3 kjbible-quran.db
+' king-james.txt quran-allah-ver.txt demon.txt | sqlite3 kjbible-quran.db
