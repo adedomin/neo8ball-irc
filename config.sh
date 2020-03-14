@@ -90,6 +90,7 @@ COMMANDS=(
 ["urban"]="urbandict.sh"
 ["bible"]="bible.sh"
 ["quran"]="bible.sh"
+["demon"]="bible.sh"
 ["fap"]="fap.sh"
 ["gay"]="fap.sh"
 ["straight"]="fap.sh"
@@ -160,6 +161,7 @@ export PERSIST_LOC="/tmp"
 #export BIBLE_DB="$(dirname "$0")/static/kjbible-quran.db"
 export BIBLE_SOURCE="$(dirname "$0")/static/king-james.txt"
 export QURAN_SOURCE="$(dirname "$0")/static/quran-allah-ver.txt"
+export DEMON_SOURCE="$(dirname "$0")/static/demon.txt"
 
 # newline separated channels to disable pagetitle plugin in
 # RESTRICTIONS:

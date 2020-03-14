@@ -82,6 +82,9 @@ done
 if [[ "$5" = 'quran' ]]; then
     table='quran'
     BIBLE_SOURCE="$QURAN_SOURCE"
+elif [[ "$5" = 'demon' ]]; then
+    table='demon'
+    BIBLE_SOURCE="$DEMON_SOURCE"
 else
     table='king_james'
 fi
