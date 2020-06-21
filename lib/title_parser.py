@@ -108,7 +108,7 @@ def parse_title_chunk(tokens):
 def parse_title(html, limit=-1):
     ret = parse_title_chunk(tokenize_title_chunk(html))
     if limit != -1:
-        return f'{ret[0:limit]}...'
+        return f'{ret[0:limit]}{"..." if len(ret) > limit else ""}'
     return ret
 
 
