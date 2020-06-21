@@ -68,28 +68,4 @@ if [[ ! "$mime" =~ text/html|application/xhtml+xml ]]; then
 fi
 
 printf '%s' ":m $1 ↑ "$'\002Title\002'" :: "
-curl --silent \
-    --fail \
-    --compressed \
-    --location \
-    --max-redirs 2 \
-    --max-time 10 \
-    -- "$URL" \
-| sed -n '
-    /<title[^>]*>.*<\/title>/I {
-      s@.*<title[^>]*>\(.*\)</title>.*@\1@Ip
-      q
-    }
-    /<title[^>]*>/I {
-      :next
-      N
-      /<\/title>/I {
-        s@.*<title[^>]*>\(.*\)</title>.*@\1@Ip
-        q
-      }
-      $! b next
-    }' \
-| HTML_CHAR_ENT_TO_UTF8 \
-| tr '\r\n' ' ' \
-| head --bytes=350
-echo
+"$LIB_PATH"/title_parser.py "$URL" 350
