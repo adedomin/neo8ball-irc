@@ -102,7 +102,9 @@ get_tweet_status() {
     fi
 
     printf '%s' $'\002'Tweet$'\002'" - "
-    jq -r '.text' <<< "$res" | HTML_CHAR_ENT_TO_UTF8
+    jq -r '"By \(.user.screen_name) At \(.created_at): " + 
+           (.text|gsub("\n"; ""))
+    ' <<< "$res" | HTML_CHAR_ENT_TO_UTF8
 }
 
 if [[ -n "$status_id" ]]; then
