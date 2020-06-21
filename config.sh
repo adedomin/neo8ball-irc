@@ -112,6 +112,7 @@ declare -gA REGEX
 # use as follows:
 #  ['YOUR REGEXP HERE']='the command to execute'
 REGEX=(
+['https?://twitter.com/[^/]+/status/[0-9]+|t.co/[a-zA-Z0-9]+']='twitter.sh'
 ['youtube.com|youtu.be']='youtube.sh'
 # literally anything can be a url nowadays
 ['(https?)://[^ ]+']='pagetitle.sh'
