@@ -553,7 +553,8 @@ trusted_gateway() {
     newuser="${message%% *}"
     newmsg="${message#* }"
     # new msg without the gateway username
-    message="$newmsg"
+    # remove format reset some gateways add
+    message="${newmsg#["$irc_special_format"]}"
     # delete any brackets and some special chars
     user=${newuser//[<>"$irc_special_format"]/}
     # delete mIRC color prepended numbers if applicable
