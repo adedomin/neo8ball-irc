@@ -537,6 +537,7 @@ check_ignore() {
 # like <the_gateway> <user1> msg
 # if your gateway does not do this, please make an issue on github
 # $1 - the nickname
+irc_special_format=$'\x02\x03\x04\x0f\x11\x16\x1d\x1e\x1f'
 trusted_gateway() {
     local trusted
     for nick in "${GATEWAY[@]}"; do
@@ -554,7 +555,7 @@ trusted_gateway() {
     # new msg without the gateway username
     message="$newmsg"
     # delete any brackets and some special chars
-    user=${newuser//[<>$'\002'$'\003']/}
+    user=${newuser//[<>"$irc_special_format"]/}
     # delete mIRC color prepended numbers if applicable
     [[ "$user" =~ ^[0-9,]*(.*)$ ]] &&
         user="${BASH_REMATCH[1]}"
