@@ -179,6 +179,10 @@ exit_status=0
 quit_prg() {
     exec 3<&-
     exec 4<&-
+    [[ -n "$ncat_pid" ]] &&
+        kill -- "$ncat_pid"
+    [[ -n "$ping_child" ]] &&
+        kill -- "$ping_child"
     rm -rf -- "$APP_TMP"
     exit "$exit_status"
 }
@@ -288,6 +292,7 @@ elif [[ -z "$BASH_TCP" ]]; then
         ncat "${TLS_OPTS[@]}" "$SERVER" "${PORT:-6667}"
         echo1 'ERROR :ncat has terminated'
     }
+    ncat_pid="$COPROC_PID"
     # coprocs are a bit weird
     # subshells may not be able to r/w to these fd's normally
     # without reopening them
@@ -662,6 +667,7 @@ if [[ -z "$MOCK_CONN_TEST" ]]; then
     while sleep "$(( TIMEOUT_CHECK / 2 ))"; do
         send_msg "PING :$NICK"
     done &
+    ping_child="$!"
 fi
 
 send_log "DEBUG" "COMMUNICATION START"
@@ -669,6 +675,8 @@ send_log "DEBUG" "COMMUNICATION START"
 # this is likely not required
 if [[ -n "$PASS" ]]; then
     send_msg "PASS $PASS"
+elif [[ -n "$SASL_PASS" ]]; then
+    send_msg "CAP REQ :sasl"
 fi
 # "Ident" information
 send_msg "NICK $NICK"
@@ -686,6 +694,15 @@ while read -u 4 -r -n 1024 -t "$TIMEOUT_CHECK"; do
         ERROR*) # banned?
             send_log "CRITICAL" "${REPLY#:}"
             break
+        ;;
+        AUTHENTICATE*) # SASL Auth
+            # If your base64 encoded password is longer than
+            # 400byes, I got bad news for you.
+            send_msg "AUTHENTICATE $(
+                printf '\0%s\0%s' \
+                    "$NICK" "$SASL_PASS" \
+                | base64 -w 0
+            )"
         ;;
     esac
 
@@ -822,6 +839,21 @@ while read -u 4 -r -n 1024 -t "$TIMEOUT_CHECK"; do
             send_msg "NICK $NICK"
             send_log "NICK" "NICK CHANGED TO $NICK"
         ;;
+        # SASL specific
+        CAP)
+            if [[ "$message" == 'ACK :sasl' ]]; then
+                send_msg 'AUTHENTICATE PLAIN'
+            fi
+        ;;
+        # SASL status commands
+        903)
+            send_msg "CAP END"
+        ;;
+        902|904|905|906)
+            send_msg "CAP END"
+            send_log 'CRITICAL' "$message"
+            break
+        ;;
         PONG)
             send_log 'DEBUG' 'RECV -> PONG'
         ;;
@@ -842,5 +874,6 @@ while read -u 4 -r -n 1024 -t "$TIMEOUT_CHECK"; do
         ;;
     esac
 done
+send_msg "QUIT :bye"
 send_log 'CRITICAL' 'Exited Event loop; timed out or disconnected.'
 exit_failure

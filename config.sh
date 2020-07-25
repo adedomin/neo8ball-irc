@@ -1,8 +1,20 @@
 # shellcheck disable=2034
-# nickname, also username
+# Your Nickname
+# Username is also set to this
+# This value is used for SASL as well
 NICK="neo8ball"
+# Server password (NOT SASL)
+# leave blank to disable
+PASS=
+# SASL PLAIN
+# Note, Depends on a `base64` binary
+# if your password is insanely long (b64(pass) > 399B)
+# This won't work
+# You likely don't need nickserv if you have this
+# leave blank to disable this
+SASL_PASS=
 # NickServ password
-# blank for unreg
+# leave blank to disable this
 NICKSERV=
 # irc server
 SERVER="irc.rizon.net"
