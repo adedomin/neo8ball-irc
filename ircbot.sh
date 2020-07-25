@@ -703,6 +703,7 @@ while read -u 4 -r -n 1024 -t "$TIMEOUT_CHECK"; do
                     "$NICK" "$SASL_PASS" \
                 | base64 -w 0
             )"
+            continue
         ;;
     esac
 
