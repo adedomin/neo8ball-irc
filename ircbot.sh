@@ -225,6 +225,7 @@ reload_config() {
     # pass change for nickserv
     if [[ "$NICKSERV" != "$_nickserv" ]]; then
         printf '%s\r\n' "NICKSERV IDENTIFY $NICKSERV" >&3
+        send_log "DEBUG" "SENT -> NICKSERV IDENTIFY <PASSWORD>"
     fi
 
     # persist channel invites
@@ -698,11 +699,12 @@ while read -u 4 -r -n 1024 -t "$TIMEOUT_CHECK"; do
         AUTHENTICATE*) # SASL Auth
             # If your base64 encoded password is longer than
             # 400byes, I got bad news for you.
-            send_msg "AUTHENTICATE $(
+            printf '%s\r\n' "AUTHENTICATE $(
                 printf '\0%s\0%s' \
                     "$NICK" "$SASL_PASS" \
                 | base64 -w 0
-            )"
+            )" >&3
+            send_log "DEBUG" "SENT -> AUTHENTICATE <PASSWORD>"
             continue
         ;;
     esac
