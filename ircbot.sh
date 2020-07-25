@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="neo8ball: v6.0.2"
+VERSION="neo8ball: v2020.07.25"
 
 echo1() {
     printf '%s\n' "$*"
