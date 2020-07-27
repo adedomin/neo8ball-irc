@@ -268,7 +268,7 @@ for line in "${MOOSE_IMAGE[@]}"; do
             out+="${KCOL}${color}${symbol}${KCOL}"
         fi
     done
-    echo -e ":m $1 \\u200B$out"
+    printf ':m %s\n' "$1 $out"
     shade_lineno+=1
     sleep "${MOOSE_OUTPUT_DELAY:-0.3s}"
 done

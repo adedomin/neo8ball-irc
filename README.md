@@ -88,6 +88,10 @@ just do:
 
     :m #chan this is a multi-space message.
 
+Note that there can only be one space between arguments. Any more will be interpreted as part of the argument. e.g.
+
+    :m #channel    leading spaces will be output to irc.
+
 ### State
 
 State, and mutexes are ultimately the *plugin's responsibility*;

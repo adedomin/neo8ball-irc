@@ -405,7 +405,24 @@ send_msg() {
 # <STDIN> - valid bash-ircbot command string
 # SEE     - README.md
 send_cmd() {
-    while read -r cmd arg other; do
+    while read -r; do
+        cmd="${REPLY%% *}"
+
+        if [[ "$REPLY" == "${REPLY#"$cmd"* }" ]]; then
+            cmd="$cmd"' - ERR_NO_ARGS'
+            arg="<NO ARG>"
+        else
+            arg="${REPLY#"$cmd"* }"
+            arg="${arg%% *}"
+        fi
+
+        # OTHER ARG must be exactly one space after ARG
+        if [[ "$REPLY" == "${REPLY#"$cmd"*' '"$arg"' '}" ]]; then
+            other=
+        else
+            other="${REPLY#"$cmd"*' '"$arg"' '}"
+        fi
+
         case $cmd in
             :j|:join)
                 send_msg "JOIN $arg"
@@ -602,7 +619,7 @@ handle_privmsg() {
         local cmd="$5"
         # if invalid command
         if [[ -z "${COMMANDS[$cmd]}" ]]; then
-            echo1 ":m $3 --- Invalid Command ---"
+            send_msg "PRIVMSG $3 :--- Invalid Command ---"
             # basically your "help" command
             cmd="${PRIVMSG_DEFAULT_CMD:-help}"
         fi
