@@ -108,10 +108,10 @@ fi
 # Configuration Tests #
 #######################
 
-# check for ncat, use bash tcp otherwise
-# fail hard if user wanted tls and ncat not found
-if ! type ncat >/dev/null 2>&1; then
-    echo1 "*** NOTICE *** ncat not found; using bash tcp"
+# check for socat, use bash tcp otherwise
+# fail hard if user wanted tls and socat not found
+if ! type socat >/dev/null 2>&1; then
+    echo1 "*** NOTICE *** socat not found; using bash tcp"
     [[ -n "$TLS" ]] &&
         die "TLS does not work with bash tcp"
     BASH_TCP=a
@@ -184,8 +184,8 @@ exit_status=0
 quit_prg() {
     exec 3<&-
     exec 4<&-
-    [[ -n "$ncat_pid" ]] &&
-        kill -- "$ncat_pid"
+    [[ -n "$socat_pid" ]] &&
+        kill -- "$socat_pid"
     [[ -n "$ping_child" ]] &&
         kill -- "$ping_child"
     rm -rf -- "$APP_TMP"
@@ -278,10 +278,17 @@ trap 'reload_config' SIGHUP SIGWINCH
 # Setup Connection #
 ####################
 
-TLS_OPTS=()
-[[ -n "$TLS"             ]] && TLS_OPTS+=(--ssl)
-[[ -n "$VERIFY_TLS"      ]] && TLS_OPTS+=(--ssl-verify)
-[[ -n "$VERIFY_TLS_FILE" ]] && TLS_OPTS+=("--ssl-trustfile=$VERIFY_TLS_FILE")
+TLS_OPTS="$SERVER:${PORT:-6667}"
+if [[ -n "$TLS" ]]; then
+    TLS_OPTS="OPENSSL:$TLS_OPTS"
+    [[ -z "$VERIFY_TLS" ]] &&
+        TLS_OPTS+=',verify=0'
+    [[ -n "$VERIFY_TLS_FILE" ]] &&
+        TLS_OPTS+=",cert=$VERIFY_TLS_FILE"
+else
+    TLS_OPTS="TCP:$TLS_OPTS"
+fi
+TLS_OPTS+=',keepalive'
 
 # this mode should be used for testing only
 if [[ -n "$MOCK_CONN_TEST" ]]; then
@@ -295,10 +302,10 @@ if [[ -n "$MOCK_CONN_TEST" ]]; then
 # Connect to server otherwise
 elif [[ -z "$BASH_TCP" ]]; then
     coproc {
-        ncat "${TLS_OPTS[@]}" "$SERVER" "${PORT:-6667}"
-        echo1 'ERROR :ncat has terminated'
+        socat - "${TLS_OPTS}"
+        echo1 'ERROR :socat has terminated'
     }
-    ncat_pid="$COPROC_PID"
+    socat_pid="$COPROC_PID"
     # coprocs are a bit weird
     # subshells may not be able to r/w to these fd's normally
     # without reopening them
@@ -684,17 +691,6 @@ handle_privmsg() {
 #######################
 # start communication #
 #######################
-
-[[ -z "$TIMEOUT_CHECK" ]] &&
-    TIMEOUT_CHECK=300
-# keeps the connection active.
-# don't bother if we are in testing mode.
-if [[ -z "$MOCK_CONN_TEST" ]]; then
-    while sleep "$(( TIMEOUT_CHECK / 2 ))"; do
-        send_msg "PING :$NICK"
-    done &
-    ping_child="$!"
-fi
 
 send_log "DEBUG" "COMMUNICATION START"
 # pass if server is private
