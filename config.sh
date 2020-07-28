@@ -131,6 +131,14 @@ REGEX=(
 ['^moose']='moose.sh'
 )
 
+# bash associative arrays are not strictly ordered
+REGEX_ORDERED=(
+'https?://twitter.com/[^/]+/status/[0-9]+|t.co/[a-zA-Z0-9]+'
+'youtube.com|youtu.be'
+'(https?)://[^ ]+'
+'^moose'
+)
+
 # list of nicks to ignore from, such as other bots
 IGNORE=(
 )

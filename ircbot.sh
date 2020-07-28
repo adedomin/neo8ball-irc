@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-VERSION="neo8ball: v2020.07.25"
+VERSION="neo8ball: v2020.07.28"
 
 echo1() {
     printf '%s\n' "$*"
@@ -168,6 +168,11 @@ for ign in "${IGNORE[@]}"; do
     ignore_hash[$ign]=1
 done
 
+# if REGEX_ORDERED not defined, build it here
+if [[ "${#REGEX_ORDERED[@]}" == 0 ]]; then
+    REGEX_ORDERED=("${!REGEX[@]}")
+fi
+
 ####################
 # Signal Listeners #
 ####################
@@ -309,6 +314,8 @@ fi
 # IRC Helper Functions #
 ########################
 
+all_control_characters=$'\1\2\3\4\5\6\7\10\11\12\13\14\15\16\17\20\21\22\23\24\25\26\27\30\31\32\33\34\35\36\37'
+
 parse_irc() {
     local temp utemp
     # split by whitespace
@@ -372,11 +379,13 @@ post_ident() {
 # $2 - the message
 send_log() {
     declare -i log_lvl
+    local clean_log_msg="${2//["$all_control_characters"]/}"
+
     case $1 in
         STDOUT)
             # shellcheck disable=2183
             [[ -n "$LOG_STDOUT" ]] &&
-                printf '%(%Y-%m-%d %H:%M:%S%z)T %s\n' '-1' "${2//[$'\n'$'\r']/}"
+                printf '%(%Y-%m-%d %H:%M:%S%z)T %s\n' '-1' "$clean_log_msg"
             return
         ;;
         WARNING) log_lvl=3 ;;
@@ -386,7 +395,7 @@ send_log() {
     esac
 
     (( log_lvl >= LOG_LEVEL )) &&
-        printf "$LOG_TSTAMP_FORMAT"'*** %s *** %s\n' $LOG_TSTAMP_ARG1 "$1" "$2"
+        printf "$LOG_TSTAMP_FORMAT"'*** %s *** %s\n' $LOG_TSTAMP_ARG1 "$1" "$clean_log_msg"
 }
 
 # Send arguments to irc server.
@@ -487,7 +496,7 @@ send_cmd() {
 check_regexp() {
     local regex
 
-    for regex in "${!REGEX[@]}"; do
+    for regex in "${REGEX_ORDERED[@]}"; do
         if [[ "$1" =~ $regex ]]; then
             [[ -x "$LIB_PATH/${REGEX["$regex"]}" ]] || return 1
             REPLY="$regex"
@@ -560,7 +569,6 @@ check_ignore() {
 # like <the_gateway> <user1> msg
 # if your gateway does not do this, please make an issue on github
 # $1 - the nickname
-irc_special_format=$'\x02\x03\x04\x0f\x11\x16\x1d\x1e\x1f'
 trusted_gateway() {
     local trusted
     for nick in "${GATEWAY[@]}"; do
@@ -577,9 +585,9 @@ trusted_gateway() {
     newmsg="${message#* }"
     # new msg without the gateway username
     # remove format reset some gateways add
-    message="${newmsg#["$irc_special_format"]}"
+    message="${newmsg#["$all_control_characters"]}"
     # delete any brackets and some special chars
-    user=${newuser//[<>"$irc_special_format"]/}
+    user=${newuser//[<>"$all_control_characters"]/}
     # delete mIRC color prepended numbers if applicable
     [[ "$user" =~ ^[0-9,]*(.*)$ ]] &&
         user="${BASH_REMATCH[1]}"
@@ -703,7 +711,7 @@ send_msg "USER $NICK +i * :$NICK"
 # note if the irc sends lines longer than
 # 1024 bytes, it may fail to parse
 while read -u 4 -r -n 1024 -t "$TIMEOUT_CHECK"; do
-    # check for high level commands from the ircd
+    # check for commands from the ircd
     case "$REPLY" in
         PING*) # have to reply
             send_msg "PONG ${REPLY#PING *}"
@@ -714,18 +722,30 @@ while read -u 4 -r -n 1024 -t "$TIMEOUT_CHECK"; do
             break
         ;;
         AUTHENTICATE*) # SASL Auth
-            # If your base64 encoded password is longer than
-            # 400byes, I got bad news for you.
-            printf '%s\r\n' "AUTHENTICATE $(
-                printf '\0%s\0%s' \
-                    "$NICK" "$SASL_PASS" \
-                | base64 -w 0
-            )" >&3
-            send_log "DEBUG" "SENT -> AUTHENTICATE <PASSWORD>"
+            if [[ -n "$SASL_PASS" ]]; then
+                # If your base64 encoded password is longer than
+                # 400byes, I got bad news for you.
+                printf '%s\r\n' "AUTHENTICATE $(
+                    printf '\0%s\0%s' \
+                        "$NICK" "$SASL_PASS" \
+                    | base64 -w 0
+                )" >&3
+                send_log "DEBUG" "SENT -> AUTHENTICATE <PASSWORD>"
+                continue
+            else
+                # if we don't have an SASL pass, why did the server ask?
+                send_log "CRITICAL" 'Server asked for SASL pass that is not set'
+                break
+            fi
+        ;;
+        # other unknown top level command
+        [!:]*)
+            send_log 'WARNING' "Server sent command we cannot handle: ($REPLY)"
             continue
         ;;
     esac
 
+    # any message that starts with a colon and a username/server
     parse_irc "$REPLY"
 
     # check if gateway nick
