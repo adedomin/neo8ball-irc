@@ -17,7 +17,9 @@
 
 import re
 from html.entities import html5 as char_entities
-
+from sys import argv
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError
 
 TitleTokenizer = re.compile('''(?x)
  (?P<WHITESPACE>\\s+)
@@ -113,12 +115,15 @@ def parse_title(html, limit=-1):
 
 
 if __name__ == '__main__':
-    from sys import argv
-    from urllib.request import urlopen
-
     limit = int(argv[2]) if len(argv) > 2 else -1
 
-    with urlopen(argv[1]) as req:
-        print(parse_title(req.read(4096)
-                             .decode('utf-8', 'ignore'),
-                          limit=limit))
+    try:
+        with urlopen(Request(argv[1],
+                             headers={'User-Agent':
+                                      'neo8ball - https://github.com/adedomin/neo8ball-irc'})) \
+        as req:
+            print(parse_title(req.read(4096)
+                                 .decode('utf-8', 'ignore'),
+                              limit=limit))
+    except HTTPError as e:
+        print('{} - ({})'.format(e, argv[1]))
