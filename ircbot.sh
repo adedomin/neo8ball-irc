@@ -186,8 +186,6 @@ quit_prg() {
     exec 4<&-
     [[ -n "$socat_pid" ]] &&
         kill -- "$socat_pid"
-    [[ -n "$ping_child" ]] &&
-        kill -- "$ping_child"
     rm -rf -- "$APP_TMP"
     exit "$exit_status"
 }
@@ -292,13 +290,12 @@ TLS_OPTS+=',keepalive'
 
 # this mode should be used for testing only
 if [[ -n "$MOCK_CONN_TEST" ]]; then
+    echo2 'IN MOCK'
     # send irc communication to
     exec 4>&0 # from server - stdin
     exec 3<&1 # to   server - stdout
     exec 1>&-
     exec 1<&2 # remap stdout to err for logs
-    # disable ncat half close check
-    BASH_TCP=1
 # Connect to server otherwise
 elif [[ -z "$BASH_TCP" ]]; then
     coproc {
@@ -505,7 +502,7 @@ check_regexp() {
 
     for regex in "${REGEX_ORDERED[@]}"; do
         if [[ "$1" =~ $regex ]]; then
-            [[ -x "$LIB_PATH/${REGEX["$regex"]}" ]] || return 1
+            [[ -x "$PLUGIN_PATH/${REGEX["$regex"]}" ]] || return 1
             REPLY="$regex"
             return 0
         fi
@@ -638,9 +635,9 @@ handle_privmsg() {
             # basically your "help" command
             cmd="${PRIVMSG_DEFAULT_CMD:-help}"
         fi
-        [[ -x "$LIB_PATH/${COMMANDS[$cmd]}" ]] || return
+        [[ -x "$PLUGIN_PATH/${COMMANDS[$cmd]}" ]] || return
         send_log "DEBUG" "PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $4"
-        "$LIB_PATH/${COMMANDS[$cmd]}" \
+        "$PLUGIN_PATH/${COMMANDS[$cmd]}" \
             "$3" "$2" "$3" "$4" "$cmd" \
         | send_cmd &
         return
@@ -650,9 +647,9 @@ handle_privmsg() {
     if [[ "$5" = ?(@)$NICK?(:|,) ]]; then
         check_spam "$user" || return
         # shellcheck disable=SC2153
-        [[ -x "$LIB_PATH/$HIGHLIGHT" ]] || return
+        [[ -x "$PLUGIN_PATH/$HIGHLIGHT" ]] || return
         send_log "DEBUG" "HIGHLIGHT EVENT -> $1 <$3>  $4"
-        "$LIB_PATH/$HIGHLIGHT" \
+        "$PLUGIN_PATH/$HIGHLIGHT" \
             "$1" "$2" "$3" "$4" "$5" \
         | send_cmd &
         return
@@ -665,10 +662,10 @@ handle_privmsg() {
     case "${5:0:1}" in ["$CMD_PREFIX"])
         cmd="${5:1}"
         [[ -n "${COMMANDS[$cmd]}" &&
-            -x "$LIB_PATH/${COMMANDS[$cmd]}" ]] || return
+            -x "$PLUGIN_PATH/${COMMANDS[$cmd]}" ]] || return
         check_spam "$user" || return
         send_log "DEBUG" "COMMAND EVENT -> $cmd: $1 <$3> $4"
-        "$LIB_PATH/${COMMANDS[$cmd]}" \
+        "$PLUGIN_PATH/${COMMANDS[$cmd]}" \
             "$1" "$2" "$3" "$4" "$cmd" \
         | send_cmd &
         return
@@ -679,7 +676,7 @@ handle_privmsg() {
         check_spam "$user" || return
         local regex="$REPLY"
         send_log "DEBUG" "REGEX EVENT -> $regex: $1 <$3> $6 (${BASH_REMATCH[0]})"
-        "$LIB_PATH/${REGEX["$regex"]}" \
+        "$PLUGIN_PATH/${REGEX["$regex"]}" \
             "$1" "$2" "$3" "$6" \
             "$regex" \
             "${BASH_REMATCH[0]}" \
@@ -691,6 +688,9 @@ handle_privmsg() {
 #######################
 # start communication #
 #######################
+
+[[ -z "$TIMEOUT_CHECK" ]] &&
+    TIMEOUT_CHECK=300
 
 send_log "DEBUG" "COMMUNICATION START"
 # pass if server is private
@@ -735,7 +735,7 @@ while read -u 4 -r -n 1024 -t "$TIMEOUT_CHECK"; do
             fi
         ;;
         # other unknown top level command
-        [!:]*)
+        [!:]*|'')
             send_log 'WARNING' "Server sent command we cannot handle: ($REPLY)"
             continue
         ;;

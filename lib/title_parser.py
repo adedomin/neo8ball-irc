@@ -1,117 +1,47 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-# Copyright (C) 2020  Anthony DeDominic <adedomin@gmail.com>
+# Copyright (c) 2020, Anthony DeDominic <adedomin@gmail.com>
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-import re
-from html.entities import html5 as char_entities
-from sys import argv
+from sys import argv, exit
+from html.parser import HTMLParser as HtmlParser
 from urllib.request import Request, urlopen
-from urllib.error import HTTPError
-
-TitleTokenizer = re.compile('''(?x)
- (?P<WHITESPACE>\\s+)
-|(?P<TITLE>[<][/]?\\s*[tT][iI][tT][lL][eE][^>]*[>])
-|(?P<WORDS>[^<>&"'\\s]+)
-|(?P<DEC_CHAR_ENT>
-  [&][#]
-   (?P<dec_code_value>\\d+)
-  ;
- )
-|(?P<HEX_CHAR_ENT>
-  [&][#]x
-   (?P<hex_code_value>[a-fA-F0-9]+)
-  ;
- )
-|(?P<WORD_CHAR_ENT>
-  [&]
-   (?P<word_code_value>\\w+;)
- )
-|(?P<OTHER_TAG> # technically not valid
-  [<][/]?\\s*
-   (?P<tag_name>[\\w!]+)
-  [^>]*[>])
-|(?P<INVALID>.)
-''')
 
 
-def tokenize_title_chunk(html_chunk):
-    for match_obj in re.finditer(TitleTokenizer, html_chunk):
-        typeof = match_obj.lastgroup
-        if typeof == 'OTHER_TAG':
-            value = match_obj.group('tag_name')
-        elif typeof == 'WHITESPACE':
-            value = ' '
-        elif typeof == 'DEC_CHAR_ENT':
-            value = match_obj.group('dec_code_value')
-        elif typeof == 'HEX_CHAR_ENT':
-            value = match_obj.group('hex_code_value')
-        elif typeof == 'WORD_CHAR_ENT':
-            value = match_obj.group('word_code_value')
-        else:
-            value = match_obj.group()
+class TitleParser(HtmlParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.in_title = False
+        self.done = False
+        self.title = ''
 
-        yield (typeof, value)
+    def handle_starttag(self, tag, attr):
+        if tag == 'title':
+            self.in_title = True
 
+    def handle_endtag(self, tag):
+        if tag == 'title':
+            self.in_title = False
+            self.done = True
 
-def parse_title_chunk(tokens):
-    in_title = False
-    reduce = ''
-
-    for tkn in tokens:
-        if not in_title and tkn[0] == 'TITLE':
-            in_title = True
-        elif in_title and tkn[0] == 'TITLE':
-            break
-        elif in_title:
-            if tkn[0] == 'DEC_CHAR_ENT' or tkn[0] == 'HEX_CHAR_ENT':
-                try:
-                    cvalue = chr(int(tkn[1],
-                                     10
-                                     if tkn[0] == 'DEC_CHAR_ENT'
-                                     else 16))
-                except ValueError:
-                    cvalue = '�'
-                reduce = reduce + cvalue
-            elif (tkn[0] == 'WORD_CHAR_ENT'):
-                try:
-                    cvalue = char_entities[tkn[1]]
-                except KeyError:
-                    cvalue = '�'
-                reduce = reduce + cvalue
-            elif tkn[0] == 'OTHER_TAG':
-                tag = tkn[1].lower()
-                if tag == 'b':
-                    reduce = reduce + '\x02'
-                elif tag == 'i':
-                    reduce = reduce + '\x1d'
-                elif tag == 'u':
-                    reduce = reduce + '\x1f'
-                elif tag == 's':
-                    reduce = reduce + '\x1e'
-            else:
-                reduce = reduce + tkn[1]
-
-    return reduce
+    def handle_data(self, inner_text):
+        if self.in_title:
+            self.title += inner_text
 
 
-def parse_title(html, limit=-1):
-    ret = parse_title_chunk(tokenize_title_chunk(html))
-    if limit != -1:
-        return f'{ret[0:limit]}{"..." if len(ret) > limit else ""}'
-    return ret
+def chunk_read(req):
+    for i in range(10):
+        yield req.read(4096).decode('utf8', 'ignore')
 
 
 if __name__ == '__main__':
@@ -120,10 +50,23 @@ if __name__ == '__main__':
     try:
         with urlopen(Request(argv[1],
                              headers={'User-Agent':
-                                      'neo8ball - https://github.com/adedomin/neo8ball-irc'})) \
+                                      'neo8ball - '
+                                      'https://github.com/'
+                                      'adedomin/neo8ball-irc',
+                                      'Accept':
+                                      'text/html,application/xhtml+xml'})) \
         as req:
-            print(parse_title(req.read(4096)
-                                 .decode('utf-8', 'ignore'),
-                              limit=limit))
-    except HTTPError as e:
+            parser = TitleParser()
+            for html_fragment in chunk_read(req):
+                if not html_fragment:
+                    break
+                parser.feed(html_fragment)
+                if parser.done:
+                    break
+            if limit != -1:
+                parser.title = \
+                    f'{parser.title[0:limit]}{"..." if len(parser.title) > limit else ""}'
+            print(parser.title)
+    except Exception as e:
         print('{} - ({})'.format(e, argv[1]))
+        exit(1)

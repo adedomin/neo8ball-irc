@@ -142,7 +142,7 @@ export -f SAVE_LOC
 # <STDIN>:  stream to convert
 # <STDOUT>: the stream with character entities replaced
 HTML_CHAR_ENT_TO_UTF8() {
-    sed -f "$LIB_PATH/html-to-utf8.sed"
+    "$LIB_PATH/html-to-utf8.py"
 }
 export -f HTML_CHAR_ENT_TO_UTF8
 

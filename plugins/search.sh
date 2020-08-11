@@ -69,6 +69,7 @@ while read -r url title; do
 done < <(
     curl --silent \
         --fail \
+        --location \
         "${SEARCH_ENGINE}$(URI_ENCODE "$q")" \
     | sed 's@<\([^/a]\|/[^a]\)[^>]*>@@g' \
     | grep -F 'class="result__a"' \

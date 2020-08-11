@@ -56,8 +56,11 @@ LOG_STDOUT=y
 ## DECLARE IRC events here ##
 
 LIB_PATH="${BASH_SOURCE[0]%/*}/lib/"
-# let other programs know where plugins are.
+# let other programs know where helpers are.
 export LIB_PATH
+
+PLUGIN_PATH="${BASH_SOURCE[0]%/*}/plugins/"
+export PLUGIN_PATH
 
 # allows you to set a global useragent for curl using a .curlrc
 # as the same dir the config is in
