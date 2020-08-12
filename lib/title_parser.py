@@ -63,6 +63,9 @@ if __name__ == '__main__':
                 parser.feed(html_fragment)
                 if parser.done:
                     break
+            if parser.title == '':
+                parser.title = f'Untitled - {req.geturl()}'
+
             if limit != -1:
                 parser.title = \
                     f'{parser.title[0:limit]}{"..." if len(parser.title) > limit else ""}'
