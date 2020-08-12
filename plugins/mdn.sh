@@ -13,5 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"${PLUGIN_PATH?}/search.sh" "$1" "$2" "$3" "site:developer.mozilla.org $4" "$5" \
+[[ -n "$4" ]] && set -- "$1" "$2" "$3" "$4 site:developer.mozilla.org" "$5"
+
+"${PLUGIN_PATH?}/search.sh" "$@" \
 | sed 's/\s*|[^:]*::/ ::/'
