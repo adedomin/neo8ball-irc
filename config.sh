@@ -55,16 +55,23 @@ LOG_STDOUT=y
 
 ## DECLARE IRC events here ##
 
-LIB_PATH="${BASH_SOURCE[0]%/*}/lib/"
+# dirname for lib/plugin defaults
+# BASH_SOURCE[1] = the original script that sourced this configuration.
+case "${BASH_SOURCE[1]}" in
+    */*) BASE_PATH="${BASH_SOURCE[1]%/*}" ;;
+    *) BASE_PATH='./' ;;
+esac
+
+LIB_PATH="${BASE_PATH}/lib/"
 # let other programs know where helpers are.
 export LIB_PATH
 
-PLUGIN_PATH="${BASH_SOURCE[0]%/*}/plugins/"
+PLUGIN_PATH="${BASE_PATH}/plugins/"
 export PLUGIN_PATH
 
 # allows you to set a global useragent for curl using a .curlrc
 # as the same dir the config is in
-export CURL_HOME="${BASH_SOURCE[0]%/*}"
+export CURL_HOME="${BASE_PATH}"
 
 # on highlight, call the following script/s
 HIGHLIGHT="8ball.sh"
@@ -91,6 +98,10 @@ COMMANDS=(
 ["bots"]="bots.sh"
 ["source"]="bots.sh"
 #["w"]="weather.sh"
+['r']='subreddit.sh'
+['reddit']='subreddit.sh'
+['sub']='subreddit.sh'
+['subreddit']='subreddit.sh'
 ["owm"]="weather.sh"
 ["weather"]="weather.sh"
 ["nws"]="nws.sh"
