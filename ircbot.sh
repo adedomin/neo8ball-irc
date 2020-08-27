@@ -87,8 +87,6 @@ done
 # location script's directory
 [[ -z "$CONFIG_PATH" ]] && {
     CONFIG_PATH="${BASH_SOURCE[0]%/*}/config.sh"
-    [[ "$CONFIG_PATH" == "${BASH_SOURCE[0]}/config.sh" ]] &&
-        CONFIG_PATH="./config.sh"
 }
 
 # load configuration
@@ -148,8 +146,8 @@ export PLUGIN_TEMP
 # State #
 #########
 
-# TODO: soon
-#declare -A user_modes
+# describes modes of users on a per channel basis
+declare -A user_modes
 
 # populate invites array to prevent duplicate entries
 declare -A invites
@@ -349,6 +347,37 @@ parse_irc() {
     # e.g. :a message here
     message="${temp#:}"  # remove optional multispace indicator
     message=${message%$'\r'} # irc lines are CRLF terminated
+}
+
+# $1 - channel
+# $2 - the string from the irc server with all the usernames (\w mode)
+mode_chars='+%@&~'
+parse_353() {
+    local channel="${1#? }"
+    channel="${channel%% *}"
+    local tmsg="${1#*:}"
+    local user=
+    while [[ -n "$tmsg" ]]; do
+        user="${tmsg%%' '*}"
+        if [[ "${user#["$mode_chars"]}" != "$user" ]]; then
+            local mode_chr="${user:0:1}"
+            case "$mode_chr" in
+                '+') mode_chr='v' ;;
+                '%') mode_chr='h' ;;
+                '@') mode_chr='o' ;;
+                '&') mode_chr='a' ;;
+                '~') mode_chr='q' ;;
+            esac
+            send_log DEBUG "353 -> $channel <$user> +$mode_chr"
+            user_modes["$channel ${user#["$mode_chars"]}"]="$mode_chr"
+        fi
+
+        if [[ "$tmsg" == "${tmsg#"$user" }" ]]; then
+            tmsg=
+        else
+            tmsg="${tmsg#"$user" }"
+        fi
+    done
 }
 
 # After server "identifies" the bot
@@ -609,88 +638,113 @@ trusted_gateway() {
 # TODO: note addition of usermode when available
 # handle PRIVMSGs and NOTICEs and
 # determine if the bot needs to react to message
-# $1: channel - the channel the string came from
-# $2: vhost   - the vhost of the user
-# $3: user    - the nickname of the user
-# $4: msg     - message minus command
-# $5: cmd     - command name
-# $6: full    - full message
+#
+# From main loop globals:
+#  $channel - channel name
+#  $host    - user's vhost
+#  $user    - nickname of user
+#  $umsg    - message minus command
+#  $ucmd    - command name
+#  $message - full message
 handle_privmsg() {
     # private message to us
-    # 5th argument is the command name
-    if [[ "$NICK" == "$1" ]]; then
+    if [[ "$NICK" == "$channel" ]]; then
         check_spam "$user" || return
         # most servers require this "in spirit"
         # tell them what we are
-        if [[ "$6" = $'\001VERSION\001' ]]; then
-            send_log "DEBUG" "CTCP VERSION -> $3 <$3>"
-            send_msg "NOTICE $3 :"$'\001'"VERSION $VERSION"$'\001'
+        if [[ "$message" = $'\001VERSION\001' ]]; then
+            send_log "DEBUG" "CTCP VERSION -> $user <$user>"
+            send_msg "NOTICE $user :"$'\001'"VERSION $VERSION"$'\001'
             return
         fi
 
-        local cmd="$5"
+        local cmd="$ucmd"
         # if invalid command
-        if [[ -z "${COMMANDS[$cmd]}" ]]; then
-            send_msg "PRIVMSG $3 :--- Invalid Command ---"
+        if [[ -z "${COMMANDS[$ucmd]}" ]]; then
+            send_msg "PRIVMSG $user :--- Invalid Command ---"
             # basically your "help" command
             cmd="${PRIVMSG_DEFAULT_CMD:-help}"
         fi
-        [[ -x "$PLUGIN_PATH/${COMMANDS[$cmd]}" ]] || return
-        send_log "DEBUG" "PRIVATE COMMAND EVENT -> $cmd: $3 <$3> $4"
-        "$PLUGIN_PATH/${COMMANDS[$cmd]}" \
-            "$3" "$2" "$3" "$4" "$cmd" \
-        | send_cmd &
+
+        local cmd_path="$PLUGIN_PATH/${COMMANDS[$cmd]}"
+        if [[ -x "$cmd_path" ]]; then
+            send_log "DEBUG" "PRIVATE COMMAND EVENT -> $cmd: $user <$user> $umsg"
+            "$cmd_path" \
+                "$user" "$host" "$user" "$umsg" "$cmd" \
+                '' "${user_modes["$channel $user"]}" \
+            | send_cmd &
+        else
+            send_cmd "ERROR" "PRIVATE COMMAND NOEXEC -> Make sure $cmd_path exists or is executable"
+        fi
         return
     fi
 
     # highlight event in message
-    if [[ "$5" = ?(@)$NICK?(:|,) ]]; then
+    if [[ "$ucmd" = ?(@)$NICK?(:|,) ]]; then
         check_spam "$user" || return
         # shellcheck disable=SC2153
-        [[ -x "$PLUGIN_PATH/$HIGHLIGHT" ]] || return
-        send_log "DEBUG" "HIGHLIGHT EVENT -> $1 <$3>  $4"
-        "$PLUGIN_PATH/$HIGHLIGHT" \
-            "$1" "$2" "$3" "$4" "$5" \
-        | send_cmd &
-        return
+        local cmd_path="$PLUGIN_PATH/$HIGHLIGHT"
+        if [[ -x "$cmd_path" ]]; then
+            send_log "DEBUG" "HIGHLIGHT EVENT -> $channel <$user>  $umsg"
+            "$cmd_path" \
+                "$channel" "$host" "$user" "$umsg" "$ucmd" \
+                '' "${user_modes["$channel $user"]}" \
+            | send_cmd &
+            return
+        else
+            send_log 'ERROR' "HIGHLIGHT NOEXEC -> Make sure $cmd_path exists or is executable"
+            return
+        fi
     fi
 
     # 5th argument is the command string that matched
     # may be useful for scripts that are linked
     # to multiple commands, allowing for different behavior
     # by command name
-    case "${5:0:1}" in ["$CMD_PREFIX"])
-        cmd="${5:1}"
-        [[ -n "${COMMANDS[$cmd]}" &&
-            -x "$PLUGIN_PATH/${COMMANDS[$cmd]}" ]] || return
-        check_spam "$user" || return
-        send_log "DEBUG" "COMMAND EVENT -> $cmd: $1 <$3> $4"
-        "$PLUGIN_PATH/${COMMANDS[$cmd]}" \
-            "$1" "$2" "$3" "$4" "$cmd" \
-        | send_cmd &
-        return
+    case "${ucmd:0:1}" in ["$CMD_PREFIX"])
+        local cmd="${ucmd:1}"
+        local cmd_path="$PLUGIN_PATH/${COMMANDS[$cmd]}"
+
+        if [[ -n "${COMMANDS[$cmd]}" &&
+              -x "$cmd_path" ]]
+        then
+            check_spam "$user" || return
+            send_log "DEBUG" "COMMAND EVENT -> $cmd: $channel <$user> $umsg"
+            "$cmd_path" \
+                "$channel" "$host" "$user" "$umsg" "$cmd" \
+                '' "${user_modes["$channel $user"]}" \
+            | send_cmd &
+            return
+        else
+            send_log 'ERROR' "COMMAND NOEXEC -> Make sure $cmd_path exists or is executable"
+        fi
     esac
 
     # regexp check.
-    if check_regexp "$6"; then
+    if check_regexp "$message"; then
         check_spam "$user" || return
         local regex="$REPLY"
-        send_log "DEBUG" "REGEX EVENT -> $regex: $1 <$3> $6 (${BASH_REMATCH[0]})"
-        "$PLUGIN_PATH/${REGEX["$regex"]}" \
-            "$1" "$2" "$3" "$6" \
-            "$regex" \
-            "${BASH_REMATCH[0]}" \
-        | send_cmd &
-        return
+        local cmd_path="$PLUGIN_PATH/${REGEX["$regex"]}"
+
+        if [[ -n "${REGEX["$regex"]}" &&
+              -x "$cmd_path" ]]
+        then
+            send_log "DEBUG" "REGEX EVENT -> $regex: $channel <$user> $message (${BASH_REMATCH[0]})"
+            "$cmd_path" \
+                "$channel" "$host" "$user" "$message" \
+                "$regex" "${BASH_REMATCH[0]}" \
+                "${user_modes["$channel $user"]}" \
+            | send_cmd &
+            return
+        else
+            send_log 'ERROR' "REGEX NOEXEC -> Make sure $cmd_path exists or is executable"
+        fi
     fi
 }
 
 #######################
 # start communication #
 #######################
-
-[[ -z "$TIMEOUT_CHECK" ]] &&
-    TIMEOUT_CHECK=300
 
 send_log "DEBUG" "COMMUNICATION START"
 # pass if server is private
@@ -706,7 +760,7 @@ send_msg "USER $NICK +i * :$NICK"
 # IRC event loop
 # note if the irc sends lines longer than
 # 1024 bytes, it may fail to parse
-while read -u 4 -r -n 1024 -t "$TIMEOUT_CHECK"; do
+while read -u 4 -r -n 1024; do
     # check for commands from the ircd
     case "$REPLY" in
         PING*) # have to reply
@@ -763,13 +817,7 @@ while read -u 4 -r -n 1024 -t "$TIMEOUT_CHECK"; do
         # any channel message
         PRIVMSG)
             check_ignore "$user" || continue
-            handle_privmsg \
-                "$channel" \
-                "$host" \
-                "$user" \
-                "$umsg" \
-                "$ucmd" \
-                "$message"
+            handle_privmsg
         ;;
         # bot ignores notices
         #NOTICE)
@@ -780,7 +828,7 @@ while read -u 4 -r -n 1024 -t "$TIMEOUT_CHECK"; do
             [[ -n "$DISABLE_INVITES" ]] && continue
             # protect from potential bad index access
             [[ -z "$message" ]] && continue
-            send_cmd <<< ":jd ${INVITE_DELAY:-2} $message"
+            send_cmd <<< ":jd ${INVITE_DELAY:-2} $message" &
             send_log "INVITE" "<$user> $message "
             if [[ -n "$INVITE_FILE" &&
                   "${invites[$message]}" != 1 ]]
@@ -797,6 +845,8 @@ while read -u 4 -r -n 1024 -t "$TIMEOUT_CHECK"; do
                 # channel joined add to list or channels
                 CHANNELS+=("$channel")
                 send_log "JOIN" "$channel"
+            else
+                unset user_modes["$channel $user"]
             fi
         ;;
         # when the bot leaves a channel
@@ -815,6 +865,8 @@ while read -u 4 -r -n 1024 -t "$TIMEOUT_CHECK"; do
                     fi
                 done
                 send_log "PART" "$channel"
+            else
+                unset user_modes["$channel $user"]
             fi
         ;;
         # only way for the bot to be removed
@@ -834,6 +886,8 @@ while read -u 4 -r -n 1024 -t "$TIMEOUT_CHECK"; do
                     fi
                 done
                 send_log "KICK" "<$user> $channel [Reason: ${message#*:}]"
+            else
+                unset user_modes["$channel $user"]
             fi
         ;;
         NICK)
@@ -850,6 +904,16 @@ while read -u 4 -r -n 1024 -t "$TIMEOUT_CHECK"; do
             # this should only happen once?
             post_ident
             send_log "DEBUG" "POST-IDENT PHASE, BOT READY"
+        ;;
+        353)
+            [[ -z "${TRACK_CHAN_MODE}" ]] && continue
+            parse_353 "$message"
+        ;;
+        # just use NAMES (353) parser instead of dealing with this insane state
+        MODE)
+            [[ -z "${TRACK_CHAN_MODE}" ]] && continue
+            [[ "$user" == "$NICK" ]] && continue
+            send_msg "NAMES $channel"
         ;;
         # PASS command failed
         464)

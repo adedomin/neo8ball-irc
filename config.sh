@@ -30,6 +30,14 @@ INVITE_FILE="/tmp/invite-channel-list"
 # number is in seconds, can be fractional.
 INVITE_DELAY=3
 
+# This option enables mode tracking for usernames and passes
+# the mode as the 7th argument
+#
+# leave this as blank to disable
+# this command spams the NAMES command everytime a MODE is set
+# be wary of that.
+TRACK_CHAN_MODE=1
+
 # port number
 PORT="6697"
 # use tls
@@ -52,8 +60,6 @@ temp_dir=/tmp
 LOG_LEVEL=1
 # leave blank to not write messages to stdout
 LOG_STDOUT=y
-
-## DECLARE IRC events here ##
 
 # dirname for lib/plugin defaults
 # BASH_SOURCE[1] = the original script that sourced this configuration.
@@ -98,10 +104,6 @@ COMMANDS=(
 ["bots"]="bots.sh"
 ["source"]="bots.sh"
 #["w"]="weather.sh"
-['r']='subreddit.sh'
-['reddit']='subreddit.sh'
-['sub']='subreddit.sh'
-['subreddit']='subreddit.sh'
 ["owm"]="weather.sh"
 ["weather"]="weather.sh"
 ["nws"]="nws.sh"
@@ -129,6 +131,7 @@ COMMANDS=(
 ["twitter"]="twitter.sh"
 ["r"]="rfc.sh"
 ["rfc"]="rfc.sh"
+["what_is_my_mode"]="mode-test.sh"
 )
 
 declare -gA REGEX
@@ -174,9 +177,6 @@ ANTISPAM=yes
 ANTISPAM_TIMEOUT=10
 # max number of commands a user gets in a time period
 ANTISPAM_COUNT=3
-
-# time in seconds check for closed connection
-TIMEOUT_CHECK=300 # 5m
 
 ## variables for plugins ##
 
