@@ -666,6 +666,7 @@ handle_privmsg() {
             cmd="${PRIVMSG_DEFAULT_CMD:-help}"
         fi
 
+        [[ -z "${COMMANDS[$cmd]}" ]] && return
         local cmd_path="$PLUGIN_PATH/${COMMANDS[$cmd]}"
         if [[ -x "$cmd_path" ]]; then
             send_log "DEBUG" "PRIVATE COMMAND EVENT -> $cmd: $user <$user> $umsg"
@@ -683,6 +684,7 @@ handle_privmsg() {
     if [[ "$ucmd" = ?(@)$NICK?(:|,) ]]; then
         check_spam "$user" || return
         # shellcheck disable=SC2153
+        [[ -z "$HIGHLIGHT" ]] && return
         local cmd_path="$PLUGIN_PATH/$HIGHLIGHT"
         if [[ -x "$cmd_path" ]]; then
             send_log "DEBUG" "HIGHLIGHT EVENT -> $channel <$user>  $umsg"
@@ -703,11 +705,10 @@ handle_privmsg() {
     # by command name
     case "${ucmd:0:1}" in ["$CMD_PREFIX"])
         local cmd="${ucmd:1}"
-        local cmd_path="$PLUGIN_PATH/${COMMANDS[$cmd]}"
 
-        if [[ -n "${COMMANDS[$cmd]}" &&
-              -x "$cmd_path" ]]
-        then
+        [[ -z "${COMMANDS[$cmd]}" ]] && return
+        local cmd_path="$PLUGIN_PATH/${COMMANDS[$cmd]}"
+        if [[ -x "$cmd_path" ]]; then
             check_spam "$user" || return
             send_log "DEBUG" "COMMAND EVENT -> $cmd: $channel <$user> $umsg"
             "$cmd_path" \
@@ -724,11 +725,10 @@ handle_privmsg() {
     if check_regexp "$message"; then
         check_spam "$user" || return
         local regex="$REPLY"
-        local cmd_path="$PLUGIN_PATH/${REGEX["$regex"]}"
 
-        if [[ -n "${REGEX["$regex"]}" &&
-              -x "$cmd_path" ]]
-        then
+        [[ -z "${REGEX["$regex"]}" ]] && return
+        local cmd_path="$PLUGIN_PATH/${REGEX["$regex"]}"
+        if [[ -x "$cmd_path" ]]; then
             send_log "DEBUG" "REGEX EVENT -> $regex: $channel <$user> $message (${BASH_REMATCH[0]})"
             "$cmd_path" \
                 "$channel" "$host" "$user" "$message" \
