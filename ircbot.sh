@@ -106,10 +106,10 @@ fi
 # Configuration Tests #
 #######################
 
-# check for socat, use bash tcp otherwise
-# fail hard if user wanted tls and socat not found
-if ! type socat >/dev/null 2>&1; then
-    echo1 "*** NOTICE *** socat not found; using bash tcp"
+# check for ncat, use bash tcp otherwise
+# fail hard if user wanted tls and ncat not found
+if ! type ncat >/dev/null 2>&1; then
+    echo1 "*** NOTICE *** ncat not found; using bash tcp"
     [[ -n "$TLS" ]] &&
         die "TLS does not work with bash tcp"
     BASH_TCP=a
@@ -182,8 +182,8 @@ exit_status=0
 quit_prg() {
     exec 3<&-
     exec 4<&-
-    [[ -n "$socat_pid" ]] &&
-        kill -- "$socat_pid"
+    [[ -n "$ncat_pid" ]] &&
+        kill -- "$ncat_pid"
     rm -rf -- "$APP_TMP"
     exit "$exit_status"
 }
@@ -274,17 +274,15 @@ trap 'reload_config' SIGHUP SIGWINCH
 # Setup Connection #
 ####################
 
-TLS_OPTS="$SERVER:${PORT:-6667}"
+TLS_OPTS=()
 if [[ -n "$TLS" ]]; then
-    TLS_OPTS="OPENSSL:$TLS_OPTS"
-    [[ -z "$VERIFY_TLS" ]] &&
-        TLS_OPTS+=',verify=0'
+    TLS_OPTS+=('--ssl')
+    # default verify
+    [[ -n "${VERIFY_TLS-y}" ]] &&
+        TLS_OPTS+=('--ssl-verify')
     [[ -n "$VERIFY_TLS_FILE" ]] &&
-        TLS_OPTS+=",cert=$VERIFY_TLS_FILE"
-else
-    TLS_OPTS="TCP:$TLS_OPTS"
+        TLS_OPTS+=('--ssl-cert' "$VERIFY_TLS_FILE")
 fi
-TLS_OPTS+=',keepalive'
 
 # this mode should be used for testing only
 if [[ -n "$MOCK_CONN_TEST" ]]; then
@@ -297,10 +295,10 @@ if [[ -n "$MOCK_CONN_TEST" ]]; then
 # Connect to server otherwise
 elif [[ -z "$BASH_TCP" ]]; then
     coproc {
-        socat - "${TLS_OPTS}"
-        echo1 'ERROR :socat has terminated'
+        ncat "${TLS_OPTS[@]}" "${SERVER:-irc.rizon.net}" "${PORT:-6667}"
+        echo1 'ERROR :ncat has terminated'
     }
-    socat_pid="$COPROC_PID"
+    ncat_pid="$COPROC_PID"
     # coprocs are a bit weird
     # subshells may not be able to r/w to these fd's normally
     # without reopening them
@@ -760,7 +758,16 @@ send_msg "USER $NICK +i * :$NICK"
 # IRC event loop
 # note if the irc sends lines longer than
 # 1024 bytes, it may fail to parse
-while read -u 4 -r -n 1024; do
+while {
+    read -u 4 -r -n 1024 -t 120;
+    READ_EXIT=$?
+    true # Timeout is non-zero exit -gt 128
+}; do
+    # this allows us to fail for cases where read exits nonzero
+    if (( READ_EXIT <= 128 && READ_EXIT != 0 )); then
+        send_log 'CRITICAL' "READ FAILURE: $READ_EXIT"
+        break
+    fi
     # check for commands from the ircd
     case "$REPLY" in
         PING*) # have to reply
@@ -789,8 +796,12 @@ while read -u 4 -r -n 1024; do
             fi
         ;;
         # other unknown top level command
-        [!:]*|'')
+        [!:]*)
             send_log 'WARNING' "Server sent command we cannot handle: ($REPLY)"
+            continue
+        ;;
+        '') # Timed out
+            send_msg 'PING :'"$NICK"
             continue
         ;;
     esac
