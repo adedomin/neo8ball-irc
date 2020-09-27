@@ -45,6 +45,7 @@ if [ "${BASH_SOURCE[0]}" != "${0}" ]; then
     ANTISPAM_COUNT=3
     HALFCLOSE_CHECK=3
     MOCK_CONN_TEST=yes
+    INVITE_FILE=./.invites-test-file
     return
 fi
 
@@ -75,6 +76,7 @@ cleanup() {
     wait "$COPROC_PID"
     kill -PIPE "$sleep_pid"
     pass 'ERROR COMMAND'
+    rm -f -- .invites-test-file
     exit "$EXIT_CODE"
 }
 trap 'cleanup' SIGINT
@@ -362,6 +364,56 @@ for itr in {1,2}; do
     fi
 done
 [ -z "$config_fail" ] && pass 'config reload 2 (channel part/join)'
+
+# test massive join feature
+# feature only impacts config reload and post-ident
+# test depends on pwgen or like binary to generate gibberish
+pwgen 16 128 \
+| sed 's/^/#/; :start; N; $ { s/\n/,#/g; b; }; b start'\
+> ./.invites-test-file
+expected_total_join=",$(< ./.invites-test-file)"
+actual_total_join=
+kill -SIGHUP "$COPROC_PID"
+while read -t 1 -u "${COPROC[0]}" -r cmd channel unused; do
+    if [[ "$cmd" == 'JOIN' ]]; then
+        chan_len="$(printf '%s' "$channel" | wc -c)"
+        (( chan_len > 500 )) && {
+            actual_total_join=
+            break
+        }
+        actual_total_join+=",$channel"
+        [[ "$actual_total_join" == "$expected_total_join" ]] && break
+    fi
+done
+if [[ "$actual_total_join" == "$expected_total_join" ]]; then
+    pass '>500 char line channel join'
+
+else
+    fail '>500 char line channel join'
+fi
+
+# test massive part now
+rm -f .invites-test-file
+expected_total_part="$expected_total_join"
+actual_total_part=
+kill -SIGHUP "$COPROC_PID"
+while read -t 1 -u "${COPROC[0]}" -r cmd channel unused; do
+    if [[ "$cmd" == 'PART' ]]; then
+        chan_len="$(printf '%s' "$channel" | wc -c)"
+        (( chan_len > 500 )) && {
+            actual_total_part=
+            break
+        }
+        actual_total_part+=",$channel"
+        [[ "$actual_total_part" == "$expected_total_part" ]] && break
+    fi
+done
+if [[ "$actual_total_part" == "$expected_total_part" ]]; then
+    pass '>500 line channel part'
+
+else
+    fail '>500 line channel part'
+fi
 
 # forced rename
 echo ':testnick NICK :newnick' >&"${COPROC[1]}"

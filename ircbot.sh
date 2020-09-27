@@ -253,12 +253,12 @@ reload_config() {
 
     if [[ "${#join_list[@]}" -gt 0 ]]; then
         printf -v jlist ',%s' "${join_list[@]}"
-        send_cmd <<< ':j '"${jlist:1}"
+        send_large_join_part ':j' "${jlist:1}"
     fi
 
     if [[ "${#leave_list[@]}" -gt 0 ]]; then
         printf -v llist ',%s' "${leave_list[@]}"
-        send_cmd <<< ':l '"${llist:1}"
+        send_large_join_part ':l' "${llist:1}"
     fi
     
 
@@ -378,6 +378,42 @@ parse_353() {
     done
 }
 
+# long joins can be truncated and
+# rapidly joining multiple channels at once generally triggers
+# some server side antispam
+#
+# $1 part or join command (:l, :j)
+# $2 a comma delimited string of channels
+send_large_join_part() {
+    local LANG=C
+    local join_len="${#2}"
+    if (( join_len < 500 )); then
+        send_cmd <<< "$1 $2"
+        return
+    fi
+
+    local join_str="$2"
+    local join_partial=
+    while [[ -n "$join_str" ]]; do
+        local channel="${join_str%%,*}"
+        if (( (${#join_partial} + ${#channel}) < 500 )); then
+            if [[ -z "$join_partial" ]]; then
+                join_partial+="$channel"
+            else
+                join_partial+=",$channel"
+            fi
+        else
+            send_cmd <<< "$1 $join_partial"
+            join_partial="$channel"
+        fi
+
+        [[ "$join_str" == "${join_str#"$channel",}" ]] && break
+        join_str="${join_str#"$channel",}" 
+    done
+    [[ -n "$join_partial" ]] &&
+        send_cmd <<< "$1 $join_partial"
+}
+
 # After server "identifies" the bot
 # joins all channels
 # identifies with nickserv
@@ -394,7 +430,7 @@ post_ident() {
     # to better reflect joined channel realities
     CHANNELS=()
     # list join channels
-    send_cmd <<< ":j ${_channels:1}"
+    send_large_join_part ':j' "${_channels:1}"
     # ident with nickserv
     if [[ -n "$NICKSERV" ]]; then
         # bypass logged send_cmd/send_msg
