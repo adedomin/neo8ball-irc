@@ -309,7 +309,7 @@ elif [[ -z "$BASH_TCP" ]]; then
 else
     exec 3<> "/dev/tcp/${SERVER}/${PORT}" ||
         die "Cannot connect to ($SERVER) on port ($PORT)"
-    exec 4<&3 "/dev/fd/${COPROC[1]}"
+    exec 4<&3
 fi
 
 ########################
