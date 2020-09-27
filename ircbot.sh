@@ -802,6 +802,8 @@ while {
         ;;
         '') # Timed out
             send_msg 'PING :'"$NICK"
+            # if ncat is half open, two buffered outputs should kill it.
+            send_msg 'PING :PONG'
             continue
         ;;
     esac
