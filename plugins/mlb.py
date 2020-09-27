@@ -18,11 +18,13 @@ from urllib.request import Request, urlopen
 from html.parser import HTMLParser as HtmlParser
 from json import load as json_parse
 
-from time import strftime
+from datetime import datetime
+from pytz import timezone
 from sys import stderr, argv
 
 MLB_DEPRECATED_API = 'http://gd2.mlb.com/components/game/mlb'
 API_DATEFMT = "year_%Y/month_%m/day_%d"
+MLB_TIMEZONE = 'America/New_York'
 OUTGAME_STRING = '{} {} ({}{}) {} {}'
 
 
@@ -65,6 +67,14 @@ def get_html(url):
 def get_json(url):
     with get_url(url, 'application/json') as req:
         return json_parse(req)
+
+
+def get_api_time_of_day():
+    '''This function makes a best effort to match the expected
+       timezone the MLB api server uses'''
+
+    now = datetime.now(timezone(MLB_TIMEZONE))
+    return now.strftime(API_DATEFMT)
 
 
 def get_more_detail(api_path, gid):
@@ -115,7 +125,7 @@ def get_more_detail(api_path, gid):
 
 def mlb(inp):
     api_base = '{}/{}'.format(MLB_DEPRECATED_API,
-                              strftime(API_DATEFMT))
+                              get_api_time_of_day())
     api_string = '{}/grid.json'.format(api_base)
 
     try:
