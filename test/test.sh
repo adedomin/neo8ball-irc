@@ -46,6 +46,7 @@ if [ "${BASH_SOURCE[0]}" != "${0}" ]; then
     HALFCLOSE_CHECK=3
     MOCK_CONN_TEST=yes
     INVITE_FILE=./.invites-test-file
+    TRACK_CHAN_MODE=1
     return
 fi
 
@@ -83,6 +84,17 @@ trap 'cleanup' SIGINT
 
 coproc ./ircbot.sh -c "$0" 2>debug.log
 
+# test IRCv3 cap negotiation
+# note that TRACK_CHAN_MODE expects multi-prefix
+read -t 1 -u "${COPROC[0]}" -r cap req multi
+if [ "$cap" = 'CAP' ] && [ "$req" = 'REQ' ] && [ "$multi" = ':multi-prefix' ]
+then
+    pass 'CAP REQ'
+else
+    fail 'CAP REQ' \
+         'expected bot to ask for multi-prefix'
+fi
+
 # test nick cmd
 read -t 1 -u "${COPROC[0]}" -r cmd nick
 if [ "$cmd" = 'NICK' ] && [ "$nick" = 'testnick' ]; then
@@ -103,6 +115,16 @@ then
     pass 'USER COMMAND'
 else
     fail 'USER COMMAND'
+fi
+
+# test CAP ACK and expect END
+echo ':server CAP * ACK :multi-prefix' >&"${COPROC[1]}"
+read -t 1 -u "${COPROC[0]}" -r cap end
+if [ "$end" = 'END' ]; then
+    pass 'CAP ACK/END'
+else
+    fail 'CAP ACK/END' \
+         'Expected bot to send CAP END'
 fi
 
 # send PING 
@@ -283,6 +305,52 @@ else
     fail 'GATEWAY untrusted nick parse'
 fi
 
+# 353 (with IRCv3 multi-prefix) response test
+{
+    echo ':server 353 testnick_ = #chan :@userx &%+usery +userz noprefix'
+    echo ':server __DEBUG #chan chanmode :usery'
+} >&"${COPROC[1]}"
+read -t 1 -u "${COPROC[0]}" -r msgmode
+if [ "$msgmode" = 'a' ]; then
+    pass 'CHANNEL MODE PARSE'
+else
+    fail 'CHANNEL MODE PARSE' \
+         'Expected: a; Got: '"$msgmode"
+fi
+
+# MAKE SURE noprefix works.
+echo ':server __DEBUG #chan chanmode :noprefix' >&"${COPROC[1]}"
+read -t 1 -u "${COPROC[0]}" -r msgmode
+if [ "$msgmode" = '' ]; then
+    pass 'CHANNEL MODE PARSE (none)'
+else
+    fail 'CHANNEL MODE PARSE (none)' \
+         'Expected: <NOTHING>; Got: '"$msgmode"
+fi
+
+# MODE parsing
+# We have set some user channel modes using NAMES reply
+# lets edit some and make sure the bot is properly handling MODEs
+{
+    echo ":whocares MODE #chan +mb -a *!*@banned.user usery +o userz +il 45"
+    echo ":whocares __DEBUG #chan chanmode :usery"
+} >&"${COPROC[1]}"
+read -t 1 -u "${COPROC[0]}" -r msgmode
+if [ "$msgmode" = 'h' ]; then
+    pass 'MODE COMMAND PARSE (remove)'
+else
+    fail 'MODE COMMAND PARSE (remove)' \
+         'Expected: h; Got: '"$msgmode"
+fi
+
+echo ":whocares __DEBUG #chan chanmode :userz" >&"${COPROC[1]}"
+read -t 1 -u "${COPROC[0]}" -r msgmode
+if [ "$msgmode" = 'o' ]; then
+    pass 'MODE COMMAND PARSE (add)'
+else
+    fail 'MODE COMMAND PARSE (add)' \
+         'Expected: o; Got: '"$msgmode"
+fi
 
 # ignore user test
 echo -e ':ignorebot PRIVMSG testnick_ :\001VERSION\001' >&"${COPROC[1]}"

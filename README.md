@@ -7,7 +7,7 @@ Usage
     usage: ./ircbot.sh [-c config] [-o logfile] [-t]
 
         -t --timestamp      Timestamp logs using iso-8601.
-        -c --config=path    A neo8ball config.sh
+        -c --config=file    A neo8ball config.sh
         -o --log-out=file   A file to log to instead of stdout.
         -h --help           This message.
 
@@ -21,7 +21,7 @@ Configure
 ---------
 
 Edit the config.sh file and save it where you deem appropriate.
-Make sure to use the -c or --config-dir flag if you don't leave the configuration in the default location--same directory as the ircbot.sh script.
+Make sure to use the -c or --config flag if you don't leave the configuration in the default location--same directory as the ircbot.sh script.
 
 Many of the plugins which come with neo8ball require API keys or variable information.
 config.sh describes these variables for all the built-in plugins

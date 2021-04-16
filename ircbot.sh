@@ -28,7 +28,7 @@ usage() {
 'usage: '"$0"' [-c config] [-o logfile] [-t]
 
     -t --timestamp      Timestamp logs using iso-8601.
-    -c --config=path    A neo8ball config.sh
+    -c --config=file    A neo8ball config.sh
     -o --log-out=file   A file to log to instead of stdout.
     -h --help           This message.
 
@@ -175,9 +175,7 @@ fi
 # Signal Listeners #
 ####################
 
-# handler to terminate bot
-# can not trap SIGKILL
-# make sure you kill with SIGTERM or SIGINT
+# handler to terminate bot on TERM | INT
 exit_status=0
 quit_prg() {
     exec 3<&-
@@ -194,7 +192,6 @@ exit_failure() {
     exit_status=1
     quit_prg
 }
-trap 'exit_failure' SIGUSR1
 
 # helper for channel config reload
 # determine if chan is in channel list
@@ -316,66 +313,373 @@ fi
 
 all_control_characters=$'\1\2\3\4\5\6\7\10\11\12\13\14\15\16\17\20\21\22\23\24\25\26\27\30\31\32\33\34\35\36\37'
 
+## helper for iterating over a string using a given delimiter
+##
+## iter_tokenize/2:
+##   $1: 'init' - Initialize tokenizer.
+##   $2         - String to tokenize.
+##
+## iter_tokenize/1:
+##   $1 - Delimit string with this character,
+##        consumes and returns remaining string if no such delimiter found.
+##
+## iter_tokenize/0:
+##   Test if iterator is done. Returns _iter_remain.
+##
+## mutates _iter_remain - unprocessed parts of the string.
+## mutates REPLY        - The next token found, or the remainder of the string.
+##
+## returns: (0|1) - 1 if no more input, 0 otherwise.
+#__iter_stack=()
+iter_tokenize() {
+    if [[ "$1" == 'init' && -n "$2" ]]; then
+        _iter_remain="$2"
+        REPLY=
+        return 0
+    # Unused for now....
+    #elif [[ "$1" == 'state' && "$2" == 'push' ]]; then
+    #    __iter_stack+=("$__iter_remain")
+    #    [[ -n "$3" ]] && __iter_stack="$3"
+    #    REPLY=
+    #elif [[ "$1" == 'state' && "$2" == 'pop' ]]; then
+    #    __iter_remain="${__iter_stack[-1]}"
+    #    __iter_stack+=("${__iter_stack[@]:0:${#__iter_stack[@]}-1}")
+    #    REPLY=
+    elif [[ -z "$_iter_remain" ]]; then
+        REPLY=
+        return 1
+    elif [[ -n "$1" ]]; then
+        REPLY="${_iter_remain%%"$1"*}"
+        if [[ "${_iter_remain#"$REPLY$1"}" == "$_iter_remain" ]]; then
+            _iter_remain=
+        else
+            _iter_remain="${_iter_remain#"$REPLY$1"}"
+        fi
+        return 0
+    else # Iterator is not done.
+        REPLY="$_iter_remain"
+        return 0
+    fi
+}
+
 parse_irc() {
-    local temp utemp
-    # split by whitespace
-    temp="$1"
-    utemp="${temp%% *}"
-    # clean and split out user information
-    # e.g. :user!useless@host ...etc
-    user="${utemp#:}" # : is multispace indicator,
-                       # all line likely have it and we don't want it
-    host="${user##*@}"
-    user="${user%%'!'*}"
+    # TODO: enable IRCv3 tags
+    # local state=tags
+    # ttags=
 
-    temp="${temp#"$utemp"* }"
-    # parse command
-    # Command is one word string indicating what this
-    # line does, e.g PRIVMSG, NOTICE, INVITE, etc.
-    command="${temp%% *}"
+    local state=sender
+    sender=
+    command=
+    params=()
+    iter_tokenize init "${1%$'\r'}"
+    while iter_tokenize ' '; do
+        # we only consume extra spaces in the trailing parameter.
+        [[ "$REPLY" == '' ]] && continue
+        case "$state" in
+            sender)
+                case "$REPLY" in
+                    :*)
+                        sender="${REPLY#:}"
+                    ;;
+                    *)
+                        command="$REPLY"
+                        state='params'
+                    ;;
+                esac
+            ;;
+            command)
+                command="$REPLY"
+                state='params'
+            ;;
+            params)
+                case "$REPLY" in
+                    :*)
+                        local t="$REPLY"
+                        iter_tokenize
+                        params+=("${t#:}${REPLY:+" $REPLY"}")
+                        break
+                    ;;
+                    *)
+                        params+=("$REPLY")
+                    ;;
+                esac
+            ;;
+        esac
+    done
 
-    temp="${temp#"$command"* }"
-    # parse channel
-    # should be a one word string starting with a #
-    # e.g. #channame
-    channel="${temp%% *}"
+    # parser sender into pieces
+    iter_tokenize init "$sender"
+    iter_tokenize '!'
+    user="$REPLY"
+    iter_tokenize '@'
+    # ignored for now
+    # user="$REPLY"
+    iter_tokenize
+    host="$REPLY"
+}
 
-    temp="${temp#"$channel"* }"
-    # message parse
-    # e.g. :a message here
-    message="${temp#:}"  # remove optional multispace indicator
-    message=${message%$'\r'} # irc lines are CRLF terminated
+# Takes a user mode as stored in $user_modes and returns a single char
+# representing the user's highest chan mode.
+#
+# Possible values of REPLY:
+# q  - OWNER
+# a  - ADMIN
+# o  - OPERATOR
+# h  - HALF-OP
+# v  - VOICED
+# '' - nothing
+#
+# @mutates REPLY - empty if user has no modes or a single char.
+modebit_to_char() {
+    local mode="$1"
+    if ((   (mode & 2#10000) > 0 )); then
+        REPLY='q'
+    elif (( (mode & 2#01000) > 0 )); then
+        REPLY='a'
+    elif (( (mode & 2#00100) > 0 )); then
+        REPLY='o'
+    elif (( (mode & 2#00010) > 0 )); then
+        REPLY='h'
+    elif (( (mode & 2#00001) > 0 )); then
+        REPLY='v'
+    else
+        REPLY=
+    fi
+}
+
+# inverse of modebit_to_char
+# $1 - get the value of this given char
+# $REPLY - value of $1 in modebits.
+char_to_modebit() {
+    case "$1" in
+        'v'|'+') REPLY='2#00001' ;;
+        'h'|'%') REPLY='2#00010' ;;
+        'o'|'@') REPLY='2#00100' ;;
+        'a'|'&') REPLY='2#01000' ;;
+        'q'|'~') REPLY='2#10000' ;;
+        *)       REPLY='0' ;;
+    esac
+}
+
+add_user_mode() {
+    local channel="$1"
+    local user="$2"
+    local modebit="$3"
+
+    local chr_mode="${user_modes["$channel $user"]}"
+    send_log 'DEBUG' "$channel <$user> MODE bits BEFORE: $chr_mode"
+    if [[ -z "$chr_mode" ]]; then
+        user_modes["$channel $user"]="$modebit"
+    else
+        user_modes["$channel $user"]="$(( chr_mode | modebit ))"
+    fi
+    send_log 'DEBUG' "$channel <$user> MODE bits AFTER: $(( chr_mode | modebit ))"
+}
+
+clear_user_mode() {
+    local channel="$1"
+    local user="$2"
+    local modebit="$3"
+
+    local chr_mode="${user_modes["$channel $user"]}"
+    send_log 'DEBUG' "$channel <$user> MODE bits BEFORE: $chr_mode"
+    if [[ -z "$chr_mode" ]]; then
+        user_modes["$channel $user"]="0"
+    else
+        user_modes["$channel $user"]="$(( chr_mode & (~modebit) ))"
+    fi
+    send_log 'DEBUG' "$channel <$user> MODE bits AFTER: $(( chr_mode & (~modebit) ))"
 }
 
 # $1 - channel
 # $2 - the string from the irc server with all the usernames (\w mode)
 mode_chars='+%@&~'
 parse_353() {
-    local channel="${1#? }"
-    channel="${channel%% *}"
-    local tmsg="${1#*:}"
-    local user=
-    while [[ -n "$tmsg" ]]; do
-        user="${tmsg%%' '*}"
-        if [[ "${user#["$mode_chars"]}" != "$user" ]]; then
-            local mode_chr="${user:0:1}"
-            case "$mode_chr" in
-                '+') mode_chr='v' ;;
-                '%') mode_chr='h' ;;
-                '@') mode_chr='o' ;;
-                '&') mode_chr='a' ;;
-                '~') mode_chr='q' ;;
-            esac
-            send_log DEBUG "353 -> $channel <$user> +$mode_chr"
-            user_modes["$channel ${user#["$mode_chars"]}"]="$mode_chr"
-        fi
+    local channel="$1"
+    iter_tokenize init "$2"
+    while iter_tokenize ' '; do
+        local user="$REPLY"
+        local mode_string="${user##*["$mode_chars"]}"
+        mode_string="${user%"$mode_string"}"
+        user="${user##*["$mode_chars"]}"
+        # make sure we zero out the user's mode.
+        user_modes["$channel $user"]='2#00000';
 
-        if [[ "$tmsg" == "${tmsg#"$user" }" ]]; then
-            tmsg=
-        else
-            tmsg="${tmsg#"$user" }"
-        fi
+        while [[ -n "$mode_string" ]]; do
+            local mode_chr="${mode_string:0:1}"
+            local mode_string="${mode_string:1}"
+            char_to_modebit "$mode_chr"
+            mode_chr="$REPLY"
+            add_user_mode "$channel" "$user" "$mode_chr"
+        done
     done
+}
+
+# Parse only CHANMODES=A,B,C,D
+# where A = 1 ALWAYS has a parameter (Address | nick)
+#       B = 2 ALWAYS has a parameter (channel setting)
+#       C = 3 parameter only when +. - has no parameter
+#       D = 4 NEVER has a parameter.
+# Fill with *sane* defaults in case we never get 005
+declare -A ISUPPORT_CHANMODES=(
+    [b]=1 # ban
+    [e]=1 # exempt (from ban)
+    [I]=1 # invite-exempt (from chan mode +i)
+    [k]=2 # key
+    [l]=3 # channel limit (-l has no param, +l does)
+    # Assume rest are 4. We don't care about 4.
+)
+# parse the ISUPPORT key value pairs
+# params could go from 1 to ~13 key value pairs
+parse_005() {
+    for arg; do
+        local value="${arg#*=}"
+        local key="${arg%"$value"}"
+        case "$key" in
+            CHANMODES)
+                ISUPPORT_CHANMODES=()
+                iter_tokenize init "$value"
+                # 1(a),2(b),3(c),4(d)
+                # we can ignore type 4(d) completely as these
+                # are primarily user modes and they have no value
+                # to channel mode tracking we care about (as a bot).
+                local mode_type=1
+                while iter_tokenize ','; do
+                    local modes="$REPLY"
+                    while [[ -n "$modes" ]]; do
+                        local mode_chr="${modes:0:1}"
+                        local modes="${modes:1}"
+                        ISUPPORT_CHANMODES["$mode_chr"]="$mode_type"
+                    done
+                    mode_type="$(( mode_type + 1 ))"
+                done
+                return 0
+            ;;
+            *) ;;
+        esac
+    done
+}
+
+# checks ISUPPORT_CHANMODES or if it is a user prefix chanmode
+# $1 - the signedness of the mode (+|-)
+# $2 - the mode
+has_parameter_mode() {
+    case "$2" in
+        q|a|o|h|v) return 0 ;;
+    esac
+
+    local m="${ISUPPORT_CHANMODES[$2]}"
+    case "$m" in
+        1|2) return 0 ;;
+        3) [[ "$1" == '+' ]] && return 0 ;;
+    esac
+    return 1
+}
+
+# I hate this command
+parse_mode() {
+    local channel="$1"
+    shift # rest are "mode strings"
+
+    local cmode_type=
+    local cmodes=()
+    local params=()
+    local mode_line=
+    
+    for mode_line; do
+        case "$mode_line" in
+            '-'*|'+'*)
+                while [[ -n "$mode_line" ]]; do
+                    local mode_chr="${mode_line:0:1}"
+                    local mode_line="${mode_line:1}"
+                    if [[ "$mode_chr" == "+" || "$mode_chr" == '-' ]]
+                    then
+                        cmode_type="$mode_chr"
+                    elif has_parameter_mode "$cmode_type" "$mode_chr"
+                    then
+                        cmodes+=("${cmode_type}${mode_chr}")
+                    fi
+                done
+            ;;
+            '') continue ;;
+            *) params+=("$mode_line") ;;
+        esac
+    done
+
+    # assert
+    if [[ "${#cmodes[@]}" != "${#params[@]}" ]]; then
+        send_log 'CRITICAL' \
+                 'Something is wrong with the MODE parser or the server.'
+        send_log 'CRITICAL' \
+                 'number of modes to apply do not match up with number of parameters. (${#cmodes} != ${#params}):'" ${#cmodes} != ${#params}"
+        send_log 'CRITICAL' \
+                 'If problem keeps occuring, please turn TRACK_CHAN_MODE off.'
+
+        return 1
+    fi
+
+    local len="${#cmodes[@]}"
+
+    for (( i=0; i<len; ++i )); do
+        local m="${cmodes[i]}"
+        case "$m" in
+            +q|+a|+o|+h|+v)
+                char_to_modebit "${m:1:1}"
+                send_log 'DEBUG' "$REPLY"
+                local mv="$REPLY"
+                local user="${params[i]}"
+                add_user_mode "$channel" "$user" "$mv"
+            ;;
+            -q|-a|-o|-h|-v)
+                char_to_modebit "${m:1}"
+                send_log 'DEBUG' "$REPLY"
+                local mv="$REPLY"
+                local user="${params[i]}"
+                clear_user_mode "$channel" "$user" "$mv"
+            ;;
+        esac
+    done
+    return 0
+}
+
+# parse all the capabilites we support.
+parse_cap() {
+    local ack="$1"
+    local message="$2"
+    local defer_cap_end=
+    iter_tokenize init "$message"
+    while iter_tokenize ' '; do
+        case "$REPLY" in
+            sasl)
+                if [[ "$ack" == "ACK" ]]; then
+                    send_msg 'AUTHENTICATE PLAIN'
+                    defer_cap_end=1
+                else
+                    send_log 'CRITICAL' \
+                             'Server does not support SASL, but SASL_PASS was configured.'
+                    return 1
+                fi
+            ;;
+            # We need this for proper mode tracking
+            # NAMES reply will show *ALL* user-specific channel modes.
+            # this mode should only be REQd if TRACK_CHAN_MODE=1
+            multi-prefix)
+                if [[ "$ack" == "NAK" ]]; then
+                    send_log 'CRITICAL' \
+                             'Server does not support multi-prefix, but TRACK_CHAN_MODE was configured.'
+                    return 1
+                fi
+            ;;
+            *)
+                send_log 'WARNING' \
+                         'We were told about '"$REPLY"' capability with status '"$ack"', but we never asked for it.'
+            ;;
+        esac
+    done
+    if [[ -z "$defer_cap_end" ]]; then
+        send_msg 'CAP END'
+    fi
+    return 0
 }
 
 # long joins can be truncated and
@@ -385,6 +689,7 @@ parse_353() {
 # $1 part or join command (:l, :j)
 # $2 a comma delimited string of channels
 send_large_join_part() {
+    # assume all chars are 8bit
     local LANG=C
     local join_len="${#2}"
     if (( join_len < 500 )); then
@@ -392,26 +697,19 @@ send_large_join_part() {
         return
     fi
 
-    local join_str="$2"
     local join_partial=
-    while [[ -n "$join_str" ]]; do
-        local channel="${join_str%%,*}"
+    iter_tokenize init "$2"
+    while iter_tokenize ','; do
+        local channel="$REPLY"
         if (( (${#join_partial} + ${#channel}) < 500 )); then
-            if [[ -z "$join_partial" ]]; then
-                join_partial+="$channel"
-            else
-                join_partial+=",$channel"
-            fi
+            join_partial+=",$channel"
         else
-            send_cmd <<< "$1 $join_partial"
-            join_partial="$channel"
+            send_cmd <<< "$1 ${join_partial:1}"
+            join_partial=",$channel"
         fi
-
-        [[ "$join_str" == "${join_str#"$channel",}" ]] && break
-        join_str="${join_str#"$channel",}" 
     done
     [[ -n "$join_partial" ]] &&
-        send_cmd <<< "$1 $join_partial"
+        send_cmd <<< "$1 ${join_partial:1}"
 }
 
 # After server "identifies" the bot
@@ -574,7 +872,6 @@ check_regexp() {
     return 1
 }
 
-# stripped down version of privmsg checker
 # determines if message qualifies for spam
 # filtering
 #
@@ -780,13 +1077,18 @@ handle_privmsg() {
 # start communication #
 #######################
 
+# Assume ping at start
+recv_ping=1
+
 send_log "DEBUG" "COMMUNICATION START"
+CAP_REQ=()
+[[ -n "$SASL_PASS" ]] && CAP_REQ+=('sasl')
+[[ -n "$TRACK_CHAN_MODE" ]] && CAP_REQ+=('multi-prefix')
+send_msg "CAP REQ :${CAP_REQ[*]}"
 # pass if server is private
 # this is likely not required
 if [[ -n "$PASS" ]]; then
     send_msg "PASS $PASS"
-elif [[ -n "$SASL_PASS" ]]; then
-    send_msg "CAP REQ :sasl"
 fi
 # "Ident" information
 send_msg "NICK $NICK"
@@ -836,10 +1138,13 @@ while {
             send_log 'WARNING' "Server sent command we cannot handle: ($REPLY)"
             continue
         ;;
-        '') # Timed out
+        '') # Timed out, make sure we are still connected
+            if [[ -z $recv_ping ]] && (( READ_EXIT > 127 )); then
+                send_log 'CRITICAL' 'Server did not respond to ping'
+                break
+            fi
             send_msg 'PING :'"$NICK"
-            # if ncat is half open, two buffered outputs should kill it.
-            send_msg 'PING :PONG'
+            recv_ping=
             continue
         ;;
     esac
@@ -847,24 +1152,27 @@ while {
     # any message that starts with a colon and a username/server
     parse_irc "$REPLY"
 
-    # check if gateway nick
-    trusted_gateway "$user"
-
-    # other helpful variable
-    ucmd="${message%% *}"
-    umsg="${message#"$ucmd"}"
-    # in case $ucmd is the only string in the message.
-    # otherwise remove this argument
-    umsg="${umsg# }"
-    # the user who was kicked in a KICK command
-    ukick="${message% :*}"
     # log message
-    send_log "STDOUT" "$channel $command <$user> $message"
+    send_log "STDOUT" ":$sender $command ${params[*]/#/arg:}"
 
     # handle commands here
     case $command in
         # any channel message
         PRIVMSG)
+            # unpack parameters
+            channel="${params[0]}"
+            message="${params[1]}"
+
+            # check if gateway nick
+            trusted_gateway "$user"
+
+            # other helpful variables
+            ucmd="${message%% *}"
+            umsg="${message#"$ucmd"}"
+            # in case $ucmd is the only string in the message.
+            # otherwise remove this argument
+            umsg="${umsg# }"
+
             check_ignore "$user" || continue
             handle_privmsg
         ;;
@@ -875,22 +1183,29 @@ while {
         # so join channel
         INVITE)
             [[ -n "$DISABLE_INVITES" ]] && continue
+            # we don't accept invites from these people.
+            check_ignore "$user" || continue
+
+            # unpack params
+            # :user INVITE $NICK channel
+            target="${params[0]}"
+            channel="${params[1]}"
             # protect from potential bad index access
-            [[ -z "$message" ]] && continue
-            send_cmd <<< ":jd ${INVITE_DELAY:-2} $message" &
-            send_log "INVITE" "<$user> $message "
+            # make sure target is us.
+            [[ -z "$channel" && "$target" = "$NICK" ]] && continue
+            send_cmd <<< ":jd ${INVITE_DELAY:-2} $channel" &
+            send_log "INVITE" "<$user> $channel "
             if [[ -n "$INVITE_FILE" &&
-                  "${invites[$message]}" != 1 ]]
+                  "${invites[$channel]}" != 1 ]]
             then
-                echo1 "$message" >> "$INVITE_FILE"
-                invites[$message]=1
+                echo1 "$channel" >> "$INVITE_FILE"
+                invites[$channel]=1
             fi
         ;;
         # when the bot joins a channel
         JOIN)
             if [[ "$user" = "$NICK" ]]; then
-                channel="${channel:1}"
-                channel="${channel%$'\r'}"
+                channel="${params[0]}"
                 # channel joined add to list or channels
                 CHANNELS+=("$channel")
                 send_log "JOIN" "$channel"
@@ -900,6 +1215,7 @@ while {
         ;;
         # when the bot leaves a channel
         PART)
+            channel="${params[0]}"
             # protect from potential bad index access
             [[ -z "$channel" ]] && continue
             if [[ "$user" = "$NICK" ]]; then
@@ -921,9 +1237,14 @@ while {
         # only way for the bot to be removed
         # from a channel, other than config reload
         KICK)
+            # :prefix KICK #chan target_user :reason
+            channel="${params[0]}"
+            target="${params[1]}"
+            why="${params[2]}"
+            why="${why:-'No Reason Given'}"
             # protect from potential bad index access
             [[ -z "$channel" ]] && continue
-            if [[ "$ukick" = "$NICK" ]]; then
+            if [[ "$target" = "$NICK" ]]; then
                 for i in "${!CHANNELS[@]}"; do
                     if [[ "${CHANNELS[$i]}" = "$channel" ]]; then
                         unset CHANNELS["$i"]
@@ -934,16 +1255,17 @@ while {
                         fi
                     fi
                 done
-                send_log "KICK" "<$user> $channel [Reason: ${message#*:}]"
+                send_log "KICK" "<$nick> $channel [Reason: $why]"
             else
                 unset user_modes["$channel $user"]
             fi
         ;;
         NICK)
-            if [[ "$user" = "$NICK" ]]; then
-                channel="${channel:1}"
+            # :prefix(us) NICK new_nick [ unused ]
+            new_nick="${params[0]}"
+            if [[ "$user" == "$NICK" ]]; then
                 [[ -z "$orig_nick" ]] && orig_nick="$NICK"
-                NICK="${channel%$'\r'}"
+                NICK="${new_nick}"
                 send_log "NICK" "NICK CHANGED TO $NICK"
             fi
         ;;
@@ -954,28 +1276,55 @@ while {
             post_ident
             send_log "DEBUG" "POST-IDENT PHASE, BOT READY"
         ;;
-        353)
-            [[ -z "${TRACK_CHAN_MODE}" ]] && continue
-            parse_353 "$message"
+        # we need to know what modes this server supports to properly
+        # parse MODE command output
+        005)
+            # :prefix 005 $NICK [ KEY=VALUE ... ] :are supported by this server
+            rest=("${params[@]:1:${#params[@]}-1}")
+            parse_005 "${rest[@]}"
         ;;
-        # just use NAMES (353) parser instead of dealing with this insane state
+        # NAMES reply
+        353)
+            # :prefix 353 $NICK {'@'|'='} #chan :[~&@%+]nick [ [~&@%+]nick ] ...
+            [[ -z "${TRACK_CHAN_MODE}" ]] && continue
+            channel="${params[2]}"
+            message="${params[3]}"
+            parse_353 "$channel" "$message"
+        ;;
+        # just use NAMES (353) parser instead of dealing with this insane command
+        # When we join, we only know about the 353 output in terms of user's highest
+        # channel mode, and as such, without asking the server for everyone's mode up
+        # front or on MODE that changes them, We can't know if they have another lower
+        # channel mode like. MODE -o some_user where some_user may still have +h but
+        # 353 only told us they had: @ (+o).
         MODE)
             [[ -z "${TRACK_CHAN_MODE}" ]] && continue
             [[ "$user" == "$NICK" ]] && continue
-            send_msg "NAMES $channel"
+            channel="${params[0]}"
+            rest=("${params[@]:1}")
+            parse_mode "$channel" "${rest[@]}" || break
         ;;
         # PASS command failed
         464)
             send_log 'CRITICAL' 'INVALID PASSWORD'
             break
         ;;
+        # banned from server.
         465)
             send_log 'CRITICAL' 'YOU ARE BANNED'
             break
         ;;
-        # Nickname is already in use
-        # add crap and try the new nick
-        433|432)
+        # the nickname is "invalid" for reasons or is empty somehow.
+        431|432)
+            # :server 432 $NICK :reason
+            why="${params[*]}"
+            send_log 'CRITICAL' "$why"
+            break
+        ;;
+        # Nickname is already in use/collision
+        # add _ and try the new nick
+        433|436)
+
             [[ -z "$orig_nick" ]] && orig_nick="$NICK"
             NICK="${NICK}_"
             case "$NICK" in
@@ -990,20 +1339,24 @@ while {
         ;;
         # SASL specific
         CAP)
-            if [[ "$message" == 'ACK :sasl' ]]; then
-                send_msg 'AUTHENTICATE PLAIN'
-            fi
+            # :server CAP $NICK ACK :sasl
+            ack="${params[1]}"
+            # We only ever ask for sasl
+            message="${params[2]}"
+            parse_cap "$ack" "$message" || break
         ;;
         # SASL status commands
         903)
             send_msg "CAP END"
         ;;
         902|904|905|906)
+            message="${params[2]}"
             send_msg "CAP END"
             send_log 'CRITICAL' "$message"
             break
         ;;
         PONG)
+            recv_ping=1
             send_log 'DEBUG' 'RECV -> PONG'
         ;;
         # not an official command, this is for getting
@@ -1011,6 +1364,11 @@ while {
         __DEBUG)
             # disable this if not in mock testing mode
             [[ -z "$MOCK_CONN_TEST" ]] && continue
+            channel="${params[0]}"
+            message="${params[1]}"
+            # mock test trusted_gateway code
+            trusted_gateway "$user"
+
             case $message in
                 channels)  echo1 "${CHANNELS[*]}" >&3 ;;
                 nickname)  echo1 "$NICK"    >&3 ;;
@@ -1018,9 +1376,17 @@ while {
                 hostparse) echo1 "$host"    >&3 ;;
                 chanparse) echo1 "$channel" >&3 ;;
                 msgparse)  echo1 "$message" >&3 ;;
-                *)         echo1 "$message" >&3 ;;
+                chanmode)
+                    _umode="${user_modes["$channel ${params[2]}"]}"
+                    modebit_to_char "$_umode"
+                    echo1 "$REPLY" >&3
+                ;;
+                '<'*'> nickparse') echo1 "$message" >&3 ;;
+                *)         echo1 "${params[*]}" >&3 ;;
             esac
         ;;
+        # specifically test the new IRC Parser.
+        __PARSER)
     esac
 done
 send_msg "QUIT :bye"
