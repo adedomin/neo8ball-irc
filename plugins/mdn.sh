@@ -13,7 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-[[ -n "$4" ]] && set -- "$1" "$2" "$3" "$4 site:developer.mozilla.org" "$5"
+args=()
+for arg; do
+    case "$arg" in
+        --message=*)
+            m="${arg#*=}"
+            if [[ -n "$m" ]]; then
+                args+=("--message=$m site:developer.mozilla.org")
+            else
+                args+=('')
+            fi
+        ;;
+        *) args+=("$arg") ;;
+    esac
+done
 
-"${PLUGIN_PATH?}/search.sh" "$@" \
+"${PLUGIN_PATH?}/search.sh" "${args[@]}" \
 | sed 's/\s*|[^:]*::/ ::/'

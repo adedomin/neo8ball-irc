@@ -13,11 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+for arg; do
+    case "$arg" in
+        --nick=*)    nick="${arg#*=}" ;;
+        --message=*) msg="${arg#*=}" ;;
+        --command=*) command="${arg#*=}" ;;
+    esac
+done
+
 declare -i COUNT=1
-LAST=
-msg="$4"
 query_type='@id = "Verb" or @id = "Noun" or @id = "Adjective"'
-for arg in $4; do
+LAST=
+while [[ -n "$msg" ]]; do
+    arg="${msg%% *}"
+
     case "$arg" in
         -c|--count)
             LAST='c'
@@ -48,11 +57,13 @@ for arg in $4; do
         ;;
         -h|--help)
             printf '%s\n' \
-                ":m $1 usage: $5 [-nva] [--defintion=#-to-get] [--count=#-to-ret] query"
+                ":r usage: $command [-nva] [--defintion=#-to-get] [--count=#-to-ret] query"
             printf '%s\n' \
-                ":m $1 defines a given word. -n:--noun -v:--verb -a:--adjective"
+                ":r defines a given word. -n:--noun -v:--verb -a:--adjective"
             exit 0
         ;;
+        # Leading while command processing... so ignore it.
+        '') ;;
         *)
             [ -z "$LAST" ] && break
             if [ "$LAST" = 'd' ]; then
@@ -66,16 +77,17 @@ for arg in $4; do
             unset LAST
         ;;
     esac
-    if [[ "$msg" == "${msg#* }" ]]; then
+
+    # Pop arg from message.
+    if [[ "${msg#"$arg" }" == "$msg" ]]; then
         msg=
-        break
     else
-        msg="${msg#* }"
+        msg="${msg#"$arg" }"
     fi
 done
 
 if [[ -z "$msg" ]]; then
-    echo ":mn $3 This command requires a search query"
+    echo ":mn $nick This command requires a search query"
     exit 0
 fi
 
@@ -91,9 +103,11 @@ mapfile -t defs < <(
     '
 )
 
+# $1 - the definition number
+# $2 - the number of defintions
 print_def() {
-    printf ':m %s \002%s\002 [%d/%d] :: %s\n' \
-        "$1" "${type_of:+$type_of: }${msg:0:100}" "$2" "$3" \
+    printf ':r \002%s\002 [%d/%d] :: %s\n' \
+        "${type_of:+$type_of: }${msg:0:100}" "$1" "$2" \
         "${definition}"
 }
 
@@ -105,15 +119,15 @@ if (( def_len > 0 )); then
             definition="${defs[i]}"
             (( ${#definition} > 400 )) &&
                 definition="${definition:0:400}..."
-            print_def "$1" "$(( i + 1 ))" "$def_len"
+            print_def "$(( i + 1 ))" "$def_len"
         done
     else
         (( DEFINITION > def_len )) &&
             DEFINITION=1
         definition="${defs[DEFINITION - 1]}"
-        print_def "$1" "$DEFINITION" "$def_len"
+        print_def "$DEFINITION" "$def_len"
     fi
-    echo ":mn $3 See More: $DICTIONARY"
+    echo ":mn $nick See More: $DICTIONARY"
 else
-    echo ":m $1 No definition found"
+    echo ":r No definition found"
 fi

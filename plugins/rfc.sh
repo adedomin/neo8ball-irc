@@ -13,11 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+for arg; do
+    case "$arg" in
+        --message=*) q="${arg#*=}" ;;
+        --command=*) command="${arg#*=}" ;;
+    esac
+done
+
 declare -i COUNT
 COUNT=1
+while [[ -n "$q" ]]; do
+    arg="${q%% *}"
 
-q="$4"
-for arg in $4; do
     case "$arg" in
         -c|--count)
             LAST='c'
@@ -27,9 +34,10 @@ for arg in $4; do
                 COUNT="${arg#*=}"
         ;;
         -h|--help)
-            echo ":m $1 usage: $5 [[--count=#-to-ret] [query]]"
-            echo ":m $1 search for RFCs by title or number or get a random RFC."
+            echo ":r usage: $command [[--count=#-to-ret] [query]]"
+            echo ":r search for RFCs by title or number or get a random RFC."
         ;;
+        '') ;;
         *)
             [ -z "$LAST" ] && break
             LAST=
@@ -37,15 +45,15 @@ for arg in $4; do
                 COUNT="$arg"
         ;;
     esac
-    if [[ "$q" == "${q#* }" ]]; then
+
+    if [[ "${q#"$arg" }" == "$q" ]]; then
         q=
-        break
     else
-        q="${q#* }"
+        q="${q#"$arg" }"
     fi
 done
 
-if [ -z "$q" ]; then
+if [[ -z "$q" ]]; then
     EXAMPLE_RFCs=(
         439 527 748 968 1097 1149 1215 1216 1313
         1437 1438 1605 1606 1607 1776 1882 1924
@@ -57,7 +65,7 @@ if [ -z "$q" ]; then
         8140
     )
 
-    q=${EXAMPLE_RFCs[ $RANDOM % ${#EXAMPLE_RFCs[@]} ]}
+    q="${EXAMPLE_RFCs[ $RANDOM % ${#EXAMPLE_RFCs[@]} ]}"
 fi
 
 p=rfc
@@ -83,7 +91,7 @@ while read -r rfc; do
     )"; then
         continue
     fi
-    echo ":m $1 "$'\002'"$title"$'\002'" :: $IETF$rfc"
+    echo ":r "$'\002'"$title"$'\002'" :: $IETF$rfc"
 done < <(
        curl --silent --fail \
            "${RFC_SEARCH}$p=$(URI_ENCODE "$q")" \

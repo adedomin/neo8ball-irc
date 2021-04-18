@@ -13,12 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+for arg; do
+    case "$arg" in
+        --reply=*)   reply="${arg#*=}" ;;
+        --nick=*)    nick="${arg#*=}" ;;
+        --message=*) MATCH="${arg#*=}" ;;
+        --command=*) command="${arg#*=}" ;;
+        --regexp=*)  command="${arg#*=}" ;;
+        --match=*)   match="${arg#*=}" ;;
+    esac
+done
+
 declare -i COUNT
 COUNT=1
 
 MATCH="$4"
 # parse args
-for key in $4; do
+while [[ -n "$MATCH" ]]; do
+    key="${MATCH%% *}"
+
     case "$key" in
         -c|--count)
             LAST='c'
@@ -28,10 +41,11 @@ for key in $4; do
                 COUNT="${key#*=}"
         ;;
         -h|--help)
-            echo ":m $1 usage: $5 [--count=#-to-ret] query"
+            echo ":m $1 usage: $command [--count=#-to-ret] query"
             echo ":m $1 search for a youtube video."
             exit 0
         ;;
+        '') ;;
         *)
             [[ -z "$LAST" ]] && break
             LAST=
@@ -39,26 +53,26 @@ for key in $4; do
                 COUNT="$key"
         ;;
     esac
-    if [[ "$MATCH" == "${MATCH#* }" ]]; then
+
+    if [[ "${MATCH#"$key" }" == "$MATCH" ]]; then
         MATCH=
-        break
     else
-        MATCH="${MATCH#* }"
+        MATCH="${MATCH#"$key" }"
     fi
 done
 
 if [[ -z "$MATCH" ]]; then
-    echo ":mn $3 This command requires a search query"
+    echo ":mn $nick This command requires a search query"
     exit 0
 fi
 
 if [[ -z "$YOUTUBE_KEY" ]]; then
-    echo ":mn $3 this command is disabled; no api key"
+    echo ":mn $nick this command is disabled; no api key"
     exit 0
 fi
 
-if [[ -n "$6" ]]; then
-    CHANNEL_IN_IGNORE_LIST "$1" "$YOUTUBE_IGNORE" &&
+if [[ -n "$match" ]]; then
+    CHANNEL_IN_IGNORE_LIST "$reply" "$YOUTUBE_IGNORE" &&
         exit 0
     COUNT=1
 
@@ -106,7 +120,7 @@ stats="https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,cont
 {
     curl --silent --fail "${stats}" ||
         echo null
-} | jq --arg CHANNEL "$1" \
+} | jq \
     -r 'def rev_string:
             explode
             | reverse
@@ -127,7 +141,7 @@ stats="https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,cont
         ;
         if (.items) then
             .items[0:3][]
-            | ":m \($CHANNEL) \u0002" + .snippet.title + "\u0002 (" + (
+            | ":r \u0002" + .snippet.title + "\u0002 (" + (
                 .contentDetails.duration[2:] | ascii_downcase
             ) + ") :: " +
             "https://youtu.be/" + .id + " :: " +

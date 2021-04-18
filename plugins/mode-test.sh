@@ -1,3 +1,9 @@
 #!/bin/sh
+for arg; do
+    case "$arg" in
+        --nick=*)    nick="${arg#*=}" ;;
+        --cmode=*)   mode="${arg#*=}" ;;
+    esac
+done
 
-printf '%s\n' ":m $1 $3: your mode is +$7"
+printf ':r %s: your mode is <%s>\n' "$nick" "$mode"

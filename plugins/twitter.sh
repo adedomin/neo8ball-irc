@@ -13,26 +13,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+for arg; do
+    case "$arg" in
+        --message=*) msg="${arg#*=}" ;;
+        --command=*) command="${arg#*=}" ;;
+        --regexp=*)  command="${arg#*=}" ;;
+        --match=*)   match="${arg#*=}" ;;
+    esac
+done
+
 TWITTER_OAUTH_URL='https://api.twitter.com/oauth2/token'
 TWITTER_TIMELINE_URL='https://api.twitter.com/1.1/statuses/user_timeline.json?count=1&screen_name='
 TWITTER_STATUS_URL='https://api.twitter.com/1.1/statuses/show.json?id='
-channel="$1"
 
-msg="$4"
-if [[ -z "$6" ]]; then
-    for arg in $4; do
+if [[ -z "$match" ]]; then
+    while [[ -n "$msg" ]]; do
+        arg="${msg%% *}"
+
         case "$arg" in
             -f|--follow)
-                echo ":m $1 currently not implemented."
+                echo ":r currently not implemented."
                 exit
             ;;
             -u|--unfollow)
-                echo ":m $1 currently not implemented."
+                echo ":r currently not implemented."
                 exit
             ;;
             -h|--help)
-                echo ":m $1 usage: $5 [--(un)follow] [@]screen_name"
-                echo ":m $1 Get latest tweets from a user"
+                echo ":r usage: $command [--(un)follow] [@]screen_name"
+                echo ":r Get latest tweets from a user"
                 exit 0
             ;;
             *)
@@ -41,10 +50,10 @@ if [[ -z "$6" ]]; then
             ;;
         esac
     done
-elif [[ "${6##*status/}" != "$6" ]]; then
-    status_id="${6##*status/}"
-elif [[ "${6##*t.co/}" != "$6" ]]; then
-    status_id="$(curl --head -s -q "https://$6" \
+elif [[ "${match##*status/}" != "$match" ]]; then
+    status_id="${match##*status/}"
+elif [[ "${match##*t.co/}" != "$match" ]]; then
+    status_id="$(curl --head -s -q "https://$match" \
                  | grep -i -- '^location: ' \
                  | tr -d '\r\n')"
     [[ "${status_id##*status/}" == "$status_id" ]] && exit 0
@@ -62,12 +71,12 @@ generate_bearer_token() {
         -H 'User-Agent: neo8ball' \
         --data-urlencode 'grant_type=client_credentials')"
     then
-        echo ":m $channel Could not get a Twitter OAUTH bearer token"
+        echo ":r Could not get a Twitter OAUTH bearer token"
         exit
     fi
     bearer_token="$(jq -r .access_token <<< "$bearer_token" 2>/dev/null)"
     if [[ -z "$bearer_token" ]]; then
-        echo ":m $channel Could not get a Twitter OAUTH bearer token"
+        echo ":r Could not get a Twitter OAUTH bearer token"
         exit
     fi
 }
@@ -109,12 +118,12 @@ get_tweet_status() {
 
 if [[ -n "$status_id" ]]; then
     if TWEET="$(get_tweet_status)"; then
-        printf ':m %s %s\n' "$1" "${TWEET:0:400}"
+        printf ':r %s\n' "${TWEET:0:400}"
     else
         echo ":loge $0 $TWEET"
     fi
 elif TWEET="$(get_latest_tweet "$screen_name")"; then
-    echo ":m $1 ${TWEET:0:400}"
+    echo ":r ${TWEET:0:400}"
 else
-    echo ":m $1 $screen_name - no such user."
+    echo ":r $screen_name - no such user."
 fi

@@ -13,12 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+for arg; do
+    case "$arg" in
+        --nick=*)    nick="${arg#*=}" ;;
+        --message=*) q="${arg#*=}" ;;
+        --command=*) command="${arg#*=}" ;;
+    esac
+done
+
 declare -i COUNT
 COUNT=1
 
 # parse args
-q="$4"
-for key in $4; do
+while [[ -n "$q" ]]; do
+    key="${q%% *}"
+
     case "$key" in
         -c|--count)
             LAST='c'
@@ -35,10 +44,11 @@ for key in $4; do
                 DEFINITION="${key#*=}"
         ;;
         -h|--help)
-            echo ":m $1 usage: $5 [--count=#-to-ret|--definition=#] query"
-            echo ":m $1 find a defintion for a word using the urban dictionary."
+            echo ":r usage: $command [--count=#-to-ret|--definition=#] query"
+            echo ":r find a defintion for a word using the urban dictionary."
             exit 0
         ;;
+        '') ;;
         *)
             [ -z "$LAST" ] && break
             if [ "$LAST" = 'd' ]; then
@@ -52,16 +62,16 @@ for key in $4; do
             LAST=
         ;;
     esac
-    if [[ "$q" == "${q#* }" ]]; then
+
+    if [[ "${q#"$key" }" == "$q" ]]; then
         q=
-        break
     else
-        q="${q#* }"
+        q="${q#"$key" }"
     fi
 done
 
-if [ -z "$4" ]; then
-    echo ":mn $3 This command requires a search query"
+if [[ -z "$q" ]]; then
+    echo ":mn $nick This command requires a search query"
     exit 0
 fi
 
@@ -78,7 +88,7 @@ NEW_URBAN="http://api.urbandictionary.com/v0/define?term=$(URI_ENCODE "$q")"
         "$NEW_URBAN" \
     || echo null
 } | sed 's/\\[rn]\(\\[rn]\)*/ /g' \
-    | jq --arg CHANNEL "$1" \
+    | jq \
        --arg COUNT "$COUNT" \
        --arg DEFNUM "$DEFINITION" \
        --arg WORD "$q" \
@@ -105,9 +115,9 @@ NEW_URBAN="http://api.urbandictionary.com/v0/define?term=$(URI_ENCODE "$q")"
       else
         .
     end
-    | ":m \($CHANNEL) \u0002\($WORD)\u0002 " +
+    | ":r \u0002\($WORD)\u0002 " +
       "[\(.key + 1)/\($sizeof)] " +
       ":: \(.value.definition[0:400])"
 '
 
-printf '%s\n' ":mn $3 See More: $URBAN"
+printf '%s\n' ":mn $nick See More: $URBAN"

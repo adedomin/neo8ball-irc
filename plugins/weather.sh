@@ -15,49 +15,59 @@
 
 WEATHER="api.openweathermap.org/data/2.5/weather?APPID=${OWM_KEY}&q="
 
-arg="$4"
+
+for arg; do
+    case "$arg" in
+        --nick=*)    nick="${arg#*=}" ;;
+        --message=*) q="${arg#*=}" ;;
+        --command=*) command="${arg#*=}" ;;
+    esac
+done
 
 # parse args
-for key in $4; do
+while [[ -n "$q" ]]; do
+    key="${q%% *}"
+
     case "$key" in
         -S|--save)
             SAVE=1
         ;;
         -h|--help)
-            echo ":m $1 usage: $5 [--save] [query]"
-            echo ":m $1 This service uses https://openweathermap.org"
+            echo ":r usage: $command [--save] [query]"
+            echo ":r This service uses https://openweathermap.org"
             exit 0
         ;;
+        '') ;;
         *)
             break
         ;;
     esac
-    if [[ "$arg" == "${arg#* }" ]]; then
-        arg=
-        break
+
+    if [[ "${q#"$key" }" == "$q" ]]; then
+        q=
     else
-        arg="${arg#* }"
+        q="${q#"$key" }"
     fi
 done
 
-if [[ -z "$arg" ]]; then
-    if ! arg="$(GET_LOC "$3")"; then
-        echo ":mn $3 you must set a default location first"
-        echo ":mn $3 use --save location"
+if [[ -z "$q" ]]; then
+    if ! arg="$(GET_LOC "$nick")"; then
+        echo ":mn $nick you must set a default location first"
+        echo ":mn $nick use --save location"
         exit 0
     fi
 fi
 
-WEATHER+="$(URI_ENCODE "$arg")"
+WEATHER+="$(URI_ENCODE "$q")"
 RES=$(curl "${WEATHER}" 2>/dev/null)
 
 if [[ -z "$RES" ]]; then
-    echo ":m $1 no weather information"
+    echo ":r no weather information"
     exit 0
 fi
 
 if [[ "$(jq -r '.cod' <<< "$RES")" != '200' ]]; then
-    echo ":m $1 $(jq -r '.message' <<< "$RES")"
+    echo ":r $(jq -r '.message' <<< "$RES")"
     exit 0
 fi
 
@@ -81,7 +91,7 @@ else
     CURR_CELS=$'\003'"03$CURR_CELS"$'\003'
 fi
 
-echo -e ":m $1 "$'\002'"${loc}\\002 ::" \
+echo -e ":r "$'\002'"${loc}\\002 ::" \
     "\\002Conditions\\002 $COND ::" \
     "\\002Temp\\002 $CURR_CELS °C | $CURR_FAHR °F ::" \
     "\\002Humidity\\002 $HUMIDITY% ::" \
@@ -89,8 +99,8 @@ echo -e ":m $1 "$'\002'"${loc}\\002 ::" \
 
 # valid station... so save it
 if [[ -n "$SAVE" ]]; then
-    if ! SAVE_LOC "$3" "$arg"; then
-        echo ":mn $3 there was a problem saving your defaults"
-        echo ":logw NWS -> failed to save $arg for $3"
+    if ! SAVE_LOC "$nick" "$q"; then
+        echo ":mn $nick there was a problem saving your defaults"
+        echo ":logw $command -> failed to save $q for $nick"
     fi
 fi

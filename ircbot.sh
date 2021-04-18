@@ -560,7 +560,9 @@ parse_005() {
     done
 }
 
-# checks ISUPPORT_CHANMODES or if it is a user prefix chanmode
+# checks ISUPPORT_CHANMODES, or if it is a user prefix (q,a,o,h,v),
+# requires a parameter.
+#
 # $1 - the signedness of the mode (+|-)
 # $2 - the mode
 has_parameter_mode() {
@@ -576,7 +578,20 @@ has_parameter_mode() {
     return 1
 }
 
-# I hate this command
+# This command is a bit special
+# as far as I can tell based on reading the spec at least twice:
+#  MODE reply returns to the user something like #channel +|-somemodes param param2, etc...
+#  Where you must first pregather all the modes that take a parameter (see CHANMODES ISUPPORT 005)
+#  and then first in, first out, match them to the modes being set.
+#  If this is incorrect, please help me understand by opening an issue.
+#
+# e.g.
+#  +bv banned!user@param -o voiced_user deop_user
+#  +b -> banned!user@param
+#  +v -> voiced_user
+#  -o -> deop_user
+#
+# $1 - channel these modes manipulate.
 parse_mode() {
     local channel="$1"
     shift # rest are "mode strings"
@@ -608,13 +623,13 @@ parse_mode() {
 
     # assert
     if [[ "${#cmodes[@]}" != "${#params[@]}" ]]; then
-        send_log 'CRITICAL' \
+        send_log 'ERROR' \
                  'Something is wrong with the MODE parser or the server.'
-        send_log 'CRITICAL' \
-                 'number of modes to apply do not match up with number of parameters. (${#cmodes} != ${#params}):'" ${#cmodes} != ${#params}"
-        send_log 'CRITICAL' \
-                 'If problem keeps occuring, please turn TRACK_CHAN_MODE off.'
-
+        send_log 'ERROR' \
+                 'Number of modes to apply do not match up with number of parameters.'
+        send_log 'INFO' \
+                 'Using NAMES command to attempt to recover Channel Modes.'
+        send_msg "NAMES $channel"
         return 1
     fi
 
@@ -776,9 +791,11 @@ send_msg() {
 # commands to IRC messages.
 # must be piped or heredoc; no arguments
 #
+# $1      - OPTIONAL the user/channel to reply to when using the :reply :r command. 
 # <STDIN> - valid bash-ircbot command string
 # SEE     - README.md
 send_cmd() {
+    local reply_to="$1"
     while read -r; do
         cmd="${REPLY%% *}"
 
@@ -831,7 +848,15 @@ send_cmd() {
             :q|:quit)
                 send_msg "QUIT :$arg $other"
             ;;
-            :r|:raw)
+            :r|:reply)
+                if [[ -n "$reply_to" ]]; then
+                    send_msg "PRIVMSG $reply_to :${arg}${other:+ "$other"}"
+                else
+                    send_log "ERROR" \
+                             "Plugin attempted to use the reply command but we don't have a reply_to."
+                fi
+            ;;
+            :raw)
                 send_msg "$arg $other"
             ;;
             :le|:loge)
@@ -966,10 +991,91 @@ trusted_gateway() {
 # Bot Message Handler #
 #######################
 
-# TODO: note addition of usermode when available
-# handle PRIVMSGs and NOTICEs and
-# determine if the bot needs to react to message
+# function to help build a plugin commandline to pass.
+# Rational for --long=opts follows:
 #
+# --xyz=value still looks like a command line flag
+# while value is trivially parsed by splitting a string by =
+# --xyz *snip* value
+# this reduces the complexity of parsing arguments.
+# e.g.
+# ```
+# while (( $# > 0 )); do
+#   case "$1" in
+#     -m|--myflag) shift; myflag="$1" ;;
+#     ...etc
+#   esac
+#   shift # <- VERY IMPORTANT OR YOU'LL LOOP FOREVER
+# done
+# ```
+# vs.
+# ```
+# for arg; do
+#   case "$arg" in
+#     --myflag=*) myflag="${arg#*=}" ;;
+#     ...etc
+#   esac
+# done
+# ```
+#
+# in python, it's easy as well:
+# ```
+#   args = {}
+#   for arg in argv[1:]:
+#       values = arg.split('=', maxsplit=1)
+#       if len(values) == 2:
+#           args[values[0]] = values[1]
+#   q = args.get('--message', '') # do something
+# ```
+#
+# 1) No potential infinite loop.
+# 2) Easy in all languages to parse; no need for a flag slot.
+# 3) Unambiguous if a given flag has a value or is boolean.
+#
+# $1 - command | regexp
+# $2 - cmd (hl, regexp, command prefix)
+# $3 - match (regexp only)
+build_cmdline() {
+    local type="$1"
+    local cmd="$2"
+    local match="$3"
+    local reply="$channel"
+
+    # in private message, reply should be user messaging us.
+    if [[ "$NICK" == "$channel" ]]; then
+       reply="$user"
+    # since this is assumed a channel, fetch the user's chan mode.
+    else
+        local cmode="${user_modes["$channel $user"]}"
+        modebit_to_char "$cmode"
+        cmode="$REPLY"
+    fi
+
+    # there are some common flags that exist for all types
+    AREPLY=(
+        --reply="$reply"
+        --host="$host"
+        --nick="$user" # TODO: refactor $user to nick
+        --cmode="$cmode"
+    )
+
+    case "$type" in
+        command)
+            AREPLY+=(
+                --command="$cmd"
+                --message="$umsg"
+            )
+        ;;
+        regexp)
+            AREPLY+=(
+                --regexp="$cmd"
+                --message="$message"
+                --match="$match"
+            )
+        ;;
+    esac
+}
+
 # From main loop globals:
 #  $channel - channel name
 #  $host    - user's vhost
@@ -1001,12 +1107,10 @@ handle_privmsg() {
         local cmd_path="$PLUGIN_PATH/${COMMANDS[$cmd]}"
         if [[ -x "$cmd_path" ]]; then
             send_log "DEBUG" "PRIVATE COMMAND EVENT -> $cmd: $user <$user> $umsg"
-            "$cmd_path" \
-                "$user" "$host" "$user" "$umsg" "$cmd" \
-                '' "${user_modes["$channel $user"]}" \
-            | send_cmd &
+            build_cmdline command "$cmd"
+            "$cmd_path" "${AREPLY[@]}" | send_cmd "$user" &
         else
-            send_cmd "ERROR" "PRIVATE COMMAND NOEXEC -> Make sure $cmd_path exists or is executable"
+            send_log "ERROR" "PRIVATE COMMAND NOEXEC -> Make sure $cmd_path exists or is executable"
         fi
         return
     fi
@@ -1019,10 +1123,8 @@ handle_privmsg() {
         local cmd_path="$PLUGIN_PATH/$HIGHLIGHT"
         if [[ -x "$cmd_path" ]]; then
             send_log "DEBUG" "HIGHLIGHT EVENT -> $channel <$user>  $umsg"
-            "$cmd_path" \
-                "$channel" "$host" "$user" "$umsg" "$ucmd" \
-                '' "${user_modes["$channel $user"]}" \
-            | send_cmd &
+            build_cmdline command "$cmd"
+            "$cmd_path" "${AREPLY[@]}" | send_cmd "$channel" &
             return
         else
             send_log 'ERROR' "HIGHLIGHT NOEXEC -> Make sure $cmd_path exists or is executable"
@@ -1042,10 +1144,8 @@ handle_privmsg() {
         if [[ -x "$cmd_path" ]]; then
             check_spam "$user" || return
             send_log "DEBUG" "COMMAND EVENT -> $cmd: $channel <$user> $umsg"
-            "$cmd_path" \
-                "$channel" "$host" "$user" "$umsg" "$cmd" \
-                '' "${user_modes["$channel $user"]}" \
-            | send_cmd &
+            build_cmdline command "$cmd"
+            "$cmd_path" "${AREPLY[@]}" | send_cmd "$channel" &
             return
         else
             send_log 'ERROR' "COMMAND NOEXEC -> Make sure $cmd_path exists or is executable"
@@ -1061,11 +1161,8 @@ handle_privmsg() {
         local cmd_path="$PLUGIN_PATH/${REGEX["$regex"]}"
         if [[ -x "$cmd_path" ]]; then
             send_log "DEBUG" "REGEX EVENT -> $regex: $channel <$user> $message (${BASH_REMATCH[0]})"
-            "$cmd_path" \
-                "$channel" "$host" "$user" "$message" \
-                "$regex" "${BASH_REMATCH[0]}" \
-                "${user_modes["$channel $user"]}" \
-            | send_cmd &
+            build_cmdline regexp "$regex" "${BASH_REMATCH[0]}"
+            "$cmd_path" "${AREPLY[@]}" | send_cmd "$channel" &
             return
         else
             send_log 'ERROR' "REGEX NOEXEC -> Make sure $cmd_path exists or is executable"
@@ -1302,7 +1399,7 @@ while {
             [[ "$user" == "$NICK" ]] && continue
             channel="${params[0]}"
             rest=("${params[@]:1}")
-            parse_mode "$channel" "${rest[@]}" || break
+            parse_mode "$channel" "${rest[@]}"
         ;;
         # PASS command failed
         464)
@@ -1385,8 +1482,6 @@ while {
                 *)         echo1 "${params[*]}" >&3 ;;
             esac
         ;;
-        # specifically test the new IRC Parser.
-        __PARSER)
     esac
 done
 send_msg "QUIT :bye"

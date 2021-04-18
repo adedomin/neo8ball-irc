@@ -13,23 +13,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+for arg; do
+    case "$arg" in
+        --nick=*)    nick="${arg#*=}" ;;
+        --message=*) q="${arg#*=}" ;;
+        --command=*) command="${arg#*=}" ;;
+    esac
+done
+
 # parse args
-q="$4"
-for key in $4; do
+while [[ -n "$q" ]]; do
+    key="${q%% *}"
+
     case "$key" in
         -h|--help)
-            echo ":m $1 usage: $5 query"
+            echo ":m $1 usage: $command query"
             echo ":m $1 find a wikipedia article."
             exit 0
         ;;
+        '') ;;
         *)
             break
         ;;
     esac
+
+    if [[ "${q#"$key" }" == "$q" ]]; then
+        q=
+    else
+        q="${q#"$key" }"
+    fi
 done
 
-if [ -z "$q" ]; then
-    echo ":mn $3 This command requires a search query"
+if [[ -z "$q" ]]; then
+    echo ":mn $nick This command requires a search query"
     exit 0
 fi
 
@@ -41,15 +57,14 @@ WIKI='https://en.wikipedia.org/api/rest_v1/page/summary/'"$(URI_ENCODE "$q")"
         --location \
         --fail "$WIKI" \
     || echo null
-} | jq --arg CHAN "$1" \
-       -r '
+} | jq -r '
     if (. != null and .type != "disambiguation") then
-        ":m \($CHAN) \u0002\(.title)\u0002 :: \(.content_urls.desktop.page) :: " + 
+        ":r \u0002\(.title)\u0002 :: \(.content_urls.desktop.page) :: " + 
         ( .extract[0:350] | gsub("\n"; " "))
     elif (. != null) then
-        ":m \($CHAN) \u0002\(.title)\u0002 :: \(.content_urls.desktop.page) :: " +
+        ":r \u0002\(.title)\u0002 :: \(.content_urls.desktop.page) :: " +
         "\u0002Ambiguous\u0002 \(.extract[0:339] | gsub("\n"; " "))"
     else
-        ":m \($CHAN) No Results."
+        ":r No Results."
     end
 '

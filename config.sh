@@ -144,7 +144,7 @@ REGEX=(
 ['https?://twitter.com/[^/]+/status/[0-9]+|t.co/[a-zA-Z0-9]+']='twitter.sh'
 ['youtube.com|youtu.be']='youtube.sh'
 # literally anything can be a url nowadays
-['(https?)://[^ ]+']='pagetitle.sh'
+['(https?)://[^ ]+']='pagetitle.py'
 ['^moose']='moose.sh'
 )
 
@@ -221,15 +221,6 @@ export MOOSE_IGNORE="
 export MOOSE_SLEEP_TIMER='10s'
 # delay in seconds (supports decimal assuming gnu sleep)
 export MOOSE_OUTPUT_DELAY='0.3s'
-
-# MS Cognitive Services Computer Vision API (describe)
-# for enhanced insight on images in lib/pagetitle.sh
-export MS_COG_SERV='https://westcentralus.api.cognitive.microsoft.com/vision/v1.0/describe'
-# keep this commented out if you want to disable this feature
-#export MS_COG_KEY='api key here'
-
-# Uncomment to disable pagetitle.sh "File" reports.
-#export PAGETITLE_DISABLE_FILE=1
 
 # rate to poll following MLB games
 # in seconds or whatever timespec that the sleep command takes

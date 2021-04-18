@@ -13,16 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+for arg; do
+    case "$arg" in
+        --nick=*)    nick="${arg#*=}" ;;
+        --message=*) q="${arg#*=}" ;;
+        --command=*) command="${arg#*=}" ;;
+    esac
+done
+
 orientation='straight'
-if [ "$5" = 'gay' ]; then
+if [ "$command" = 'gay' ]; then
     orientation='gay'
 fi
 
-q="$4"
 LAST=
 declare -i AMT_RESULTS
 AMT_RESULTS=1
-for arg in $4; do
+while [[ -n "$q" ]]; do
+    arg="${q%% *}"
+
     case "$arg" in
         -c|--count)
             LAST='C'
@@ -36,6 +45,7 @@ for arg in $4; do
             echo ":m $1 search for pornographic material or let the bot output a random one."
             exit 0
         ;;
+        '') ;;
         *)
             [ -z "$LAST" ] && break
             LAST=
@@ -43,19 +53,21 @@ for arg in $4; do
                 AMT_RESULTS="$arg"
         ;;
     esac
-    if [[ "$q" == "${q#* }" ]]; then
+
+    if [[ "${q#"$arg" }" == "$q" ]]; then
         q=
-        break
     else
-        q="${q#* }"
+        q="${q#"$arg" }"
     fi
 done
 
 if [ -z "$q" ]; then
-    q="$(
-        curl -s "https://www.pornmd.com/randomwords?orientation=$orientation" \
-        | tr -d '"'
-    )"
+    echo ":mn $nick This command requires a query."
+    # seems like this is broken...
+    #q="$(
+    #    curl -s "https://www.pornmd.com/randomwords?orientation=$orientation" \
+    #    | tr -d '"'
+    #)"
 fi
 PORN_MD="https://www.pornmd.com"
 # query must be lowercase, non lowercase queries cause weirdness
@@ -70,7 +82,7 @@ while read -r uri title; do
     title="$(
         HTML_CHAR_ENT_TO_UTF8 <<< "$title"
     )"
-    echo ":m $1 "$'\002'"${title}"$'\002'" :: ${url}"
+    echo ":r "$'\002'"${title}"$'\002'" :: ${url}"
 done < <(
     # changes seem to create duplicates
     # stupid uniq isn't removing the uniqes either

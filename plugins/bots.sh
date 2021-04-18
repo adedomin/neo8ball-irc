@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-echo -e ":m $1 \002neo8ball\002 [bash] ::" \
-    "\002Source\002 https://github.com/adedomin/neo8ball-irc"
+printf ':r Reporting in! [bash] neo8ball :: '
+printf '\002Source\002 https://github.com/adedomin/neo8ball-irc\n'

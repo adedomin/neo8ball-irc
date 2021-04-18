@@ -213,10 +213,15 @@ def mlb(inp):
 
 
 if __name__ == '__main__':
-    if len(argv) < 2:
-        print('{}'.format(mlb('')))
-    elif len(argv) < 5:
-        print('{}'.format(mlb(argv[1])))
-    else:
-        for line in mlb(argv[4]).split('\n'):
-            print(':m {} {}'.format(argv[1], line))
+    args = {}
+    for arg in argv[1:]:
+        values = arg.split('=', maxsplit=1)
+        if len(values) == 2:
+            args[values[0]] = values[1]
+
+    if args.get('--message', '').startswith('--help'):
+        print(':r usage: {} [team]'.format(args.get('--command', 'mlb')))
+        exit(0)
+
+    for line in mlb(args.get('--message', '')).split('\n'):
+        print(':r {}'.format(line))

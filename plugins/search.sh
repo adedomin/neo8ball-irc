@@ -13,11 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+for arg; do
+    case "$arg" in
+        --message=*) q="${arg#*=}" ;;
+        --command=*) command="${arg#*=}" ;;
+    esac
+done
+
 declare -i COUNT
 COUNT=1
 
-q="$4"
-for arg in $4; do
+while [[ -n "$q" ]]; do
+    arg="${q%% *}"
+
     case "$arg" in
         -c|--count)
             LAST='c'
@@ -27,10 +35,11 @@ for arg in $4; do
                 COUNT="${arg#*=}"
         ;;
         -h|--help)
-            echo ":m $1 usage: $5 [--count=#-to-ret] query"
-            echo ":m $1 search duckduckgo for whatever your heart desires."
+            echo ":r usage: $command [--count=#-to-ret] query"
+            echo ":r search duckduckgo for whatever your heart desires."
             exit 0
         ;;
+        '') ;;
         *)
             [ -z "$LAST" ] && break
             LAST=
@@ -38,11 +47,11 @@ for arg in $4; do
                 COUNT="$arg"
         ;;
     esac
-    if [[ "$q" == "${q#* }" ]]; then
+
+    if [[ "${q#"$arg" }" == "$q" ]]; then
         q=
-        break
     else
-        q="${q#* }"
+        q="${q#"$arg" }"
     fi
 done
 

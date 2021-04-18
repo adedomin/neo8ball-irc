@@ -36,26 +36,47 @@ responses=(
 "Don't count on it."
 )
 
-# parse args
-# new arg parser
-msg="$4"
-for arg in $4; do
+# New neo8ball command line interface is dynamic.
+# We will use the new neo8ball `:reply` command so we don't need --reply flag.
+#  * The --reply flag comes with the channel to send replies to.
+for arg; do
+    case "$arg" in
+        --nick=*)    nick="${arg#*=}" ;;
+        --message=*) msg="${arg#*=}" ;;
+        --command=*) command="${arg#*=}" ;;
+    esac
+done
+
+# this is an example of a proper argument parser from a messge.
+while [[ -n "$msg" ]]; do
+    arg="${msg%% *}"
+
     case "$arg" in
         -y|--yes-no)
             YN=1
-            # remove arg
-            msg="${msg#* }"
         ;;
         -h|--help)
-            echo ":m $1 usage: $5 [-y --yes-no] query? [y/n]"
-            echo ":m $1 usage: $5 <choice a> or <choice b>?"
-            echo ":m $1 answers y/n questions or decides between two choices."
+            echo ":r usage: $command [-y --yes-no] query? [y/n]"
+            echo ":r usage: $command <choice a> or <choice b>?"
+            echo ":r answers y/n questions or decides between two choices."
             exit 0
         ;;
+        # Our iterator only removes exactly one space.
+        # Leading while command processing... so ignore it.
+        '') ;;
         *)
             break
         ;;
     esac
+
+    # Pop arg from message.
+    # First branch handles the case where there isn't a trailing space.
+    # Example with commas: 1,2,3,4 <-- last 4 would never be popped otherwise.
+    if [[ "${msg#"$arg" }" == "$msg" ]]; then
+        msg=
+    else
+        msg="${msg#"$arg" }"
+    fi
 done
 
 # alternate yes or no form
@@ -69,18 +90,18 @@ declare -i RAND_MAX=32767 rand_val="$RANDOM"
 
 reg='^(.*) or (.*)\?$' # decide
 if [[ "$msg" =~ $reg ]]; then
-    echo ":m $1 $3: ${BASH_REMATCH[(rand_val % 2)+1]}"
+    echo ":r $nick: ${BASH_REMATCH[(rand_val % 2)+1]}"
 elif [[ "$msg" = *\? ]]; then
     if [[ "$YN" ]]; then
         (( RANDOM % 2 == 0 )) && y='yes'
-        echo ":m $1 $3: ${y:-no}"
+        echo ":r $nick: ${y:-no}"
     else
         # modulo bias solution
         while (( rand_val >= ( RAND_MAX - ( RAND_MAX % 20 ) ) )); do
             rand_val="$RANDOM"
         done
-        echo ":m $1 $3: ${responses[rand_val % 20]}"
+        echo ":r $nick: ${responses[rand_val % 20]}"
     fi
 else
-    echo ":mn $3 Try asking a question? (add a '?' to your question)"
+    echo ":mn $nick Try asking a question (add a '?' to your question)."
 fi

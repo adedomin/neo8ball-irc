@@ -16,8 +16,17 @@
 declare -i COUNT
 COUNT=1
 
-q="$4"
-for arg in $4; do
+for arg; do
+    case "$arg" in
+        --nick=*)    nick="${arg#*=}" ;;
+        --message=*) q="${arg#*=}" ;;
+        --command=*) command="${arg#*=}" ;;
+    esac
+done
+
+while [[ -n "$q" ]]; do
+    arg="${q%% *}"
+
     case "$arg" in
         -c|--count)
             LAST='c'
@@ -27,10 +36,11 @@ for arg in $4; do
                 COUNT="${arg#*=}"
         ;;
         -h|--help)
-            echo ":m $1 usage: $5 [--count=#-to-ret] query"
-            echo ":m $1 search for an npm package."
+            echo ":r usage: $command [--count=#-to-ret] query"
+            echo ":r search for an npm package."
             exit 0
         ;;
+        '') ;;
         *)
             [ -z "$LAST" ] && break
             LAST=
@@ -38,16 +48,16 @@ for arg in $4; do
                 COUNT="$arg"
         ;;
     esac
-    if [[ "$q" == "${q#* }" ]]; then
+
+    if [[ "${q#"$arg" }" == "$q" ]]; then
         q=
-        break
     else
-        q="${q#* }"
+        q="${q#"$arg" }"
     fi
 done
 
-if [ -z "$q" ]; then
-    echo ":mn $3 This command requires a search query, see --help for more info"
+if [[ -z "$q" ]]; then
+    echo ":mn $nick This command requires a search query, see --help for more info"
     exit 0
 fi
 
@@ -59,7 +69,6 @@ NPM="https://www.npmjs.com/search/suggestions?q=$(URI_ENCODE "$q")&size=${COUNT}
         --fail "$NPM" \
     || echo null
 } | jq -r --arg BOLD $'\002' \
-        --arg CHANNEL "$1" \
         --arg COUNT "$COUNT" '
     if (.[0]) then
         .[0:($COUNT | tonumber)][]
@@ -70,7 +79,7 @@ NPM="https://www.npmjs.com/search/suggestions?q=$(URI_ENCODE "$q")&size=${COUNT}
         , description: ""
       }
     end
-    | ":m \($CHANNEL) \($BOLD)" + .name + $BOLD +
+    | ":r \($BOLD)" + .name + $BOLD +
       " " + .links.npm + " " +
       .description[0:150]
 '

@@ -1,2 +1,9 @@
 #!/usr/bin/env bash
-echo ":mn $3 plugin ((( "$'\002'"$5"$'\002'" ))) is currently disabled"
+for arg; do
+    case "$arg" in
+        --nick=*)    nick="${arg#*=}" ;;
+        --command=*) command="${arg#*=}" ;;
+    esac
+done
+
+echo ":mn $nick Plugin ((( "$'\002'"$command"$'\002'" ))) is currently disabled."
