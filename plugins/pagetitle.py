@@ -13,7 +13,7 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-from sys import argv, exit
+from sys import argv, exit, stderr
 from html.parser import HTMLParser as HtmlParser
 from urllib.request import Request, urlopen
 
@@ -46,16 +46,42 @@ def chunk_read(req):
         yield req.read(4096).decode('utf8', 'ignore')
 
 
-if __name__ == '__main__':
-    args = {}
+def process_res(res):
+    content_type = res.headers.get('Content-Type', '')
+    if 'html' not in content_type:
+        raise TypeError('Not (X)HTML')
+
+    parser = TitleParser()
+    for html_fragment in chunk_read(res):
+        if not html_fragment:
+            break
+        parser.feed(html_fragment)
+        if parser.done:
+            break
+    if parser.title == '':
+        parser.title = f'Untitled - {res.geturl()}'
+
+    return f'{parser.title[0:LIMIT]}{"..." if len(parser.title) > LIMIT else ""}'
+
+
+def get_match_arg():
     for arg in argv[1:]:
         values = arg.split('=', maxsplit=1)
-        if len(values) == 2:
-            args[values[0]] = values[1]
+        if len(values) == 2 and values[0] == '--match':
+            return values[1]
+    raise Exception('Expected --match argument.')
 
-    url = args.get('--match', '')
-    if url == '':
-        exit(0)
+
+if __name__ == '__main__':
+    try:
+        url = get_match_arg()
+    except Exception as e:
+        print(f':loge pagetitle.py: {str(e)}')
+        exit(1)
+
+    if not (url.startswith('http://') or url.startswith('https://')):
+        print(f':loge pagetitle.py: Matched text - {url} - is not an http url.')
+        exit(1)
 
     try:
         with urlopen(Request(url,
@@ -65,20 +91,13 @@ if __name__ == '__main__':
                                       'adedomin/neo8ball-irc',
                                       'Accept':
                                       'text/html,application/xhtml+xml'})) \
-        as req:
-            parser = TitleParser()
-            for html_fragment in chunk_read(req):
-                if not html_fragment:
-                    break
-                parser.feed(html_fragment)
-                if parser.done:
-                    break
-            if parser.title == '':
-                parser.title = f'Untitled - {req.geturl()}'
-
-            parser.title = \
-                f'{parser.title[0:LIMIT]}{"..." if len(parser.title) > LIMIT else ""}'
-            print(f':r ↑ Title :: {parser.title}')
+        as res:
+            title = process_res(res)
+            print(f':r ↑ Title :: {title}')
+    # We don't handle non-HTML currently.
+    except TypeError:
+        print(':logd pagetitle.py: TODO: Handle image, and other data.')
+        exit(0)
     except Exception as e:
         print(':r {} - ({})'.format(e, url))
         exit(1)
