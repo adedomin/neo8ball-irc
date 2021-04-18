@@ -19,7 +19,7 @@ for arg; do
         --message=*)
             m="${arg#*=}"
             if [[ -n "$m" ]]; then
-                args+=("--message=$m site:developer.mozilla.org")
+                args+=("--message=$m site:https://developer.mozilla.org/en-US")
             else
                 args+=('')
             fi
@@ -28,5 +28,9 @@ for arg; do
     esac
 done
 
-"${PLUGIN_PATH?}/search.sh" "${args[@]}" \
-| sed 's/\s*|[^:]*::/ ::/'
+if [[ -z "$PLUGIN_PATH" ]]; then
+    echo ':loge mdn.sh: PLUGIN_PATH is unset'
+    echo ':r Configuration Error.'
+else
+    "${PLUGIN_PATH}/duckduckgo.py" "${args[@]}"
+fi

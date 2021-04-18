@@ -13,7 +13,7 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-from sys import argv, exit, stderr
+from sys import argv, exit
 from html.parser import HTMLParser as HtmlParser
 from urllib.request import Request, urlopen
 
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     try:
         url = get_match_arg()
     except Exception as e:
-        print(f':loge pagetitle.py: {str(e)}')
+        print(f':loge pagetitle.py: {e}')
         exit(1)
 
     if not (url.startswith('http://') or url.startswith('https://')):

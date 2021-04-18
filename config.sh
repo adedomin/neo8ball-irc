@@ -93,13 +93,13 @@ declare -gA COMMANDS
 # use as follows:
 #  ['one-word-command-string']='the command to execute'
 COMMANDS=(
-["8"]="8ball.sh" 
-["8ball"]="8ball.sh" 
+["8"]="8ball.sh"
+["8ball"]="8ball.sh"
 ["define"]="define.sh"
-["decide"]="8ball.sh" 
-["duck"]="search.sh" 
-["ddg"]="search.sh" 
-["g"]="search.sh"
+["decide"]="8ball.sh"
+["duck"]="duckduckgo.py"
+["ddg"]="duckduckgo.py"
+["g"]="duckduckgo.py"
 ["help"]="help.sh"
 ["bots"]="bots.sh"
 ["source"]="bots.sh"
