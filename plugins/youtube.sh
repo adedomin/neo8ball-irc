@@ -27,7 +27,6 @@ done
 declare -i COUNT
 COUNT=1
 
-MATCH="$4"
 # parse args
 while [[ -n "$MATCH" ]]; do
     key="${MATCH%% *}"
