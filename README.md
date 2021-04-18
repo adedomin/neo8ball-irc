@@ -51,11 +51,11 @@ Below is a guide which explains how your plugins can communicate with neo8ball.
 
 ### Arguments
 
-Plugins receive a series of plugins which you can parse as "--key=value" pairs.
+Plugins receive a series of arguments which you can parse as "--key=value" pairs.
 --key= was chosen because it is a long option, but it is easy to parse without using a temporary variable as some kind of flag slot or a library argument parser.
-This breaks the old way this worked, which used specific positions with semantic values.
+This breaks the old way this worked, which used specific positions with semantic meaning. For instance. `--reply=#chan` replaces the meaning of `argv[1]`.
 
-Pugins currently receive the following arguments:
+Plugins currently receive the following arguments:
 
   1. `--reply='#channel or nickname'` This where the message originated, unless it is a private message, then it is the nickname of the sender.
   2. `--host='the @ part in a prefix'` this is the sender's host.
@@ -73,6 +73,27 @@ Depending if the command was invoked as a command, e.g. `.some_command`, or as a
 
   1. `--regexp=the_regexp` the regexp that matched the `--message`
   2. `--match=matched_text` the text matched by the regexp in `--message`.
+  
+#### Example Argument Parsers
+
+```bash
+for arg; do
+    case "$arg" in
+        --myflag=*) myflag="${arg#*=}" ;;
+        # ...etc
+    esac
+done
+```
+
+```python
+args = {}
+for arg in argv[1:]:
+    values = arg.split('=', maxsplit=1)
+    # I might add boolean flags later.
+    if len(values) == 2:
+        args[values[0]] = values[1]
+q = args.get('--message', '') # do something
+```
 
 ### Interacting with the channels
 
@@ -99,7 +120,7 @@ So do not do something like:
 
     :m #chan :this is a multi-space message.
 
-just do:
+Just do:
 
     :m #chan this is a multi-space message.
 
