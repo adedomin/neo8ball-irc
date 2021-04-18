@@ -51,7 +51,7 @@ while [[ -n "$q" ]]; do
 done
 
 if [[ -z "$q" ]]; then
-    if ! arg="$(GET_LOC "$nick")"; then
+    if ! q="$(GET_LOC "$nick")"; then
         echo ":mn $nick you must set a default location first"
         echo ":mn $nick use --save location"
         exit 0
