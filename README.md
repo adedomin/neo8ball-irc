@@ -51,14 +51,28 @@ Below is a guide which explains how your plugins can communicate with neo8ball.
 
 ### Arguments
 
-Pugins receive five (six for regexp) arguments:
+Plugins receive a series of plugins which you can parse as "--key=value" pairs.
+--key= was chosen because it is a long option, but it is easy to parse without using a temporary variable as some kind of flag slot or a library argument parser.
+This breaks the old way this worked, which used specific positions with semantic values.
 
-  1. The channel the message came from; (ALT) the user the message came from if it is a private message event.
-  2. User's vhost (use to be date and time)
-  3. The nickname the message came from
-  4. The message itself
-  5. name of the command it matched; (ALT) the library path if highlight; (ALT2) the string that matched a regex event
-  6. If event is a regexp one, the sixth argument is the matched text in the regexp.
+Pugins currently receive the following arguments:
+
+  1. `--reply='#channel or nickname'` This where the message originated, unless it is a private message, then it is the nickname of the sender.
+  2. `--host='the @ part in a prefix'` this is the sender's host.
+  3. `--nick=nickname_of_sender` this is the sender's nick.
+  4. `--cmode=[qaohv]` a single letter representing the highest mode the sending user has.
+  5. `--message='full user message'` the message.
+  
+Depending if the command was invoked as a command, e.g. `.some_command`, or as a regexp match depends what the remaining arguments are.
+
+#### Command Specific Arguments
+
+  1. `--command=some_command` the name of the command that invoked this plugin, stripped from `--message`.
+
+#### RegExp Specific Arguments
+
+  1. `--regexp=the_regexp` the regexp that matched the `--message`
+  2. `--match=matched_text` the text matched by the regexp in `--message`.
 
 ### Interacting with the channels
 
@@ -67,15 +81,16 @@ Plugins can write to stderr for logging, however it is recommended
 that they use the log command instead.
 Plugins must print out a command string using the below syntax:
 
-    :j #chan          - join a channel
-    :j #chan,#..      - join multiple channels
-    :l #chan          - leave a channel
-    :l #chan,#..      - leave multiple channels
-    :m #chan message  - send message to channel or user
-    :mn #chan message - send notice to channel or user
-    :n new_nick       - change nick (might be removed)
-    :l[ewid] log_msg  - send a string to the (e)rror|(w)arn|(i)nfo|(d)ebug log
-    :r anything       - send raw irc command; e.g. PRIVMSG #chan :hi
+    :j #chan          - Join a channel.
+    :j #chan,#..      - Join multiple channels.
+    :l #chan          - Leave a channel.
+    :l #chan,#..      - Leave multiple channels.
+    :m #chan message  - Send message to channel or user.
+    :mn #chan message - Send notice to channel or user.
+    :n new_nick       - Change nick (might be removed).
+    :l[ewid] log_msg  - Send a string to the (e)rror|(w)arn|(i)nfo|(d)ebug log.
+    :r message        - Replies to the channel where the message came from.
+    :raw raw irc msg  - Send raw irc command; e.g. ':raw PRIVMSG #chan :hi'
 
 All commands start with a colon (:), the command letter(s) and the arguments.
 All the commands that take multi-space arguments already have the colon appended to the front of them, except for raw commands.
