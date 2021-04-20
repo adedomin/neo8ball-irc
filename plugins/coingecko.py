@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (C) 2020  ine
+# Copyright (C) 2021  Anthony DeDominic <adedomin@gmail.com>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,6 +14,8 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# From Taigabot, with changes to work with neo8ball plus auto-updating code.
 
 from json import load as json_parse, JSONDecodeError, dump as json_dump
 from py8ball import request, log_e, get_args, Flag
