@@ -14,13 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from urllib.request import Request, urlopen
+from py8ball import Flag, get_args, request
+from py8ball import log_w, log_e
+
 from html.parser import HTMLParser as HtmlParser
 from json import load as json_parse
 
 from datetime import datetime
 from pytz import timezone
-from sys import stderr, argv
 
 MLB_DEPRECATED_API = 'http://gd2.mlb.com/components/game/mlb'
 API_DATEFMT = "year_%Y/month_%m/day_%d"
@@ -50,29 +51,21 @@ class LatestEventParser(HtmlParser):
                 self.latest_event = ev
 
 
-def get_url(url, accept='application/json'):
-    return urlopen(Request(url,
-                           headers={'User-Agent':
-                                    'neo8ball - '
-                                    'https://github.com/'
-                                    'adedomin/neo8ball-irc',
-                                    'Accept': accept}))
-
-
-def get_html(url):
-    with get_url(url, 'text/html,application/xhtml+xml') as req:
+def get_html(url: str) -> str:
+    with request(url, headers={'Accept':
+                               'text/html,application/xhtml+xml'}) as req:
         return req.read().decode('utf8', 'ignore')
 
 
-def get_json(url):
-    with get_url(url, 'application/json') as req:
+def get_json(url: str) -> dict:
+    with request(url, headers={'Accept':
+                               'application/json'}) as req:
         return json_parse(req)
 
 
 def get_api_time_of_day():
     '''This function makes a best effort to match the expected
        timezone the MLB api server uses'''
-
     now = datetime.now(timezone(MLB_TIMEZONE))
     return now.strftime(API_DATEFMT)
 
@@ -124,14 +117,13 @@ def get_more_detail(api_path, gid):
 
 
 def mlb(inp):
-    api_base = '{}/{}'.format(MLB_DEPRECATED_API,
-                              get_api_time_of_day())
-    api_string = '{}/grid.json'.format(api_base)
+    api_base = f'{MLB_DEPRECATED_API}/{get_api_time_of_day()}'
+    api_string = f'{api_base}/grid.json'
 
     try:
         games_today = get_json(api_string)
     except Exception as e:
-        print(e, file=stderr)
+        log_e(str(e))
         return 'Failed to get games today (Note: gd2 API *is* deprecated).'
 
     if not isinstance(games_today, dict):
@@ -185,23 +177,19 @@ def mlb(inp):
                 try:
                     details = get_more_detail(api_base, game.get('id', 'null'))
                 except Exception as e:
-                    print('WARNING: eventLog API may be broken: {}'.format(e),
-                          file=stderr)
+                    log_w(f'eventLog API may be broken: {e}')
                     return outstring
 
-                outstring += ' Count: {}-{}'.format(details['balls'],
-                                                    details['strikes'])
-                outstring += ' Outs: {}'.format(details['outs'])
-                outstring += ' OnBase: {}'.format(details['onbase'])
-                outstring += ' Pitcher: {}'.format(details['pitcher'])
-                outstring += ' Batter: {}'.format(details['batter'])
+                outstring += f' Count: {details["balls"]}-{details["strikes"]}'
+                outstring += f' Outs: {details["outs"]}'
+                outstring += f' OnBase: {details["onbase"]}'
+                outstring += f' Pitcher: {details["pitcher"]}'
+                outstring += f' Batter: {details["batter"]}'
 
                 if isinstance(details['latest'], Exception):
-                    print('WARNING: API For latest events is broken: {}'
-                          .format(details['latest'], file=stderr))
+                    log_w(f'API For latest events is broken: {details["latest"]}')
                 elif details['latest'] != "":
-                    return '{}\nLatest: {}'.format(outstring,
-                                                   details['latest'])
+                    return f'{outstring}\nLatest: {details["latest"]}'
             return outstring
         else:
             output.append(outstring)
@@ -213,15 +201,17 @@ def mlb(inp):
 
 
 if __name__ == '__main__':
-    args = {}
-    for arg in argv[1:]:
-        values = arg.split('=', maxsplit=1)
-        if len(values) == 2:
-            args[values[0]] = values[1]
+    try:
+        args = get_args()
+    except Exception as e:
+        log_e(str(e))
+        exit(1)
 
-    if args.get('--message', '').startswith('--help'):
-        print(':r usage: {} [team]'.format(args.get('--command', 'mlb')))
+    q = args.get(Flag.MESSAGE, '')
+    if q.startswith('--help'):
+        cmd = args.get(Flag.COMMAND, 'mlb')
+        print(f':r usage: {cmd} [team]')
         exit(0)
 
-    for line in mlb(args.get('--message', '')).split('\n'):
-        print(':r {}'.format(line))
+    for line in mlb(q).split('\n'):
+        print(f':r {line}')

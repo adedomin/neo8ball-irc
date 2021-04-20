@@ -108,7 +108,7 @@ COMMANDS=(
 ["weather"]="weather.sh"
 ["nws"]="nws.sh"
 ["npm"]="npm.sh"
-["mdn"]="mdn.sh"
+["mdn"]="duckduckgo.py"
 ["wiki"]="wikipedia.sh"
 ["yt"]="youtube.sh"
 ["you"]="youtube.sh"
@@ -118,10 +118,12 @@ COMMANDS=(
 ["urban"]="urbandict.sh"
 ["bible"]="bible.sh"
 ["quran"]="bible.sh"
-["fap"]="fap.sh"
-["gay"]="fap.sh"
-["straight"]="fap.sh"
-["moose"]="moose.sh"
+# currently broken
+#["fap"]="fap.sh"
+#["gay"]="fap.sh"
+#["straight"]="fap.sh"
+# see moose.ghetty.space/irc instead.
+#["moose"]="moose.sh"
 ["vote"]="vote.sh"
 ["yes"]="vote.sh"
 ["no"]="vote.sh"
@@ -132,6 +134,13 @@ COMMANDS=(
 ["r"]="rfc.sh"
 ["rfc"]="rfc.sh"
 ["what_is_my_mode"]="mode-test.sh"
+["cg"]="coingecko.py"
+["coingecko"]="coingecko.py"
+["bitcoin"]="coingecko.py"
+["btc"]="coingecko.py"
+["ethereum"]="coingecko.py"
+["eth"]="coingecko.py"
+["doge"]="coingecko.py"
 )
 
 declare -gA REGEX

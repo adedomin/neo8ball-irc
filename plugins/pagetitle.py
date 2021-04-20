@@ -15,9 +15,7 @@
 
 from sys import argv, exit
 from html.parser import HTMLParser as HtmlParser
-from urllib.request import Request, urlopen
-
-LIMIT = 350
+from py8ball import LEN_LIMIT, chunk_read, request, log_d, log_e
 
 
 class TitleParser(HtmlParser):
@@ -41,27 +39,37 @@ class TitleParser(HtmlParser):
             self.title += inner_text
 
 
-def chunk_read(req):
-    for i in range(10):
-        yield req.read(4096).decode('utf8', 'ignore')
-
-
 def process_res(res):
     content_type = res.headers.get('Content-Type', '')
     if 'html' not in content_type:
         raise TypeError('Not (X)HTML')
 
     parser = TitleParser()
-    for html_fragment in chunk_read(res):
+    for html_fragment in chunk_read(res, size=4096, times=10):
         if not html_fragment:
             break
         parser.feed(html_fragment)
         if parser.done:
             break
-    if parser.title == '':
-        parser.title = f'Untitled - {res.geturl()}'
 
-    return f'{parser.title[0:LIMIT]}{"..." if len(parser.title) > LIMIT else ""}'
+    out = parser.title
+    if out == '':
+        out = f'Untitled - {res.geturl()}'
+    elif len(out) > LEN_LIMIT:
+        out = f'{out[0:LEN_LIMIT]}...'
+    return out
+
+
+def main(url):
+    try:
+        with request(url) as res:
+            title = process_res(res)
+            print(f':r ↑ Title :: {title}')
+    # We don't handle non-HTML currently.
+    except TypeError:
+        log_d('TODO: Handle image, and other data.')
+    except Exception as e:
+        print(f':r {e} - ({url})')
 
 
 def get_match_arg():
@@ -76,28 +84,11 @@ if __name__ == '__main__':
     try:
         url = get_match_arg()
     except Exception as e:
-        print(f':loge pagetitle.py: {e}')
+        log_e(str(e))
         exit(1)
 
     if not (url.startswith('http://') or url.startswith('https://')):
-        print(f':loge pagetitle.py: Matched text - {url} - is not an http url.')
+        log_e(f'Matched text - {url} - is not an http url.')
         exit(1)
-
-    try:
-        with urlopen(Request(url,
-                             headers={'User-Agent':
-                                      'neo8ball - '
-                                      'https://github.com/'
-                                      'adedomin/neo8ball-irc',
-                                      'Accept':
-                                      'text/html,application/xhtml+xml'})) \
-        as res:
-            title = process_res(res)
-            print(f':r ↑ Title :: {title}')
-    # We don't handle non-HTML currently.
-    except TypeError:
-        print(':logd pagetitle.py: TODO: Handle image, and other data.')
-        exit(0)
-    except Exception as e:
-        print(':r {} - ({})'.format(e, url))
-        exit(1)
+    else:
+        main(url)

@@ -1,2 +1,3 @@
 *.db
 *.log
+plugins/py8ball/__pycache__/

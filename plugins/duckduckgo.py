@@ -13,22 +13,64 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from sys import argv, exit
+from py8ball import Flag, get_args, request, chunk_read, log_e
+
+from typing import NamedTuple
+from sys import exit
 from html.parser import HTMLParser
-from urllib.request import Request, urlopen
-from urllib.parse import urlencode, urlparse, parse_qs
+from urllib.parse import urlparse, parse_qsl
 
 SEARCH_ENGINE = "https://html.duckduckgo.com/html/"
 LEN_LIMIT = 350
 
 
+class DdgResult(NamedTuple):
+    url: str
+    snippet: str
+
+
+def get_real_url(indirected_url: str) -> str:
+    '''
+    Returns the true URL from a search.
+
+    Args:
+        indirected_url: The url from the web search.
+
+    Returns:
+        The actual clean URL.
+
+    Raises:
+        ValueError for irredemably bad URLs.
+    '''
+    url = ''
+    parsed_query = urlparse(indirected_url)
+    for k, v in parse_qsl(parsed_query.query):
+        if k == 'uddg':
+            url = v
+            break
+
+    if url == '':
+        raise ValueError('Empty query')
+    elif url.startswith('https://duckduckgo.com'):
+        ad = urlparse(url)
+        for k, v in parse_qsl(ad.query):
+            if k == 'ad_provider':
+                raise ValueError('Ad')
+    return url
+
+
 class DdgQueryParser(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
-        self.results = []
+        self._url: str = ''
+        self._snippet: str = ''
+        self.result: DdgResult = None
         self._in_result = False
 
     def handle_starttag(self, tag, attr):
+        if self.result:
+            return
+
         css_class = ''
         href = ''
         for k, v in attr:
@@ -38,103 +80,72 @@ class DdgQueryParser(HTMLParser):
                 href = v
 
         if tag == 'a' and css_class == 'result__snippet' and href != '':
-            self._in_result = True
-            self.results.append({'url': f'''https:{href}''',
-                                 'snippet': ''})
+            try:
+                self._url = get_real_url(f'https:{href}')
+                self._in_result = True
+            except ValueError:
+                pass
+
+        # ddg puts <b> tags around our search terms.
+        # let us make them bold.
         elif tag == 'b' and self._in_result:
-            self.results[-1]['snippet'] += "\x02"
+            self._snippet += "\x02"
 
     def handle_endtag(self, tag):
         if tag == 'a' and self._in_result:
+            self.result = DdgResult(self._url, self._snippet)
             self._in_result = False
+
+        # Terminate the bold text.
         elif tag == 'b' and self._in_result:
-            self.results[-1]['snippet'] += "\x02"
+            self._snippet += "\x02"
 
     def handle_data(self, data):
         if self._in_result:
-            self.results[-1]['snippet'] += data
+            self._snippet += data
 
 
-def request(q):
-    param_string = urlencode({'q': q})
-    return urlopen(Request(f'{SEARCH_ENGINE}?{param_string}',
-                           headers={'User-Agent':
-                                    'neo8ball - '
-                                    'https://github.com/'
-                                    'adedomin/neo8ball-irc',
-                                    'Accept-Language': 'en-US,en;q=0.5',
-                                    'Accept':
-                                    'text/html,application/xhtml+xml'}))
-
-
-def chunk_read(req):
-    '''Read up to 128KiB of data.'''
-    for i in range(32):
-        yield req.read(4096).decode('utf8', 'ignore')
-
-
-def get_real_url(indirected_url):
-    parsed_query = urlparse(indirected_url)
-    parsed_query = parse_qs(parsed_query.query).get('uddg', [])
-
-    if len(parsed_query) == 0:
-        return ''
-    elif parsed_query[0].startswith('https://duckduckgo.com'):
-        ad = urlparse(parsed_query[0])
-        ad = parse_qs(ad.query).get('ad_provider', [])
-        if len(ad) > 0:
-            return ''
-        else:
-            return parsed_query[0]
-    else:
-        return parsed_query[0]
-
-
-def get_answer(q):
-    with request(q) as res:
+def get_answer(q: str) -> str:
+    with request(SEARCH_ENGINE, {'q': q}) as res:
         parser = DdgQueryParser()
-        for frag in chunk_read(res):
+        # Up to 128KiB read.
+        for frag in chunk_read(res, size=4096, times=32):
             if not frag:
                 break
             parser.feed(frag)
-        res = ''
-        snippet = ''
-        for result_obj in parser.results:
-            parsed_query = get_real_url(result_obj['url'])
-            if parsed_query != '':
-                res = parsed_query
-                snippet = result_obj['snippet']
+            if parser.result:
                 break
 
-        if res == '':
-            return 'No Results.'
-        else:
+        if parser.result:
+            url, snippet = parser.result
             if len(snippet) > LEN_LIMIT:
                 snippet = f'{snippet[0:LEN_LIMIT]}...'
-            return f'''{snippet} - {res}'''
-
-
-def get_message_arg():
-    for arg in argv[1:]:
-        values = arg.split('=', maxsplit=1)
-        if len(values) == 2 and values[0] == '--message':
-            return values[1]
-    raise Exception('Expected --message argument.')
+            return f'''{snippet} - {url}'''
+        else:
+            return 'No result.'
 
 
 if __name__ == "__main__":
     try:
-        q = get_message_arg()
+        args = get_args()
     except Exception as e:
-        print(f':loge duckduckgo.py: {e}')
+        log_e(str(e))
         exit(1)
 
-    if q == '':
-        print(':r Query is empty.')
+    cmd = args.get(Flag.COMMAND, None)
+    if not cmd:
+        cmd = 'ddg'
+
+    query = args.get(Flag.MESSAGE, None)
+    if not query or query.startswith('--help'):
+        print(f':r {cmd} [--help] query')
         exit(0)
 
+    if cmd == 'mdn':
+        query += ' site:https://developer.mozilla.org/en-US'
+
     try:
-        res = get_answer(q)
+        res = get_answer(query)
         print(f':r {res.lstrip()}')
     except Exception as e:
-        print(f':r {e} - For query {q}')
+        print(f':r {e} - For query {query}')
