@@ -30,6 +30,7 @@ class Flag(Enum):
     REPLY = '--reply'
     NICK = '--nick'
     USER = '--user'
+    HOST = '--host'
     CMODE = '--cmode'
     MESSAGE = '--message'
     COMMAND = '--command'
