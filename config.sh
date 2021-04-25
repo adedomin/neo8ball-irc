@@ -116,8 +116,9 @@ COMMANDS=(
 ["u"]="urbandict.sh"
 ["urb"]="urbandict.sh"
 ["urban"]="urbandict.sh"
-["bible"]="bible.sh"
-["quran"]="bible.sh"
+["bible"]="bible.py"
+# TODO: Implement later.
+#["quran"]="bible.sh"
 # currently broken
 #["fap"]="fap.sh"
 #["gay"]="fap.sh"
@@ -199,11 +200,6 @@ export PERSIST_LOC="/tmp"
 
 # for youtube.sh
 #export YOUTUBE_KEY="your youtube api key"
-
-# you have to generate bible_db yourself, see create-db.sh in ./static
-#export BIBLE_DB="$(dirname "$0")/static/kjbible-quran.db"
-export BIBLE_SOURCE="$(dirname "$0")/static/king-james.txt"
-export QURAN_SOURCE="$(dirname "$0")/static/quran-allah-ver.txt"
 
 # newline separated channels to disable pagetitle plugin in
 # RESTRICTIONS:

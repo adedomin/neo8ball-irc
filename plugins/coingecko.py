@@ -18,22 +18,18 @@
 # From Taigabot, with changes to work with neo8ball plus auto-updating code.
 
 from json import load as json_parse, JSONDecodeError, dump as json_dump
-from py8ball import request, log_e, get_args, Flag
-from urllib.parse import urlencode, quote
-from os import environ
-from pathlib import Path
+from py8ball import request, log_e, get_args, Flag, get_persistant_location
+from urllib.parse import quote
 from datetime import datetime, timedelta
 
 
-DATA_DIR = environ.get('PERSIST_LOC',
-                       environ.get('XDG_DATA_HOME'))
 WEEK_AGO = timedelta(weeks=1)
 NOW = datetime.now()
-
-if DATA_DIR:
-    DATA = Path(DATA_DIR, 'cg-plugin.json')
-else:
-    log_e('$PERSIST_LOC or XDG_DATA_HOME are defined.')
+try:
+    DATA_DIR = get_persistant_location()
+    DATA = DATA_DIR / 'cg-plugin.json'
+except KeyError:
+    log_e('$PERSIST_LOC or $XDG_DATA_HOME are not defined.')
     exit(1)
 
 
@@ -62,7 +58,7 @@ try:
     # update this every week
     mtime = datetime.fromtimestamp(DATA.stat().st_mtime)
     if mtime < NOW - WEEK_AGO:
-        COIN_LIST = get_coin_list
+        COIN_LIST = get_coin_list()
     else:
         with DATA.open('r') as f:
             COIN_LIST = json_parse(f)

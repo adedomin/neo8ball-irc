@@ -15,6 +15,8 @@
 from enum import Enum
 from functools import partial
 from os.path import basename
+from pathlib import Path
+from os import environ
 from sys import argv
 from typing import Dict, TextIO
 from urllib.parse import urlencode
@@ -36,6 +38,24 @@ class Flag(Enum):
     COMMAND = '--command'
     REGEXP = '--regexp'
     MATCH = '--match'
+
+
+def get_persistant_location() -> Path:
+    '''
+    Gets either XDG_CONFIG_HOME or the legacy PERSIST_LOC
+    Environment variable.
+
+    Returns:
+        Pathlib object of the path stored in XDG_CONFIG_HOME
+
+    Raises:
+        KeyError when neither varible exists.
+    '''
+    ret = environ.get('XDG_DATA_HOME')
+    if ret is None:
+        return Path(environ['PERSIST_LOC'])
+    else:
+        return Path(ret)
 
 
 def get_args() -> Dict[Flag, str]:
