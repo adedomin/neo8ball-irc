@@ -367,7 +367,7 @@ parse_irc() {
     # local state=tags
     # ttags=
 
-    local state=sender
+    local state='sender'
     sender=
     command=
     params=()
@@ -380,6 +380,7 @@ parse_irc() {
                 case "$REPLY" in
                     :*)
                         sender="${REPLY#:}"
+                        state='command'
                     ;;
                     *)
                         command="$REPLY"
@@ -1352,7 +1353,7 @@ while {
                         fi
                     fi
                 done
-                send_log "KICK" "<$nick> $channel [Reason: $why]"
+                send_log "KICK" "<$user> $channel [Reason: $why]"
             else
                 unset user_modes["$channel $user"]
             fi
