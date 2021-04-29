@@ -18,13 +18,12 @@
 # From Taigabot, with changes to work with neo8ball plus auto-updating code.
 
 from json import load as json_parse, JSONDecodeError, dump as json_dump
-from py8ball import request, log_e, get_args, Flag, get_persistant_location
+from py8ball import request, log_e, log_i, get_args, Flag, get_persistant_location
 from urllib.parse import quote
+from urllib.error import URLError, HTTPError
 from datetime import datetime, timedelta
 
 
-WEEK_AGO = timedelta(weeks=1)
-NOW = datetime.now()
 try:
     DATA_DIR = get_persistant_location()
     DATA = DATA_DIR / 'cg-plugin.json'
@@ -33,7 +32,10 @@ except KeyError:
     exit(1)
 
 
-def get_coin_list():
+def get_coin_list() -> dict:
+    '''
+    Gets the latest list of coins that the coingecko ticker supports.
+    '''
     try:
         with request('https://api.coingecko.com/api/v3/coins/list') as res:
             with DATA.open('w') as f:
@@ -54,10 +56,22 @@ def get_coin_list():
         exit(1)
 
 
-try:
-    # update this every week
+def check_coin_list_mtime() -> bool:
+    '''
+    Checks if the coin list is up to date.
+
+    Returns:
+        True if mtime is older than a week, false otherwise.
+    '''
+    now = datetime.now()
+    week_ago = timedelta(weeks=1)
     mtime = datetime.fromtimestamp(DATA.stat().st_mtime)
-    if mtime < NOW - WEEK_AGO:
+    return mtime < now - week_ago
+
+
+try:
+    if check_coin_list_mtime():
+        log_i('Coin list is stale, getting newer list.')
         COIN_LIST = get_coin_list()
     else:
         with DATA.open('r') as f:
@@ -72,15 +86,34 @@ except Exception as e:
 
 
 COIN_GECKO = 'https://api.coingecko.com/api/v3/coins/'
-QUERY = 'localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false'
+QUERY = ('localization=false'
+         '&tickers=false'
+         '&market_data=true'
+         '&community_data=false'
+         '&developer_data=false'
+         '&sparkline=false')
 
 
-def consume_api(cid):
+def consume_api(cid: str) -> dict:
     with request(f'{COIN_GECKO}{quote(cid)}?{QUERY}') as res:
         return json_parse(res)
 
 
-def find_coin_id(q):
+def find_coin_id(q: str) -> (str, str, str):
+    '''
+    Finds the given coin by name or symbol from a list.
+
+    Args:
+        q: the user provided coin to find.
+
+    Returns:
+        A tuple with the cid, ticker symbol and the coin name.
+
+    Raises:
+        ValueError when coin is not found.
+        JSONDecodeError when the API returns an invalid json doc.
+        Exception the request module could have failed as well.
+    '''
     for coin in COIN_LIST:
         cid = coin.get('id', '')
         symbol = coin.get('symbol', '')
@@ -89,28 +122,43 @@ def find_coin_id(q):
         if q.lower() == name.lower() or q.lower() == symbol:
             return cid, symbol, name
 
-    return False
+    raise ValueError(f"'{q}' is not in the coin list.")
 
 
-def cryptocoin(q):
-    if q == "":
+def cryptocoin(q) -> str:
+    '''
+    Returns a string suitable for output of IRC of a coin's current
+    price and some historical data.
+
+    Args:
+        q: the coin the user wants info on.
+
+    Returns:
+        Single line about the coin, or an error message.
+
+    Raises:
+        KeyError if the CoinGecko API has changed the shape
+                 of their JSON.
+    '''
+    if q == '':
         return "Search a coin with: .cg <name>"
 
-    coin = find_coin_id(q)
-
-    if coin is False:
+    try:
+        cid, symbol, name = find_coin_id(q)
+    except ValueError:
         return f'Cryptocurrency {q} not found.'
-    else:
-        cid, symbol, name = coin
 
     try:
         data = consume_api(cid)
     except JSONDecodeError:
         log_e('API Error trying to get coin data.')
         return 'Unknown API Error; try again later.'
-    except Exception as e:
-        log_e(f'Some Connection Error: {e}')
-        return 'Unknwon API Error.'
+    except URLError as e:
+        log_e(f'CoinGecko down? {e}')
+        return 'CoinGecko appears to be down.'
+    except HTTPError as e:
+        log_e(f'CoinGecko may be blocking us: {e}')
+        return 'CoinGecko appears to be misbehaving.'
 
     # change this to support other (real) coins like eur, jpy, gbp, nok
     real_coin = 'usd'
@@ -151,12 +199,12 @@ def cryptocoin(q):
     return output
 
 
-if __name__ == '__main__':
+def main() -> int:
     try:
         args = get_args()
     except ValueError as e:
         log_e(str(e))
-        exit(1)
+        return 1
 
     cmd = args.get(Flag.COMMAND, '')
     message = args.get(Flag.MESSAGE, '')
@@ -169,8 +217,15 @@ if __name__ == '__main__':
 
         print(f':r {res}')
     except KeyError as e:
+        print(':r Error, CoinGecko API has changed.')
         log_e(f'API Data may have changed: {e}')
-        exit(1)
+        return 1
     except Exception as e:
+        print(':r Unknown Error.')
         log_e(f'Unknown Error: {e}')
-        exit(1)
+        return 1
+    return 0
+
+
+if __name__ == '__main__':
+    exit(main())

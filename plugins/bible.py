@@ -17,7 +17,10 @@ import sqlite3
 import re
 
 from pathlib import Path
-from py8ball import get_args, Flag, get_persistant_location, log_e
+from io import StringIO
+from py8ball import get_args, Flag, \
+    get_persistant_location, \
+    paste_service, log_e
 
 
 try:
@@ -119,6 +122,24 @@ def escape_fts5(query):
     return ' '.join(ret)
 
 
+def random_verse():
+    conn = sqlite3.connect(BIBLE_DB)
+    with conn:
+        cur = conn.cursor()
+        stmt = cur.execute("""
+        SELECT book, verse FROM king_james
+        WHERE bid = (
+            (ABS(RANDOM())) % (SELECT max(bid) FROM king_james) + 1
+        )
+        """)
+        ret = 'Random query error.'
+        for book, verse in stmt:
+            ret = f'{book} | {verse}'
+            break
+    conn.close()
+    return ret
+
+
 def find_verse(query):
     conn = sqlite3.connect(BIBLE_DB)
     with conn:
@@ -156,14 +177,19 @@ def parse_query(query):
         return None, -1
 
 
-if __name__ == '__main__':
+def main() -> int:
     try:
         args = get_args()
     except ValueError as e:
         log_e(str(e))
-        exit(1)
+        return 1
 
-    setup_db()
+    try:
+        setup_db()
+    except sqlite3.Error as e:
+        print(':r Could not initialize bible; try again later.')
+        log_e(str(e))
+        return 1
     # cmd = args.get(Flag.COMMAND, 'bible')
     # if cmd == 'quran':
     #     cmd = 'quran'
@@ -172,13 +198,27 @@ if __name__ == '__main__':
 
     message = args.get(Flag.MESSAGE, '')
     if message == '':
-        print(':r No query given.')
+        print(f':r {random_verse()}')
     else:
         query, count = parse_query(message)
         if query is None:
             print(f':r {find_verse(message)}')
-        elif count > 3:
-            print(':r Verse counts greater than 3 are current unsupported.')
+        elif count > 9:
+            print(':r Verse counts greater than 9 are current unsupported.')
         else:
-            for res in find_by_book(query, count):
-                print(f':r {res}')
+            res = find_by_book(query, count)
+            if len(res) == 1:
+                print(f':r {res[0]}')
+            else:
+                try:
+                    url = paste_service(StringIO("\n".join(res)))
+                    print(f':r result: {url}')
+                except Exception as e:
+                    print(f': {res[0]}')
+                    log_e(str(e))
+                    return 1
+    return 0
+
+
+if __name__ == '__main__':
+    main()

@@ -21,6 +21,7 @@ from sys import argv
 from typing import Dict, TextIO
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+from json import JSONDecodeError, load as json_parse
 import inspect
 
 
@@ -97,7 +98,8 @@ def request(url: str,
         A TextIO-like file (in fact a urllib response object).
 
     Raises:
-        urlopen/Request related errors.
+        urllib.error.URLError on protocol issues. (DNS failure).
+        urllib.error.HTTPError on issues like 403 forbidden.
     '''
     param_string = urlencode(query)
     if param_string:
@@ -129,6 +131,33 @@ def chunk_read(f: TextIO, size: int = 4096, times: int = 16) -> str:
     '''
     for i in range(times):
         yield f.read(size).decode('utf8', 'ignore')
+
+
+def paste_service(f) -> str:
+    '''
+    Upload a file like object to
+    images.ghetty.space/paste service.
+
+    Args:
+        f: file like object to send.
+
+    Returns:
+        URL where the text is reachable.
+
+    Raises:
+        urllib.error.* Exceptions.
+        ValueError if api_res.status != 'ok'
+        KeyError if api_res['href'] does not exist.
+    '''
+    try:
+        res = urlopen(url='https://images.ghetty.space/paste',
+                      data=f)
+        ret = json_parse(res)
+        if ret.get('status', '') != 'ok':
+            raise ValueError(ret.get('message', 'Unknown error.'))
+        return ret['href']
+    except JSONDecodeError:
+        raise ValueError('API is Down.')
 
 
 class LogLevel(Enum):
