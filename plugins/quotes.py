@@ -157,8 +157,12 @@ def parse_query(q: str) -> list:
         raise TypeError('Unacceptable arguments.')
     else:
         cmd = parts[0]
-        nick = cleanup_nick.sub('', parts[1])
-        arg = ' '.join(parts[2:])
+        if parts[1] != '<':
+            nick = cleanup_nick.sub('', parts[1])
+            arg = ' '.join(parts[2:])
+        else:
+            nick = cleanup_nick.sub('', parts[2])
+            arg = ' '.join(parts[3:])
 
     if cmd == 'get':
         arg = int(arg)
