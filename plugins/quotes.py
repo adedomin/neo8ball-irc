@@ -150,24 +150,27 @@ def get_quote_by_id(nick: str, num: int) -> str:
 
 
 def parse_query(q: str) -> list:
-    cleanup_nick = re.compile(r'[^a-zA-Z-_]')
+    nick_find = re.compile(r'[a-zA-Z_][a-zA-Z0-9-_]*')
     parts = q.split(' ')
     # assume get at first.
     if len(parts) < 3:
         raise TypeError('Unacceptable arguments.')
     else:
         cmd = parts[0]
-        if parts[1] != '<':
-            nick = cleanup_nick.sub('', parts[1])
-            arg = ' '.join(parts[2:])
-        else:
-            nick = cleanup_nick.sub('', parts[2])
-            arg = ' '.join(parts[3:])
+        # for cases like ".q add < x> blah blah"
+        if parts[1] == '<':
+            del parts[1]
+            parts[1] = f'< {parts[1]}'
+
+        nick = nick_find.findall(parts[1])
+        if len(nick) != 1:
+            raise TypeError(f'Invalid nick: {parts[1]}')
+        arg = ' '.join(parts[2:])
 
     if cmd == 'get':
         arg = int(arg)
 
-    return cmd, nick, arg
+    return cmd, nick[0], arg
 
 
 def main() -> int:
