@@ -160,6 +160,23 @@ def paste_service(f) -> str:
         raise ValueError('API is Down.')
 
 
+def escape_fts5(query: str) -> str:
+    '''
+    Prevent any of the weird query features of Sqlite3 FTS5 Virtual Tables.
+
+    Args:
+        query: The query to be passed to an FTS5 vtable.
+
+    Returns:
+        Same string, with double quotes escaped.
+        Single quotes are escaped by prepared statements.
+    '''
+    ret = []
+    for part in query.split(' '):
+        ret.append(f'''"{part.replace('"', '""')}"''')
+    return ' '.join(ret)
+
+
 class LogLevel(Enum):
     DEBUG = ':logd'
     INFO = ':logi'

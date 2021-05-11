@@ -20,7 +20,7 @@ from pathlib import Path
 from io import StringIO
 from py8ball import get_args, Flag, \
     get_persistant_location, \
-    paste_service, log_e
+    paste_service, log_e, escape_fts5
 
 
 try:
@@ -112,14 +112,6 @@ def find_by_book(book: str, count: int = -1):
                 result_set.append(f'{bookv} | {verse}')
     conn.close()
     return result_set
-
-
-def escape_fts5(query):
-    '''Prevent any of the weird query features of fts5'''
-    ret = []
-    for part in query.split(' '):
-        ret.append(f'''"{part.replace('"', '""')}"''')
-    return ' '.join(ret)
 
 
 def random_verse():
@@ -221,4 +213,4 @@ def main() -> int:
 
 
 if __name__ == '__main__':
-    main()
+    exit(main())

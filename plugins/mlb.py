@@ -200,7 +200,7 @@ def mlb(inp):
         return 'Times in EST - ' + ' :: '.join(output)
 
 
-if __name__ == '__main__':
+def main() -> int:
     try:
         args = get_args()
     except Exception as e:
@@ -215,3 +215,7 @@ if __name__ == '__main__':
 
     for line in mlb(q).split('\n'):
         print(f':r {line}')
+
+
+if __name__ == '__main__':
+    exit(main())

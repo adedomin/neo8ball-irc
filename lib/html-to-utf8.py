@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from sys import stdin, argv
+from sys import stdin
 from html.parser import HTMLParser
 
 
@@ -47,12 +47,13 @@ class StdoutParser(HTMLParser):
         self.output_text += inner_text
 
 
-if __name__ == '__main__':
-    limit = int(argv[1]) if len(argv) > 1 else -1
-
+def main():
     parser = StdoutParser()
-
     for line in stdin:
         parser.feed(line.replace('\n', ' '))
 
     print(parser.output_text)
+
+
+if __name__ == '__main__':
+    main()
