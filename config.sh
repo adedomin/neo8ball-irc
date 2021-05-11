@@ -142,6 +142,8 @@ COMMANDS=(
 ["ethereum"]="coingecko.py"
 ["eth"]="coingecko.py"
 ["doge"]="coingecko.py"
+["q"]="quote.py"
+["quote"]="quote.py"
 )
 
 declare -gA REGEX
