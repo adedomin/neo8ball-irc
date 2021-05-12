@@ -140,8 +140,7 @@ def get_quote_by_id(nick: str, num: Union[int, None]) -> str:
             if num is None:
                 num = randint(1, max_id)
             elif num < 0:
-                # mimic computed indices, e.g. -1 gets last element
-                num = max_id - num + 1
+                num = (max_id + num) + 1
 
             stmt = cur.execute("""
             SELECT qid, nick, mesg FROM irc_quotes
