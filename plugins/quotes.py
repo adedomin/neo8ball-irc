@@ -150,7 +150,7 @@ def get_quote_by_id(nick: str, num: Union[int, None]) -> str:
             if row is None:
                 result = f'No quote [{num}/{max_id}] for {nick}.'
             else:
-                result = f'[{row[0]}/{max_id}] <{row[1]}> {row[2]}'
+                result = f'[{row[0]}/{max_id}] <{nick}> {row[2]}'
 
         except KeyError:
             result = f'No quotes for {nick}.'
@@ -185,7 +185,10 @@ def parse_query(q: str) -> list:
     elif rest == '':
         raise TypeError('No argument given.')
     elif cmd == 'get':
-        rest = int(rest)
+        try:
+            rest = int(rest)
+        except ValueError:
+            raise TypeError('Numeric argument is not an integer.')
 
     return cmd, nick, rest
 
@@ -213,9 +216,6 @@ def main() -> int:
             cmd, nick, arg = parse_query(message)
         except TypeError as e:
             print(USAGE.format(f'{e} : ', cmd))
-            return 0
-        except ValueError:
-            print(':r Argument is not a positive integer.')
             return 0
 
         if cmd == 'get':
