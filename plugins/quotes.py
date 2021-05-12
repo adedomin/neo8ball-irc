@@ -17,6 +17,9 @@ import sqlite3
 import re
 
 from io import StringIO
+from random import randint
+from typing import Union
+
 from py8ball import get_args, Flag, \
     get_persistant_location, \
     paste_service, log_e, escape_fts5
@@ -74,10 +77,10 @@ def setup_db():
 def get_max_qid(cur: sqlite3.Cursor, nick: str) -> int:
     stmt = cur.execute("""
     SELECT max(qid) FROM irc_quotes WHERE nick = ?;
-    """, (nick,))
+    """, (nick.lower(),))
     qid = stmt.fetchone()[0]
     if qid is None:
-        raise KeyError("No quotes for user.")
+        raise KeyError(f'No quotes for {nick}.')
     else:
         return qid
 
@@ -94,7 +97,7 @@ def add_quote(nick: str, message: str) -> str:
 
         cur.execute("""
         INSERT INTO irc_quotes (qid, nick, mesg) VALUES (?, ?, ?);
-        """, (next_id, nick, message))
+        """, (next_id, nick.lower(), message))
     conn.close()
     return f'Added quote #{next_id} to {nick}.'
 
@@ -108,7 +111,7 @@ def search_quotes(nick: str, mesg: str) -> list[str]:
         try:
             max_id = get_max_qid(cur, nick)
             stmt = cur.execute("""
-            SELECT qid, nick, mesg FROM irc_quotes
+            SELECT qid, mesg FROM irc_quotes
             INNER JOIN (
                 SELECT row FROM irc_quotes_search
                 WHERE irc_quotes_search MATCH ? AND nick = ?
@@ -116,35 +119,43 @@ def search_quotes(nick: str, mesg: str) -> list[str]:
             )
             ON irc_quotes.rowid = row
             LIMIT 25;
-            """, ('mesg : '+escape_fts5(mesg), nick))
-            for qid, nick, mesg in stmt:
+            """, ('mesg : '+escape_fts5(mesg), nick.lower()))
+            for qid, mesg in stmt:
                 result.append(f'[{qid}/{max_id}] <{nick}> {mesg}')
         except KeyError:
-            result.append('No quotes for user.')
+            result.append(f'No quotes for {nick}.')
 
     conn.close()
     return result
 
 
-def get_quote_by_id(nick: str, num: int) -> str:
+def get_quote_by_id(nick: str, num: Union[int, None]) -> str:
     conn = sqlite3.connect(QUOTE_DB)
     result = ''
     with conn:
         cur = conn.cursor()
         try:
             max_id = get_max_qid(cur, nick)
-        except KeyError:
-            return f'No quotes for {nick}.'
 
-        stmt = cur.execute("""
-        SELECT qid, nick, mesg FROM irc_quotes
-        WHERE qid = ? AND nick = ?;
-        """, (num, nick,))
-        row = stmt.fetchone()
-        if row is None:
-            result = f'No quote [{num}/{max_id}] for {nick}.'
-        else:
-            result = f'[{row[0]}/{max_id}] <{row[1]}> {row[2]}'
+            if num is None:
+                num = randint(1, max_id)
+            elif num < 0:
+                # mimic computed indices, e.g. -1 gets last element
+                num = max_id - num + 1
+
+            stmt = cur.execute("""
+            SELECT qid, nick, mesg FROM irc_quotes
+            WHERE qid = ? AND nick = ?;
+            """, (num, nick.lower(),))
+            row = stmt.fetchone()
+            if row is None:
+                result = f'No quote [{num}/{max_id}] for {nick}.'
+            else:
+                result = f'[{row[0]}/{max_id}] <{row[1]}> {row[2]}'
+
+        except KeyError:
+            result = f'No quotes for {nick}.'
+
     conn.close()
     return result
 
@@ -152,25 +163,32 @@ def get_quote_by_id(nick: str, num: int) -> str:
 def parse_query(q: str) -> list:
     nick_find = re.compile(r'[a-zA-Z_][a-zA-Z0-9-_]*')
     parts = q.split(' ')
-    # assume get at first.
-    if len(parts) < 3:
-        raise TypeError('Unacceptable arguments.')
-    else:
-        cmd = parts[0]
-        # for cases like ".q add < x> blah blah"
-        if parts[1] == '<':
-            del parts[1]
-            parts[1] = f'< {parts[1]}'
 
-        nick = nick_find.findall(parts[1])
-        if len(nick) != 1:
-            raise TypeError(f'Invalid nick: {parts[1]}')
-        arg = ' '.join(parts[2:])
+    cmd = parts[0]
+    if cmd not in ('add', 'get', 'search'):
+        raise TypeError(f'Invalid Command: {cmd}')
 
-    if cmd == 'get':
-        arg = int(arg)
+    i = 1
+    nick = ''
+    for n in parts[1:]:
+        i += 1
+        potential_nick = nick_find.findall(n)
+        if len(potential_nick) == 1:
+            nick = potential_nick[0]
+            break
+    if nick == '':
+        raise TypeError('No nickname given.')
 
-    return cmd, nick[0], arg
+    rest = ' '.join(parts[i:])
+
+    if rest == '' and cmd == 'get':
+        rest = None
+    elif rest == '':
+        raise TypeError('No argument given.')
+    elif cmd == 'get':
+        rest = int(rest)
+
+    return cmd, nick, rest
 
 
 def main() -> int:
