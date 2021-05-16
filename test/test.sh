@@ -50,28 +50,49 @@ if [ "${BASH_SOURCE[0]}" != "${0}" ]; then
     return
 fi
 
-IFS+=$'\r' # remove carriage returns from read
+IFS+=$'\r'
 EXIT_CODE=0
-RESTORE=$'\033[0m'
-FAIL='['$'\033[00;31m'"FAIL${RESTORE}]"
-PASS='['$'\033[00;32m'"PASS${RESTORE}]"
-PAD='      '
+PAD='       '
+
+format_expected() {
+REPLY="
+${PAD}Expected: $1
+${PAD}Received: $2"
+}
 
 fail() {
-    echo "$FAIL $1"
-    [ -n "$2" ] && {
-        echo "$PAD Expected: $2"
-    }
+    printf '[\033[00;31mFAIL\033[0m] %s' "$1"
+    if (( $# == 3 )); then
+        format_expected "$2" "$3"
+        printf "%s\n" "$REPLY"
+    else
+        printf '\n'
+    fi
     EXIT_CODE=1
 }
 
 pass() {
-    echo "$PASS $*"
+    printf '[\033[00;32mPASS\033[0m] %s\n' "$1"
+}
+
+info() {
+    printf '[****] %s\n' "$1"
+}
+
+# Write the given strings to the bot to process.
+write_to() {
+    printf '%s\n' "$*" >&"${COPROC[1]}"
+}
+
+# Read from bot, arguments become variables
+# if no variables passed, check REPLY
+read_from() {
+    read -t 1 -u "${COPROC[0]}" -r "$@"
 }
 
 cleanup() {
-    echo 'ERROR :done testing' >&"${COPROC[1]}"
-    echo '[****] Waiting on bot to exit'
+    write_to 'ERROR :done testing'
+    info 'Waiting on bot to exit.'
     ( sleep 3s && fail 'ERROR COMMAND'; kill -TERM $$ ) &
     sleep_pid=$!
     wait "$COPROC_PID"
@@ -86,148 +107,230 @@ coproc ./ircbot.sh -c "$0" 2>debug.log
 
 # test IRCv3 cap negotiation
 # note that TRACK_CHAN_MODE expects multi-prefix
-read -t 1 -u "${COPROC[0]}" -r cap req multi
-if [ "$cap" = 'CAP' ] && [ "$req" = 'REQ' ] && [ "$multi" = ':multi-prefix' ]
-then
-    pass 'CAP REQ'
+ircv3_negotiate() {
+    read_from cap req multi
+    [[  "$cap"   == 'CAP' &&
+        "$req"   == 'REQ' &&
+        "$multi" == ':multi-prefix' ]]
+}
+if ircv3_negotiate; then
+    pass 'IRCv3 CAP Negotiation. (:multi-prefix)'
 else
-    fail 'CAP REQ' \
-         'expected bot to ask for multi-prefix'
+    fail 'IRCv3 CAP Negotiation. (:multi-prefix)' \
+        "CAP REQ :multi-prefix" \
+        "$cap $req $multi"
 fi
 
-# test nick cmd
-read -t 1 -u "${COPROC[0]}" -r cmd nick
-if [ "$cmd" = 'NICK' ] && [ "$nick" = 'testnick' ]; then
+test_nick_cmd() {
+    read_from cmd nick
+    [[  "$cmd" = 'NICK' &&
+        "$nick" = 'testnick' ]]
+}
+if test_nick_cmd; then
     pass 'NICK COMMAND'
 else
     fail 'NICK COMMAND' \
-        "$cmd == NICK && $nick == testnick"
+        "cmd = NICK && nick = testnick" \
+        "cmd = $cmd && nick = $nick"
 fi
 
-# test user cmd
-read -t 1 -u "${COPROC[0]}" -r cmd user mode unused realname
-if  [ "$cmd" = 'USER' ] &&
-    [ "$user" = 'testnick' ] &&
-    [ "$mode" = '+i' ] &&
-    [ "$unused" = '*' ] &&
-    [ "$realname" = ':testnick' ] 
-then
+test_user_cmd() {
+    read_from cmd user mode unused realname
+    [[  "$cmd"      == 'USER' &&
+        "$user"     == 'testnick' &&
+        "$mode"     == '+i' &&
+        "$unused"   == '*' &&
+        "$realname" == ':testnick' ]]
+}
+if test_user_cmd; then
     pass 'USER COMMAND'
 else
-    fail 'USER COMMAND'
+    fail 'USER COMMAND' \
+        'cmd = USER && user = testnick && mode = +i && unused = * && realname = :testnick' \
+        "cmd = $cmd && user = $user && mode = $mode && unused = $unused && realname = $realname"
 fi
 
 # test CAP ACK and expect END
-echo ':server CAP * ACK :multi-prefix' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r cap end
-if [ "$end" = 'END' ]; then
+ircv3_negotiate_ack_end() {
+    write_to ':server CAP * ACK :multi-prefix'
+    read_from cap end
+    [[  "$cap" == 'CAP' &&
+        "$end" == 'END' ]]
+}
+if ircv3_negotiate_ack_end; then
     pass 'CAP ACK/END'
 else
     fail 'CAP ACK/END' \
-         'Expected bot to send CAP END'
+         'CAP END' \
+         "$cap $end"
 fi
 
-# send PING 
-echo 'PING :hello' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r pong string
-if [ "$pong" = 'PONG' ] && [ "$string" = ':hello' ]; then
+send_ping() {
+    write_to 'PING :hello'
+    read_from pong string
+    [[  "$pong"   == 'PONG' &&
+        "$string" == ':hello' ]]
+}
+if send_ping; then
     pass 'PING/PONG COMMAND'
 else
     fail 'PING/PONG COMMAND' \
-        "$pong == PONG && $string == :hello"
+        "PONG :hello" \
+        "$pong $string"
 fi
 
-# send overly complex PING
-echo 'PING :hello, this is  a    multiword ping' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r pong string
-if [ "$string" = ':hello, this is  a    multiword ping'$'\r' ]; then
+send_complex_ping() {
+    write_to 'PING :hello, this is  a    multiword ping'
+    read_from pong string
+    [[ "$string" == ':hello, this is  a    multiword ping'$'\r' ]]
+}
+if send_complex_ping; then
     pass 'MULTIWORD PING/PONG COMMAND'
 else
     fail 'MULTIWORD PING/PONG COMMAND' \
-        "${string%$'\r'} == ':hello, this is  a    multiword ping'"
+        ':hello, this is  a    multiword ping' \
+        "${string%$'\r'}"
 fi
 
-# send post ident
-echo ':doesnt@matter@user.host 004 doesntmatter :reg' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r join chanstring
-if  [ "$join" = 'JOIN' ] &&
-    [ "$chanstring" = '#chan1,#chan2' ]
-then
+# send_post_ident
+if {
+    write_to ':doesnt@matter@user.host 004 doesntmatter :reg'
+    read_from join chanstring
+    [[  "$join"       == 'JOIN' &&
+        "$chanstring" == '#chan1,#chan2' ]]
+} then
     pass 'post_ident function'
 else
     fail 'post_ident function' \
-        "$join == JOIN && $chanstring == #chan1,#chan2"
+        'JOIN #chan1,#chan2' \
+        "$join $chanstring"
 fi
-# test that the bot attempted to identify for its nick
-read -t 1 -u "${COPROC[0]}" -r cmd ident pass
-if [ "$cmd" = 'NICKSERV' ] &&
-   [ "$ident" = 'IDENTIFY' ] &&
-   [ "$pass" = 'testpass' ]; then
+# send_nickserv_ident
+if {
+    read_from cmd ident pass
+    [[   "$cmd"   == 'NICKSERV' &&
+         "$ident" == 'IDENTIFY'  &&
+         "$pass"  == 'testpass' ]]
+} then
     pass 'nickserv identify'
 else
     fail 'nickserv identify' \
-        "$cmd == NICKSERV && $ident == IDENTIFY && $pass == testpass"
+        'NICKSERV IDENTIFY testpass' \
+        "$cmd $ident testpass"
 fi
 
 # test nick change feature p.1
 # initial nick test
-echo ':testbot __DEBUG neo8ball :nickname' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r nick
-if [ "$nick" = 'testnick' ]; then
+nick_change() {
+    write_to ':testbot __DEBUG neo8ball :nickname' >&"${COPROC[1]}"
+    read_from nick
+    [[ "$nick" = 'testnick' ]]
+}
+if nick_change; then
     pass "nick variable 1"
 else
     fail "nick variable 1" \
-        "$nick == testnick"
+        'testnick' \
+        "$nick"
 fi
 
 # notify the user the nick is in use
-echo ':testbot 433 neo8ball :name in use' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r cmd nick
-if [ "$cmd" = 'NICK' ] && [ "$nick" = 'testnick_' ]; then
+nick_conflict() {
+    write_to ':testbot 433 neo8ball :name in use'
+    read_from cmd nick
+    [[  "$cmd"  == 'NICK' &&
+        "$nick" == 'testnick_' ]]
+}
+if nick_conflict; then
     pass '433 COMMAND (nick conflict)'
 else
     fail '433 COMMAND (nick conflict)' \
-        "$cmd == NICK && $nick == testnick_"
+        'NICK testnick_' \
+        "$cmd $nick"
 fi
 
 # verify nick variable is what it reported
-echo ':testbot __DEBUG neo8ball :nickname' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r nick
-if [ "$nick" = 'testnick_' ]; then
+get_nick() {
+    write_to ':testbot __DEBUG neo8ball :nickname'
+    read_from nick
+}
+get_nick
+if [[ "$nick" == 'testnick_' ]]; then
     pass "nick variable 2"
 else
     fail "nick variable 2" \
-        "$nick = testnick_"
+        'testnick_' \
+        "$nick"
 fi
 
-# channel joining
-echo ':testnick_!blah@blah JOIN :#chan1 ' >&"${COPROC[1]}"
-echo ':testnick_!blah@blah JOIN :#chan2 ' >&"${COPROC[1]}"
-echo ':testbot __DEBUG neo8ball :channels' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r channel
-if [ "$channel" = '#chan1 #chan2' ]; then
-    pass "JOIN test"
+# $1 - join with separator
+# $* - list to join
+join_str() {
+    local IFS="$1"
+    shift
+    printf -v REPLY '%s' "$*"
+}
+
+# $1 - our username
+# $2 - channel to join
+join_channel() {
+    local uname="$1"
+    shift
+    for arg; do
+        write_to ":$uname JOIN :$arg"
+    done
+}
+
+get_channels() {
+    write_to ':testbot __DEBUG neo8ball :channels'
+    read_from channel
+}
+
+test_join_command() {
+    get_channels
+    if [[ "$channel" != '' ]]; then
+        format_expected '' "$channel"
+        REPLY="expected to not be joined to channels$REPLY"
+        return 1
+    fi
+
+    local expected_channels=('#chan1' '#chan2')
+    join_channel 'testnick_!blah@blah' "${expected_channels[@]}"
+    get_channels
+    join_str ' ' "${expected_channels[@]}"
+    local expected="$REPLY"
+    if [[ "$channel" != "$expected" ]]; then
+        format_expected "$expected" "$channel"
+        REPLY="expected to be joined to channels$REPLY"
+        return 1
+    fi
+
+    return 0
+}
+if test_join_command; then
+    pass 'JOIN command'
 else
-    fail 'JOIN test' \
-        "$channel == '#chan1 #chan2'"
+    fail "JOIN command - $REPLY"
 fi
 
-# channel PART test
-echo ':testnick_!blah@blah PART #chan2 :bye' >&"${COPROC[1]}"
-echo ':testbot __DEBUG neo8ball :channels' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r channel
-if [ "$channel" = '#chan1' ]; then
-    pass 'PART test'
+if {
+    write_to ":testnick_!blah@blah PART #chan2 :bye"
+    get_channels
+    [[ "$channel" == '#chan1' ]]
+} then
+    pass 'PART command'
 else
-    fail 'PART test' \
-        "$channel == #chan1"
+    fail 'PART command' \
+        '#chan1' \
+        "$channel"
 fi
 
 # channel KICK test
-echo ':testserv KICK #chan1 testnick_ :test message' >&"${COPROC[1]}"
-echo ':testbot __DEBUG neo8ball :channels' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r channel
-if [ "$channel" = '' ]; then
+if {
+    write_to ':testserv KICK #chan1 testnick_ :test message'
+    get_channels
+    [[ "$channel" = '' ]]
+} then
     pass 'KICK test'
 else
     fail 'KICK test' \
@@ -235,74 +338,102 @@ else
 fi
 
 # test ctcp VERSION
-echo -e ':testbot PRIVMSG testnick_ :\001VERSION\001' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r cmd channel message
-if [ "$cmd" = 'NOTICE' ] &&
-   [ "$channel" = 'testbot' ] &&
-   [[ "$message" =~ $'\001VERSION neo8ball' ]]
-then
+if {
+    write_to $':testbot PRIVMSG testnick_ :\001VERSION\001'
+    read_from cmd channel message
+    [[  "$cmd"     == 'NOTICE' &&
+        "$channel" == 'testbot' &&
+        "$message" =~ $'\001VERSION neo8ball' ]]
+} then
     pass 'CTCP VERSION'
 else
     fail 'CTCP VERSION' \
-        "$message =~ "$'\001VERSION neo8ball'
+        "NOTICE testbot VERSION neo8ball ...rest" \
+        "$cmd $channel $message"
 fi
+
+get_nickname() {
+    write_to ":$1 __DEBUG #channel :${2:+"$2 "}nickparse"
+    read_from msgnick
+}
 
 # message parsing tests
 # test nickname
-echo ':some!nick!lahblah!test@hostname __DEBUG #channel :nickparse' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r msgnick
-if [ "$msgnick" = 'some' ]; then
+if {
+    get_nickname 'some!nick!lahblah!test@hostname'
+    [[ "$msgnick" == 'some' ]]
+} then
     pass 'IRC-LINE nick parse'
 else
     fail 'IRC-LINE nick parse' \
-        "$msgnick == some"
+        "some" \
+        "$msgnick"
 fi
 
+get_hostname() {
+    write_to ":$1 __DEBUG #channel :${2:+"$2 "}hostparse"
+    read_from msghost
+}
+
 # hostname parsing test
-echo ':so@me!nick!lahblah!test@hostname __DEBUG #channel :hostparse' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r msghost
-if [ "$msghost" = 'hostname' ]; then
+if {
+    get_hostname 'so@me!nick!lahblah!test@hostname'
+    [[ "$msghost" == 'hostname' ]]
+} then
     pass 'IRC-LINE host parse'
 else
     fail 'IRC-LINE host parse' \
-        "$msghost = hostname"
+        'hostname' \
+        "$msghost"
 fi
 
 # chan parse
-echo ':some!nick@hostname __DEBUG #chan :chanparse' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r msgchan
-if [ "$msgchan" = '#chan' ]; then
+if {
+    write_to ':some!nick@hostname __DEBUG #chan :chanparse'
+    read_from msgchan
+    [[ "$msgchan" = '#chan' ]]
+} then
     pass 'IRC-LINE chan parse'
 else
     fail 'IRC-LINE chan parse' \
-        "$msgchan == #chan"
+        '$chan' \
+        "$msgchan"
 fi
 
 # gateway user msg and username parse test
-echo ':gateway!a@a __DEBUG #channel :<'$'\003''12,32actual_username'$'\003''> nickparse' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r msgnick
-if [ "$msgnick" = 'actual_username' ]; then
+if {
+    get_nickname 'gateway!a@a' '<'$'\003''12,32actual_username'$'\003''>'
+    [[ "$msgnick" = 'actual_username' ]]
+} then
     pass 'GATEWAY trusted nick parse'
 else
-    fail 'GATEWAY trusted nick parse'
+    fail 'GATEWAY trusted nick parse' \
+        "actual_username" \
+        "$msgnick"
 fi
 
 # gateway host name parse test
-echo ':gateway!a@a __DEBUG #channel :<'$'\003''12,32actual_username'$'\003''> hostparse' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r msghost
-if [ "$msghost" = 'actual_username.trusted-gateway.a' ]; then
+if {
+    get_hostname 'gateway!a@a' '<'$'\003''12,32actual_username'$'\003''>'
+    [[ "$msghost" = 'actual_username.trusted-gateway.a' ]]
+} then
     pass 'GATEWAY trusted host parse'
 else
-    fail 'GATEWAY trusted host parse'
+    fail 'GATEWAY trusted host parse' \
+        'actual_username.trusted-gateway.a' \
+        "$msghost"
 fi
 
 # gateway fail parse
-echo ':gateway2!a@a __DEBUG #channel :<actual_username> nickparse' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r msgnick
-if [ "$msgnick" == '<actual_username> nickparse' ]; then
+if {
+    get_nickname 'gateway2!a@a' '<actual_username>'
+    [[ "$msgnick" == '<actual_username> nickparse' ]]
+} then
     pass 'GATEWAY untrusted nick parse'
 else
-    fail 'GATEWAY untrusted nick parse'
+    fail 'GATEWAY untrusted nick parse' \
+        "<actual_username> nickparse" \
+        "$msgnick"
 fi
 
 # 353 (with IRCv3 multi-prefix) response test
@@ -352,38 +483,60 @@ else
          'Expected: o; Got: '"$msgmode"
 fi
 
-# ignore user test
-echo -e ':ignorebot PRIVMSG testnick_ :\001VERSION\001' >&"${COPROC[1]}"
-echo '[****] Waiting for ingore user test timeout'
-read -t 1 -u "${COPROC[0]}" -r line
-if [ -z "$line" ]; then  
-    pass 'ignore nick test'
+ignore_user_test() {
+    printf ':ignorebot PRIVMSG testnick_ :\001VERSION\001\n' >&"${COPROC[1]}"
+    echo '[****] Waiting for ingore user test timeout'
+    read -t 1 -u "${COPROC[0]}" -r line
+    [[ -z "$line" ]]
+}
+
+if ignore_user_test; then
+    pass 'ignore user test'
 else
-    fail 'ignore nick test'
+    fail "ignore user test"
 fi
 
-# antispam test
-echo -e ':testbot2 PRIVMSG testnick_ :\001VERSION\001' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r line
-[ -z "$line" ] && aspam=1
-echo -e ':testbot2 PRIVMSG testnick_ :\001VERSION\001' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r line
-[ -z "$line" ] && aspam=1
-echo -e ':testbot2 PRIVMSG testnick_ :\001VERSION\001' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r line
-[ -z "$line" ] && aspam=1
+antispam_test() {
+    local i
+    for (( i=1; i <= 3; ++i )); do
+        printf ':testbot2 PRIVMSG testnick_ :\001VERSION\001\n' >&"${COPROC[1]}"
+        read -t 1 -u "${COPROC[0]}" -r line
+        [[ -z "$line" ]] && {
+            REPLY='antispam triggered too early. ('"$i"' <= 3)'
+            return 1
+        }
+    done
 
-# now test the bot properly ignores testbot2
-echo -e ':testbot2 PRIVMSG testnick_ :\001VERSION\001' >&"${COPROC[1]}"
-echo '[****] Waiting for antispam timeout'
-read -t 1 -u "${COPROC[0]}" -r line
-[ -n "$line" ] && aspam=1
-echo -e ':testbot2 PRIVMSG testnick_ :\001VERSION\001' >&"${COPROC[1]}"
-read -t 1 -u "${COPROC[0]}" -r line
-if [ -n "$line" ] && [ -z "$aspam" ]; then
+    printf ':testbot2 PRIVMSG testnick_ :\001VERSION\001\n' >&"${COPROC[1]}"
+    echo '[****] Waiting for antispam timeout'
+    read -t 1 -u "${COPROC[0]}" -r line
+    if [[ -n "$line" ]]; then
+        REPLY='antispam did not trigger after 3 consecutive messages.'
+        return 1
+    fi
+
+    printf ':testbot2 PRIVMSG testnick_ :\001VERSION\001\n' >&"${COPROC[1]}"
+    read -t 1 -u "${COPROC[0]}" -r line
+    if [[ -z "$line" ]]; then
+        REPLY='after 1 second, antispam did not deactivate.'
+        return 1
+    fi
+
+    printf ':testbot2 PRIVMSG testnick_ :\001VERSION\001\n' >&"${COPROC[1]}"
+    echo '[****] Waiting for antispam timeout'
+    read -t 1 -u "${COPROC[0]}" -r line
+    if [[ -n "$line" ]]; then
+        REPLY='antispam gave us too many message allowances.'
+        return 1
+    fi
+
+    return 0
+}
+
+if antispam_test; then
     pass 'antispam test'
 else
-    fail 'antispam test'
+    fail "antispam test - $REPLY"
 fi
 
 # reload config test

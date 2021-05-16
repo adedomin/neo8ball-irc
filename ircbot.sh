@@ -430,7 +430,7 @@ parse_irc() {
 # v  - VOICED
 # '' - nothing
 #
-# @mutates REPLY - empty if user has no modes or a single char.
+# mutates: REPLY - empty if user has no modes or a single char.
 modebit_to_char() {
     local mode="$1"
     if ((   (mode & 2#10000) > 0 )); then
@@ -449,8 +449,8 @@ modebit_to_char() {
 }
 
 # inverse of modebit_to_char
-# $1 - get the value of this given char
-# $REPLY - value of $1 in modebits.
+# $1             - get the value of this given char
+# mutates: REPLY - value of $1 in modebits.
 char_to_modebit() {
     case "$1" in
         'v'|'+') REPLY='2#00001' ;;
@@ -462,6 +462,11 @@ char_to_modebit() {
     esac
 }
 
+# Add a given mode to a user.
+#
+# $1 - channel where this happened
+# $2 - user who is affected
+# $3 - the mode bit converted by char_to_modebit()
 add_user_mode() {
     local channel="$1"
     local user="$2"
@@ -477,6 +482,11 @@ add_user_mode() {
     send_log 'DEBUG' "$channel <$user> MODE bits AFTER: $(( chr_mode | modebit ))"
 }
 
+# Remove a given mode to a user.
+#
+# $1 - channel where this happened
+# $2 - user who is affected
+# $3 - the mode bit converted by char_to_modebit()
 clear_user_mode() {
     local channel="$1"
     local user="$2"
@@ -491,7 +501,8 @@ clear_user_mode() {
     fi
     send_log 'DEBUG' "$channel <$user> MODE bits AFTER: $(( chr_mode & (~modebit) ))"
 }
-
+# Parse the 353 NAMES / NAMESX reply message.
+#
 # $1 - channel
 # $2 - the string from the irc server with all the usernames (\w mode)
 mode_chars='+%@&~'
@@ -532,6 +543,8 @@ declare -A ISUPPORT_CHANMODES=(
 )
 # parse the ISUPPORT key value pairs
 # params could go from 1 to ~13 key value pairs
+#
+# $@ - array of parameters from ISUPPORT, only CHANMODES= is used.
 parse_005() {
     for arg; do
         local value="${arg#*=}"
@@ -566,6 +579,8 @@ parse_005() {
 #
 # $1 - the signedness of the mode (+|-)
 # $2 - the mode
+#
+# returns: 0 if the given mode requires a parameter.
 has_parameter_mode() {
     case "$2" in
         q|a|o|h|v) return 0 ;;
@@ -579,8 +594,8 @@ has_parameter_mode() {
     return 1
 }
 
-# This command is a bit special
-# as far as I can tell based on reading the spec at least twice:
+# This command is difficult to understand.
+# As far as I can tell based on reading the spec at least twice:
 #  MODE reply returns to the user something like #channel +|-somemodes param param2, etc...
 #  Where you must first pregather all the modes that take a parameter (see CHANMODES ISUPPORT 005)
 #  and then first in, first out, match them to the modes being set.
@@ -592,7 +607,9 @@ has_parameter_mode() {
 #  +v -> voiced_user
 #  -o -> deop_user
 #
-# $1 - channel these modes manipulate.
+# $1     - channel these modes manipulate.
+# ${@:1} - the rest of the mode line.
+# returns: 1 if failed to correctly parse the MODE command.
 parse_mode() {
     local channel="$1"
     shift # rest are "mode strings"
@@ -659,6 +676,11 @@ parse_mode() {
 }
 
 # parse all the capabilites we support.
+#
+# $1 - ACK or NAK of capability
+# $2 - message body to parse, all the capabilites we requested.
+#
+# returns: 1 if we didn't get the capabilites we need.
 parse_cap() {
     local ack="$1"
     local message="$2"
@@ -879,11 +901,11 @@ send_cmd() {
     done
 }
 
-# Match a string to the list of configured regexps to check
-# $1       - string to try and match
-# @return  - regex command that should be ran
-# @exit    - zero for match, nonzero for no match
-# @mutates - REPLY with matching regexp
+# Match a string to the list of configured regexps to check.
+#
+# $1             - String to try and match.
+# mutates: REPLY - Which will contain any matching regexp.
+# returns:       - 0 if REPLY contains a regexp match.
 check_regexp() {
     local regex
 
@@ -898,47 +920,71 @@ check_regexp() {
     return 1
 }
 
-# determines if message qualifies for spam
-# filtering
+# Determines if message qualifies for spam filtering.
+# This algorithm uses a leaky-bucket-like mechanism
+# to prevent abuse.
 #
-# $1 - username
+# $1               - Nickname to check.
+# returns:         - 1 if the user should be ignored for spamming.
+# config: ANTISPAM - If we should time users out.
+# config: ANTISPAM_TIMEOUT - Time in seconds a user must wait
+#                            til they can issue another command.
+# config: ANTISPAM_COUNT   - Number of requests a user gets before
+#                            they are blocked for spamming.
 check_spam() {
     [[ -z "$ANTISPAM" ]] && return 0
-    # increment if command or hl event
-    declare -i temp ttime
-    temp="${antispam_list[$1]% *}"
-    ttime="${antispam_list[$1]#* }"
-    (( temp <= ${ANTISPAM_COUNT:-3} )) &&
-        temp+=1
 
-    declare -i counter current
-    # shellcheck disable=SC2034
-    current='SECONDS'
+    # Allowance is the number of commands a given user
+    # is allowed to invoke before they are considered abusive.
+    # the last_allowed counter indicates when they last invoked
+    # a given command.
+    #
+    # If the last_allowed was far enough in the past (ANTISPAM_TIMEOUT),
+    # the user is granted an allowance.
+    local allowance
+    local last_allowed
+    # counts down to 0
+    local max_allowance=$(( ${ANTISPAM_COUNT:-3} + 1 ))
 
-    (( ttime == 0 )) &&
-        ttime='current'
-    counter="( current - ttime ) / ${ANTISPAM_TIMEOUT:-10}"
-    if (( counter > 0 )); then
-        ttime='current'
-        temp='temp - counter'
-        (( temp < 0 )) &&
-            temp=0
+    if [[ -z "${antispam_list[$1]}" ]]; then
+        allowance="$max_allowance"
+        last_allowed="$SECONDS"
+    else
+        allowance="${antispam_list[$1]% *}"
+        last_allowed="${antispam_list[$1]#* }"
     fi
 
-    antispam_list[$1]="$temp $ttime"
+    if (( allowance > 0 )); then
+        allowance=$(( allowance - 1 ))
+    fi
 
-    if (( temp <= ${ANTISPAM_COUNT:-3} )); then
-        return 0
-    else
+    local current_time="$SECONDS"
+    local time_between_req="${ANTISPAM_TIMEOUT:-10}"
+    granted_tokens=$(( ( current_time - last_allowed ) / time_between_req ))
+
+    if (( granted_tokens > 0 )); then
+        last_allowed="$current_time"
+        allowance=$(( allowance + granted_tokens ))
+        if (( allowance > max_allowance )); then
+            allowance="$max_allowance"
+        fi
+    fi
+
+    antispam_list[$1]="$allowance $last_allowed"
+
+    if (( allowance == 0 )); then
         send_log "DEBUG" "SPAMMER -> $1"
         return 1
+    else
+        return 0
     fi
 }
 
 # check if nick is in ignore list
 #
 # $1 - nick to check
-# $2 - whole message to filter bots ?
+#
+# returns: 1 if the user should be ignored.
 check_ignore() {
     if [[ -n "${ignore_hash[$1]}" ]]; then
         send_log "DEBUG" "IGNORED -> $1"
@@ -946,9 +992,9 @@ check_ignore() {
     fi
 }
 
-# check if nick is a "trusted gateway" as in a a nick 
-# which is used by multiple individuals. 
-# this checks a configurable list of nicks. 
+# check if nick is a "trusted gateway" as in a nick
+# which is used by multiple individuals.
+# this checks a configurable list of nicks.
 #
 # if the nick is not a trusted gateway, this function returns without
 # doing anything
@@ -956,9 +1002,14 @@ check_ignore() {
 # Note that this function mutates message
 # inputs such as user and message.
 # gateway is assumed to prepend a nickname to the message
-# like <the_gateway> <user1> msg
-# if your gateway does not do this, please make an issue on github
+# like: <the_gateway> <user1> msg
+# however: <the_gateway> user1 msg also works.
+#
 # $1 - the nickname
+# mutates: message - New message. all the text after the first word.
+# mutates: user    - The first word in the gateway's message.
+# mutates: host    - A unique host for a given gateway user.
+# returns: 1 if not a gateway
 trusted_gateway() {
     local trusted
     for nick in "${GATEWAY[@]}"; do
@@ -971,8 +1022,8 @@ trusted_gateway() {
 
     # is a gateway user
     # this a mutation
-    newuser="${message%% *}"
-    newmsg="${message#* }"
+    local newuser="${message%% *}"
+    local newmsg="${message#* }"
     # new msg without the gateway username
     # remove format reset some gateways add
     message="${newmsg#["$all_control_characters"]}"
@@ -1036,6 +1087,7 @@ trusted_gateway() {
 # $1 - command | regexp
 # $2 - cmd (hl, regexp, command prefix)
 # $3 - match (regexp only)
+# mutates: AREPLY - the arguments as an array.
 build_cmdline() {
     local type="$1"
     local cmd="$2"
@@ -1133,10 +1185,7 @@ handle_privmsg() {
         fi
     fi
 
-    # 5th argument is the command string that matched
-    # may be useful for scripts that are linked
-    # to multiple commands, allowing for different behavior
-    # by command name
+    # command event.
     case "${ucmd:0:1}" in ["$CMD_PREFIX"])
         local cmd="${ucmd:1}"
 
@@ -1182,7 +1231,7 @@ send_log "DEBUG" "COMMUNICATION START"
 CAP_REQ=()
 [[ -n "$SASL_PASS" ]] && CAP_REQ+=('sasl')
 [[ -n "$TRACK_CHAN_MODE" ]] && CAP_REQ+=('multi-prefix')
-send_msg "CAP REQ :${CAP_REQ[*]}"
+(( ${#CAP_REQ[@]} > 0 )) && send_msg "CAP REQ :${CAP_REQ[*]}"
 # pass if server is private
 # this is likely not required
 if [[ -n "$PASS" ]]; then
@@ -1389,12 +1438,8 @@ while {
             message="${params[3]}"
             parse_353 "$channel" "$message"
         ;;
-        # just use NAMES (353) parser instead of dealing with this insane command
-        # When we join, we only know about the 353 output in terms of user's highest
-        # channel mode, and as such, without asking the server for everyone's mode up
-        # front or on MODE that changes them, We can't know if they have another lower
-        # channel mode like. MODE -o some_user where some_user may still have +h but
-        # 353 only told us they had: @ (+o).
+        # This mode depends on multi-prefix which we only ask for
+        # if TRACK_CHAN_MODE is enabled.
         MODE)
             [[ -z "${TRACK_CHAN_MODE}" ]] && continue
             [[ "$user" == "$NICK" ]] && continue
