@@ -16,21 +16,26 @@
 import sqlite3
 import re
 
+from typing import TextIO, Union
 from pathlib import Path
 from io import StringIO
 from py8ball import get_args, Flag, \
     get_persistant_location, \
-    paste_service, log_e, escape_fts5
+    paste_service, log_e, escape_fts5, \
+    Sqlite3Manager, main_decorator
 
 
 try:
-    BIBLE_DB = get_persistant_location() / 'bible-plugin.db'
+    BIBLE_DB_PATH = get_persistant_location() / 'bible-plugin.db'
+    BIBLE_DB = Sqlite3Manager(BIBLE_DB_PATH)
 except KeyError:
     log_e('$PERSIST_LOC or $XDG_DATA_HOME are not defined.')
     exit(1)
 
 
-def read_bible_txt(cursor, the_good_book, f):
+def read_bible_txt(cursor: sqlite3.Cursor,
+                   the_good_book: str,
+                   f: TextIO):
     lineno = 1
     for line in f:
         book, verse = line.split('|', maxsplit=1)
@@ -45,7 +50,7 @@ def read_bible_txt(cursor, the_good_book, f):
         lineno += 1
 
 
-def populate_db(cursor):
+def populate_db(cursor: sqlite3.Cursor):
     statics = Path(__file__).parent / '..' / 'static'
     kjb = statics / 'king-james.txt'
     with kjb.open('r') as f:
@@ -56,105 +61,103 @@ def populate_db(cursor):
 
 
 # sqlite3 already comes with a full-text search engine ootb.
-def setup_db():
-    conn = sqlite3.connect(BIBLE_DB)
-    with conn:
-        cur = conn.cursor()
-        cur.execute("""
-        CREATE TABLE IF NOT EXISTS king_james (
-            bid INTEGER PRIMARY KEY NOT NULL,
-            book TEXT NOT NULL,
-            verse TEXT NOT NULL
-        ) WITHOUT ROWID;
-        """)
-        cur.execute("""
-        CREATE INDEX IF NOT EXISTS king_jamesIdxBook
-        ON king_james (book);
-        """)
-        cur.execute("""
-        CREATE VIRTUAL TABLE IF NOT EXISTS king_james_verse USING fts5(
-            vid, verse_text, tokenize = 'porter'
-        )
-        """)
-        # populate if the table is empty
-        for _ in cur.execute("SELECT bid FROM king_james LIMIT 1"):
-            break  # skips over else clause
-        else:
-            populate_db(cur)
-    conn.close()
+@BIBLE_DB.apply
+def setup_db(*, db: sqlite3.Connection):
+    cur = db.cursor()
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS king_james (
+        bid INTEGER PRIMARY KEY NOT NULL,
+        book TEXT NOT NULL,
+        verse TEXT NOT NULL
+    ) WITHOUT ROWID;
+    """)
+    cur.execute("""
+    CREATE INDEX IF NOT EXISTS king_jamesIdxBook
+    ON king_james (book);
+    """)
+    cur.execute("""
+    CREATE VIRTUAL TABLE IF NOT EXISTS king_james_verse USING fts5(
+        vid, verse_text, tokenize = 'porter'
+    )
+    """)
+    # populate if the table is empty
+    stmt = cur.execute("SELECT bid FROM king_james LIMIT 1")
+    row = stmt.fetchone()
+    if row is None:
+        populate_db(cur)
 
 
-def find_by_book(book: str, count: int = -1):
-    conn = sqlite3.connect(BIBLE_DB)
-    with conn:
-        cur = conn.cursor()
+@BIBLE_DB.apply
+def find_by_book(book: str, count: int = -1, *,
+                 db: sqlite3.Connection) -> list[str]:
+    cur = db.cursor()
+    stmt = cur.execute("""
+    SELECT bid, book, verse
+    FROM king_james
+    WHERE book = ?
+    """, (book,))
+    result_set = []
+    bid_to = -1
+
+    row = stmt.fetchone()
+    if row is not None:
+        bid, bookv, verse = row
+        result_set.append(f'{bookv} | {verse}')
+        bid_to = bid + count
+    else:
+        return [f'No such verse: {book}']
+
+    if bid_to != -1 and count != -1:
         stmt = cur.execute("""
-        SELECT bid, book, verse
+        SELECT book, verse
         FROM king_james
-        WHERE book = ?
-        """, (book,))
-        result_set = []
-        bid_to = -1
-        for bid, bookv, verse in stmt:
+        WHERE bid > ? AND bid < ?
+        """, (bid, bid_to))
+        for bookv, verse in stmt:
             result_set.append(f'{bookv} | {verse}')
-            bid_to = bid + count
-            break
-        else:
-            result_set.append(f'No such verse: {book}')
 
-        if bid_to != -1 and count != -1:
-            stmt = cur.execute("""
-            SELECT book, verse
-            FROM king_james
-            WHERE bid > ? AND bid < ?
-            """, (bid, bid_to))
-            for bookv, verse in stmt:
-                result_set.append(f'{bookv} | {verse}')
-    conn.close()
     return result_set
 
 
-def random_verse():
-    conn = sqlite3.connect(BIBLE_DB)
-    with conn:
-        cur = conn.cursor()
-        stmt = cur.execute("""
-        SELECT book, verse FROM king_james
-        WHERE bid = (
-            (ABS(RANDOM())) % (SELECT max(bid) FROM king_james) + 1
-        )
-        """)
-        ret = 'Random query error.'
-        for book, verse in stmt:
-            ret = f'{book} | {verse}'
-            break
-    conn.close()
-    return ret
+@BIBLE_DB.apply
+def random_verse(*, db: sqlite3.Connection) -> str:
+    cur = db.cursor()
+    stmt = cur.execute("""
+    SELECT book, verse FROM king_james
+    WHERE bid = (
+        (ABS(RANDOM())) % (SELECT max(bid) FROM king_james) + 1
+    )
+    """)
+    row = stmt.fetchone()
+    if row is not None:
+        book, verse = row
+        return f'{book} | {verse}'
+    else:
+        return 'Random query error.'
 
 
-def find_verse(query):
-    conn = sqlite3.connect(BIBLE_DB)
-    with conn:
-        cur = conn.cursor()
-        stmt = cur.execute("""
-        SELECT book, verse FROM king_james
-        INNER JOIN (
-          SELECT vid FROM king_james_verse
-          WHERE king_james_verse MATCH ?
-          ORDER BY RANK
-          LIMIT 1
-        )
-        ON bid = vid
-        """, (escape_fts5(query),))
-        ret = 'No such verse.'
-        for book, verse in stmt:
-            ret = f'{book} | {verse}'
-            break
-    conn.close()
-    return ret
+@BIBLE_DB.apply
+def find_verse(query: str, *, db) -> str:
+    cur = db.cursor()
+    stmt = cur.execute("""
+    SELECT book, verse FROM king_james
+    INNER JOIN (
+        SELECT vid FROM king_james_verse
+        WHERE king_james_verse MATCH ?
+        ORDER BY RANK
+        LIMIT 1
+    )
+    ON bid = vid
+    """, (escape_fts5(query),))
+    row = stmt.fetchone()
+    if row is not None:
+        book, verse = row
+        return f'{book} | {verse}'
+    else:
+        return f'No such verse containing: {query[0:15]}...'
 
 
-def parse_query(query):
+def parse_query(query: str) -> (Union[str, None], int):
     like_book_verse = re.compile(r'\d{1,3}:\d{1,3}(?:-\d)?')
     parts = query.split(' ')
     if like_book_verse.fullmatch(parts[-1]):
@@ -169,13 +172,9 @@ def parse_query(query):
         return None, -1
 
 
-def main() -> int:
-    try:
-        args = get_args()
-    except ValueError as e:
-        log_e(str(e))
-        return 1
-
+@main_decorator
+def main(*,
+         message: str = '') -> int:
     try:
         setup_db()
     except sqlite3.Error as e:
@@ -188,7 +187,6 @@ def main() -> int:
     # else:
     #     cmd = 'king_james'
 
-    message = args.get(Flag.MESSAGE, '')
     if message == '':
         print(f':r {random_verse()}')
     else:
@@ -196,7 +194,9 @@ def main() -> int:
         if query is None:
             print(f':r {find_verse(message)}')
         elif count > 9:
-            print(':r Verse counts greater than 9 are current unsupported.')
+            print(':r Verse counts greater than 9 are currently unsupported.')
+        elif count < 1:
+            print(':r Verse counts must be greater than 0.')
         else:
             res = find_by_book(query, count)
             if len(res) == 1:

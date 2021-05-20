@@ -13,7 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from py8ball import Flag, get_args, request, chunk_read, log_e
+from py8ball import Flag, get_args, request, \
+    chunk_read, log_e, main_decorator
 
 from typing import NamedTuple
 from sys import exit
@@ -125,23 +126,16 @@ def get_answer(q: str) -> str:
             return 'No result.'
 
 
-if __name__ == "__main__":
-    try:
-        args = get_args()
-    except Exception as e:
-        log_e(str(e))
-        exit(1)
-
-    cmd = args.get(Flag.COMMAND, None)
-    if not cmd:
-        cmd = 'ddg'
-
-    query = args.get(Flag.MESSAGE, None)
-    if not query or query.startswith('--help'):
-        print(f':r {cmd} [--help] query')
+@main_decorator
+def main(*,
+         message: str = '--help',
+         command: str = 'ddg') -> int:
+    query = message
+    if query.startswith('--help'):
+        print(f':r {command} [--help] query')
         exit(0)
 
-    if cmd == 'mdn':
+    if command == 'mdn':
         query += ' site:https://developer.mozilla.org/en-US'
 
     try:
@@ -149,3 +143,9 @@ if __name__ == "__main__":
         print(f':r {res.lstrip()}')
     except Exception as e:
         print(f':r {e} - For query {query}')
+        return 1
+    return 0
+
+
+if __name__ == '__main__':
+    exit(main())

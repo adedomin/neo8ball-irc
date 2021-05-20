@@ -13,23 +13,24 @@
 # limitations under the License.
 
 from enum import Enum
-from functools import partial
+from functools import partial, wraps
 from os.path import basename
 from pathlib import Path
 from os import environ
 from sys import argv
-from typing import Dict, TextIO
+from typing import TextIO, Callable
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from json import JSONDecodeError, load as json_parse
 import inspect
+import sqlite3
 
 
 LEN_LIMIT = 350
 
 
 class Flag(Enum):
-    '''All possible flags neo8ball currently uses'''
+    '''All possible flags neo8ball currently uses.'''
     REPLY = '--reply'
     NICK = '--nick'
     USER = '--user'
@@ -42,7 +43,7 @@ class Flag(Enum):
 
 
 def get_persistant_location() -> Path:
-    '''
+    """
     Gets either XDG_CONFIG_HOME or the legacy PERSIST_LOC
     Environment variable.
 
@@ -51,7 +52,7 @@ def get_persistant_location() -> Path:
 
     Raises:
         KeyError when neither varible exists.
-    '''
+    """
     ret = environ.get('XDG_DATA_HOME')
     if ret is None:
         return Path(environ['PERSIST_LOC'])
@@ -59,8 +60,8 @@ def get_persistant_location() -> Path:
         return Path(ret)
 
 
-def get_args() -> Dict[Flag, str]:
-    '''
+def get_args() -> dict[Flag, str]:
+    """
     Neo8ball argument parser.
 
     This is a simplistic argument parser that works for all
@@ -71,7 +72,7 @@ def get_args() -> Dict[Flag, str]:
 
     Raises:
         ValueError for unknown command line Flag(s).
-    '''
+    """
     args = {}
     for arg in argv[1:]:
         values = arg.split('=', maxsplit=1)
@@ -84,9 +85,9 @@ def get_args() -> Dict[Flag, str]:
 
 
 def request(url: str,
-            query: Dict[str, str] = {},
-            headers: Dict[str, str] = {}) -> TextIO:
-    '''
+            query: dict[str, str] = {},
+            headers: dict[str, str] = {}) -> TextIO:
+    """
     Simple urllib request for GETing values
 
     Args:
@@ -100,7 +101,7 @@ def request(url: str,
     Raises:
         urllib.error.URLError on protocol issues. (DNS failure).
         urllib.error.HTTPError on issues like 403 forbidden.
-    '''
+    """
     param_string = urlencode(query)
     if param_string:
         param_string = f'?{param_string}'
@@ -117,7 +118,7 @@ def request(url: str,
 
 
 def chunk_read(f: TextIO, size: int = 4096, times: int = 16) -> str:
-    '''
+    """
     A Chunked reader intended to be used on the
     result of calling request().
 
@@ -128,13 +129,13 @@ def chunk_read(f: TextIO, size: int = 4096, times: int = 16) -> str:
 
     Returns:
         utf8 encoded strings (errors ignored).
-    '''
+    """
     for i in range(times):
         yield f.read(size).decode('utf8', 'ignore')
 
 
 def paste_service(f) -> str:
-    '''
+    """
     Upload a file like object to
     images.ghetty.space/paste service.
 
@@ -148,7 +149,7 @@ def paste_service(f) -> str:
         urllib.error.* Exceptions.
         ValueError if api_res.status != 'ok'
         KeyError if api_res['href'] does not exist.
-    '''
+    """
     try:
         res = urlopen(url='https://images.ghetty.space/paste',
                       data=f)
@@ -161,7 +162,7 @@ def paste_service(f) -> str:
 
 
 def escape_fts5(query: str) -> str:
-    '''
+    """
     Prevent any of the weird query features of Sqlite3 FTS5 Virtual Tables.
 
     Args:
@@ -170,7 +171,7 @@ def escape_fts5(query: str) -> str:
     Returns:
         Same string, with double quotes escaped.
         Single quotes are escaped by prepared statements.
-    '''
+    """
     ret = []
     for part in query.split(' '):
         ret.append(f'''"{part.replace('"', '""')}"''')
@@ -178,6 +179,8 @@ def escape_fts5(query: str) -> str:
 
 
 class LogLevel(Enum):
+    """Enum of valid loglevels (commands)."""
+
     DEBUG = ':logd'
     INFO = ':logi'
     WARNING = ':logw'
@@ -187,7 +190,6 @@ class LogLevel(Enum):
 def _log(level: LogLevel, out: str):
     callee_frame = inspect.stack()[1]
     callee = basename(callee_frame.filename)
-
     print(f'{level.value} {callee}: {out}')
 
 
@@ -195,3 +197,96 @@ log_d = partial(_log, LogLevel.DEBUG)
 log_i = partial(_log, LogLevel.INFO)
 log_w = partial(_log, LogLevel.WARNING)
 log_e = partial(_log, LogLevel.ERROR)
+
+
+class Sqlite3Manager():
+    """
+    A helper that will automatically open and close
+    a database for a function.
+    """
+
+    def __init__(self, dbpath: str = ':memory:', kwarg: str = 'db'):
+        """Init state of manager."""
+        self.dbpath = dbpath
+        self.kwarg = kwarg
+
+    def apply(self, func: Callable) -> Callable:
+        """
+        Wrap a function such that it will automatically open & close
+        A database, set the "db" or kwarg defined argument
+        to a given function.
+
+        Example:
+            @mymanager.apply
+            def my_db_func(arg1, arg2, db):
+                pass # ... do stuff with db
+
+        Args:
+            func: the function to decorate
+
+        Returns:
+            Callable that has been wrapped.
+        """
+        @wraps(func)
+        def wrap(*args, **kwargs):
+            db = sqlite3.connect(self.dbpath)
+            kwargs[self.kwarg] = db
+            try:
+                with db:
+                    retval = func(*args, **kwargs)
+            finally:
+                db.close()
+            return retval
+        return wrap
+
+
+def main_decorator(func: Callable) -> Callable:
+    """
+    Decorator that parses commandline arguments and populates them as kwargs.
+    The function is decorated with the values from the command line
+    that match the function signature of the callable.
+
+    If you want, say --message=value only, define your main()
+    as main(message): or preferably,
+    as main(*, message: str = 'default') -> int:
+    
+    If you want the "command" name, you'd use main(*, command):
+    Regexps would be main(*, match, regexp)
+    
+    See:
+        Flags: for all command line arguments possible. strip leading double
+               slash for the kwarg name to use in your main().
+
+    Example:
+        @main_decorator
+        def main(*, command, message, nick, reply, ...etc):
+            print(command)
+            print(message)
+            # ... etc
+
+    Args:
+        func: A "main" function for a neo8ball plugin that uses pure kwargs.
+
+
+    Returns:
+        Wrapped callable.
+    """
+    argspec = func.__code__.co_varnames
+
+    @wraps(func)
+    def w() -> int:
+        try:
+            args = get_args().items()
+        except ValueError as e:
+            log_e(str(e))
+            return 1
+
+        new_args = {}
+        for flag, value in args:
+            real_flag = flag.value[2:]
+            if real_flag in argspec:
+                new_args[real_flag] = value
+        ret = func(**new_args)
+
+        return ret
+    return w

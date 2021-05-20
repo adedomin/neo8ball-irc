@@ -14,8 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from py8ball import Flag, get_args, request
-from py8ball import log_w, log_e
+from py8ball import Flag, get_args, request, \
+                    log_w, log_e, main_decorator
 
 from html.parser import HTMLParser as HtmlParser
 from json import load as json_parse
@@ -200,20 +200,15 @@ def mlb(inp):
         return 'Times in EST - ' + ' :: '.join(output)
 
 
-def main() -> int:
-    try:
-        args = get_args()
-    except Exception as e:
-        log_e(str(e))
-        exit(1)
-
-    q = args.get(Flag.MESSAGE, '')
-    if q.startswith('--help'):
-        cmd = args.get(Flag.COMMAND, 'mlb')
-        print(f':r usage: {cmd} [team]')
+@main_decorator
+def main(*,
+         message: str = '',
+         command: str = 'mlb') -> int:
+    if message.startswith('--help'):
+        print(f':r usage: {command} [team]')
         exit(0)
 
-    for line in mlb(q).split('\n'):
+    for line in mlb(message).split('\n'):
         print(f':r {line}')
 
 

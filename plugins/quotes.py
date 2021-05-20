@@ -22,7 +22,8 @@ from typing import Union
 
 from py8ball import get_args, Flag, \
     get_persistant_location, \
-    paste_service, log_e, escape_fts5
+    paste_service, log_e, escape_fts5, \
+    Sqlite3Manager, main_decorator
 
 
 USAGE = (':r {}usage: .{} {{ '
@@ -32,46 +33,50 @@ USAGE = (':r {}usage: .{} {{ '
 
 
 try:
-    QUOTE_DB = get_persistant_location() / 'quote-plugin.db'
+    QUOTE_DB_PATH = get_persistant_location() / 'quote-plugin.db'
+    QUOTE_DB = Sqlite3Manager(QUOTE_DB_PATH)
 except KeyError:
     log_e('$PERSIST_LOC or $XDG_DATA_HOME are not defined.')
     exit(1)
 
 
-def setup_db():
-    '''Setup the Table schema for the quotes.py plugin'''
-    conn = sqlite3.connect(QUOTE_DB)
-    with conn:
-        cur = conn.cursor()
-        cur.execute("""
-        CREATE TABLE IF NOT EXISTS irc_quotes (
-            qid  INTEGER NOT NULL,
-            nick TEXT NOT NULL,
-            mesg TEXT NOT NULL,
-            PRIMARY KEY(qid, nick)
-        );
-        """)
-        cur.execute("""
-        CREATE VIRTUAL TABLE IF NOT EXISTS irc_quotes_search USING fts5(
-            row, nick, mesg, tokenize = 'porter'
-        );
-        """)
-        cur.execute("""
-        CREATE TRIGGER IF NOT EXISTS irc_quotes_ins_fts5
-        AFTER INSERT ON irc_quotes
-        BEGIN
-            INSERT INTO irc_quotes_search(row, nick, mesg)
-            VALUES (NEW.rowid, NEW.nick, NEW.mesg);
-        END;
-        """)
-        cur.execute("""
-        CREATE TRIGGER IF NOT EXISTS irc_quotes_del_fts5
-        AFTER DELETE ON irc_quotes
-        BEGIN
-            DELETE FROM irc_quotes_search WHERE row = OLD.rowid;
-        END;
-        """)
-    conn.close()
+@QUOTE_DB.apply
+def setup_db(db: sqlite3.Connection):
+    """
+    Setup the Table schema for the quotes.py plugin.
+
+    Args:
+        db: the database to setup.
+    """
+    cur = db.cursor()
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS irc_quotes (
+        qid  INTEGER NOT NULL,
+        nick TEXT NOT NULL,
+        mesg TEXT NOT NULL,
+        PRIMARY KEY(qid, nick)
+    );
+    """)
+    cur.execute("""
+    CREATE VIRTUAL TABLE IF NOT EXISTS irc_quotes_search USING fts5(
+        row, nick, mesg, tokenize = 'porter'
+    );
+    """)
+    cur.execute("""
+    CREATE TRIGGER IF NOT EXISTS irc_quotes_ins_fts5
+    AFTER INSERT ON irc_quotes
+    BEGIN
+        INSERT INTO irc_quotes_search(row, nick, mesg)
+        VALUES (NEW.rowid, NEW.nick, NEW.mesg);
+    END;
+    """)
+    cur.execute("""
+    CREATE TRIGGER IF NOT EXISTS irc_quotes_del_fts5
+    AFTER DELETE ON irc_quotes
+    BEGIN
+        DELETE FROM irc_quotes_search WHERE row = OLD.rowid;
+    END;
+    """)
 
 
 def get_max_qid(cur: sqlite3.Cursor, nick: str) -> int:
@@ -85,78 +90,73 @@ def get_max_qid(cur: sqlite3.Cursor, nick: str) -> int:
         return qid
 
 
-def add_quote(nick: str, message: str) -> str:
-    conn = sqlite3.connect(QUOTE_DB)
-    with conn:
-        cur = conn.cursor()
+@QUOTE_DB.apply
+def add_quote(nick: str, message: str,
+              db: sqlite3.Connection) -> str:
+    cur = db.cursor()
 
-        try:
-            next_id = get_max_qid(cur, nick) + 1
-        except KeyError:
-            next_id = 1
+    try:
+        next_id = get_max_qid(cur, nick) + 1
+    except KeyError:
+        next_id = 1
 
-        cur.execute("""
-        INSERT INTO irc_quotes (qid, nick, mesg) VALUES (?, ?, ?);
-        """, (next_id, nick.lower(), message))
-    conn.close()
+    cur.execute("""
+    INSERT INTO irc_quotes (qid, nick, mesg) VALUES (?, ?, ?);
+    """, (next_id, nick.lower(), message))
     return f'Added quote #{next_id} to {nick}.'
 
 
-def search_quotes(nick: str, mesg: str) -> list[str]:
-    conn = sqlite3.connect(QUOTE_DB)
+@QUOTE_DB.apply
+def search_quotes(nick: str, mesg: str,
+                  db: sqlite3.Connection) -> list[str]:
+    cur = db.cursor()
+
+    try:
+        max_id = get_max_qid(cur, nick)
+    except KeyError:
+        return [f'No quotes for {nick}.']
+
     result = []
-    with conn:
-        cur = conn.cursor()
-        # bubbles exception on no  quotes.
-        try:
-            max_id = get_max_qid(cur, nick)
-            stmt = cur.execute("""
-            SELECT qid, mesg FROM irc_quotes
-            INNER JOIN (
-                SELECT row FROM irc_quotes_search
-                WHERE irc_quotes_search MATCH ? AND nick = ?
-                ORDER BY RANK
-            )
-            ON irc_quotes.rowid = row
-            LIMIT 25;
-            """, ('mesg : '+escape_fts5(mesg), nick.lower()))
-            for qid, mesg in stmt:
-                result.append(f'[{qid}/{max_id}] <{nick}> {mesg}')
-        except KeyError:
-            result.append(f'No quotes for {nick}.')
+    stmt = cur.execute("""
+    SELECT qid, mesg FROM irc_quotes
+    INNER JOIN (
+        SELECT row FROM irc_quotes_search
+        WHERE irc_quotes_search MATCH ? AND nick = ?
+        ORDER BY RANK
+    )
+    ON irc_quotes.rowid = row
+    LIMIT 25;
+    """, ('mesg : '+escape_fts5(mesg), nick.lower()))
+    for qid, mesg in stmt:
+        result.append(f'[{qid}/{max_id}] <{nick}> {mesg}')
 
-    conn.close()
     return result
 
 
-def get_quote_by_id(nick: str, num: Union[int, None]) -> str:
-    conn = sqlite3.connect(QUOTE_DB)
-    result = ''
-    with conn:
-        cur = conn.cursor()
-        try:
-            max_id = get_max_qid(cur, nick)
+@QUOTE_DB.apply
+def get_quote_by_id(nick: str,
+                    num: Union[int, None],
+                    db: sqlite3.Connection) -> str:
+    cur = db.cursor()
+    try:
+        max_id = get_max_qid(cur, nick)
+    except KeyError:
+        return f'No quotes for {nick}'
 
-            if num is None:
-                num = randint(1, max_id)
-            elif num < 0:
-                num = (max_id + num) + 1
+    if num is None:
+        num = randint(1, max_id)
+    elif num < 0:
+        num = (max_id + num) + 1
 
-            stmt = cur.execute("""
-            SELECT qid, nick, mesg FROM irc_quotes
-            WHERE qid = ? AND nick = ?;
-            """, (num, nick.lower(),))
-            row = stmt.fetchone()
-            if row is None:
-                result = f'No quote [{num}/{max_id}] for {nick}.'
-            else:
-                result = f'[{row[0]}/{max_id}] <{nick}> {row[2]}'
-
-        except KeyError:
-            result = f'No quotes for {nick}.'
-
-    conn.close()
-    return result
+    stmt = cur.execute("""
+    SELECT qid, nick, mesg FROM irc_quotes
+    WHERE qid = ? AND nick = ?;
+    """, (num, nick.lower(),))
+    row = stmt.fetchone()
+    if row is None:
+        return f'No quote [{num}/{max_id}] for {nick}.'
+    else:
+        return f'[{row[0]}/{max_id}] <{nick}> {row[2]}'
 
 
 def parse_query(q: str) -> list:
@@ -193,13 +193,10 @@ def parse_query(q: str) -> list:
     return cmd, nick, rest
 
 
-def main() -> int:
-    try:
-        args = get_args()
-    except ValueError as e:
-        log_e(str(e))
-        return 1
-
+@main_decorator
+def main(*,
+         message: str = '',
+         command: str = 'q') -> int:
     try:
         setup_db()
     except sqlite3.Error as e:
@@ -207,15 +204,13 @@ def main() -> int:
         log_e(str(e))
         return 1
 
-    cmd = args.get(Flag.COMMAND, 'q')
-    message = args.get(Flag.MESSAGE, '')
     if message == '':
-        print(USAGE.format('', cmd))
+        print(USAGE.format('', command))
     else:
         try:
             cmd, nick, arg = parse_query(message)
         except TypeError as e:
-            print(USAGE.format(f'{e} : ', cmd))
+            print(USAGE.format(f'{e} : ', command))
             return 0
 
         if cmd == 'get':
@@ -233,7 +228,6 @@ def main() -> int:
                 print(f':r Results: {url}')
         else:
             print(USAGE.format(f'Invalid command {cmd}: ', cmd))
-
     return 0
 
 

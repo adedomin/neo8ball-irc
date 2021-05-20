@@ -18,7 +18,9 @@
 # From Taigabot, with changes to work with neo8ball plus auto-updating code.
 
 from json import load as json_parse, JSONDecodeError, dump as json_dump
-from py8ball import request, log_e, log_i, get_args, Flag, get_persistant_location
+from py8ball import request, log_e, log_i, \
+    get_args, Flag, get_persistant_location, \
+    main_decorator
 from urllib.parse import quote
 from urllib.error import URLError, HTTPError
 from datetime import datetime, timedelta
@@ -199,21 +201,15 @@ def cryptocoin(q) -> str:
     return output
 
 
-def main() -> int:
+@main_decorator
+def main(*,
+         message: str = '',
+         command: str = 'cg') -> int:
     try:
-        args = get_args()
-    except ValueError as e:
-        log_e(str(e))
-        return 1
-
-    cmd = args.get(Flag.COMMAND, '')
-    message = args.get(Flag.MESSAGE, '')
-
-    try:
-        if cmd == 'cg' or cmd == 'coingecko':
+        if command == 'cg' or command == 'coingecko':
             res = cryptocoin(message)
         else:
-            res = cryptocoin(cmd)
+            res = cryptocoin(command)
 
         print(f':r {res}')
     except KeyError as e:
