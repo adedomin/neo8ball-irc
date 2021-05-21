@@ -48,7 +48,7 @@ def get_stats(ids: str, key: str, has_url: bool) -> str:
 
     retval = (f'\x02{video["snippet"]["title"]}\x02 '
               f'({video["contentDetails"]["duration"][2:].lower()}) :: ')
-    retval += f'https://youtu.be/{video["id"]} ' if not has_url else ''
+    retval += f'https://youtu.be/{video["id"]} :: ' if not has_url else ''
     retval += (f'\x0303\u25b2 {int(video["statistics"]["likeCount"]):,}\x03 '
                f'\x0304\u25bc {int(video["statistics"]["dislikeCount"]):,}\x03 '
                f'\x02Views\x02 {int(video["statistics"]["viewCount"]):,} :: '
