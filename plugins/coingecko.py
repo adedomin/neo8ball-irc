@@ -18,9 +18,9 @@
 # From Taigabot, with changes to work with neo8ball plus auto-updating code.
 
 from json import load as json_parse, JSONDecodeError, dump as json_dump
-from py8ball import request, log_e, log_i, \
-    get_args, Flag, get_persistant_location, \
-    main_decorator
+from py8ball import \
+    request, log_e, log_i, \
+    get_persistant_location, main_decorator
 from urllib.parse import quote
 from urllib.error import URLError, HTTPError
 from datetime import datetime, timedelta
@@ -35,9 +35,9 @@ except KeyError:
 
 
 def get_coin_list() -> dict:
-    '''
+    """
     Gets the latest list of coins that the coingecko ticker supports.
-    '''
+    """
     try:
         with request('https://api.coingecko.com/api/v3/coins/list') as res:
             with DATA.open('w') as f:

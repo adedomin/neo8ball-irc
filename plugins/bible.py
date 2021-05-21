@@ -19,7 +19,7 @@ import re
 from typing import TextIO, Union
 from pathlib import Path
 from io import StringIO
-from py8ball import get_args, Flag, \
+from py8ball import \
     get_persistant_location, \
     paste_service, log_e, escape_fts5, \
     Sqlite3Manager, main_decorator

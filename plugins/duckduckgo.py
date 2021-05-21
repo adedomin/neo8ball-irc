@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from py8ball import Flag, get_args, request, \
-    chunk_read, log_e, main_decorator
+from py8ball import \
+    request, chunk_read, main_decorator
 
 from typing import NamedTuple
 from sys import exit

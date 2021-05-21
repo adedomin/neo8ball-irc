@@ -13,9 +13,8 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-from sys import argv, exit
 from html.parser import HTMLParser as HtmlParser
-from py8ball import LEN_LIMIT, chunk_read, request, log_d, log_e
+from py8ball import LEN_LIMIT, chunk_read, request, log_d, log_e, main_decorator
 
 
 class TitleParser(HtmlParser):
@@ -60,7 +59,15 @@ def process_res(res):
     return out
 
 
-def main(url):
+@main_decorator
+def main(*,
+         match: str = ''):
+
+    url = match
+    if not (url.startswith('http://') or url.startswith('https://')):
+        log_e(f'Matched text - {url} - is not an http url.')
+        return 1
+
     try:
         with request(url) as res:
             title = process_res(res)
@@ -72,23 +79,5 @@ def main(url):
         print(f':r {e} - ({url})')
 
 
-def get_match_arg():
-    for arg in argv[1:]:
-        values = arg.split('=', maxsplit=1)
-        if len(values) == 2 and values[0] == '--match':
-            return values[1]
-    raise Exception('Expected --match argument.')
-
-
 if __name__ == '__main__':
-    try:
-        url = get_match_arg()
-    except Exception as e:
-        log_e(str(e))
-        exit(1)
-
-    if not (url.startswith('http://') or url.startswith('https://')):
-        log_e(f'Matched text - {url} - is not an http url.')
-        exit(1)
-    else:
-        main(url)
+    exit(main())

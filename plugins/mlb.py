@@ -14,8 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from py8ball import Flag, get_args, request, \
-                    log_w, log_e, main_decorator
+from py8ball import request, log_w, log_e, main_decorator
 
 from html.parser import HTMLParser as HtmlParser
 from json import load as json_parse

@@ -20,7 +20,7 @@ from io import StringIO
 from random import randint
 from typing import Union
 
-from py8ball import get_args, Flag, \
+from py8ball import \
     get_persistant_location, \
     paste_service, log_e, escape_fts5, \
     Sqlite3Manager, main_decorator

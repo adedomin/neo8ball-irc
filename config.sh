@@ -110,9 +110,9 @@ COMMANDS=(
 ["npm"]="npm.sh"
 ["mdn"]="duckduckgo.py"
 ["wiki"]="wikipedia.sh"
-["yt"]="youtube.sh"
-["you"]="youtube.sh"
-["youtube"]="youtube.sh"
+["yt"]="youtube.py"
+["you"]="youtube.py"
+["youtube"]="youtube.py"
 ["u"]="urbandict.sh"
 ["urb"]="urbandict.sh"
 ["urban"]="urbandict.sh"
@@ -154,7 +154,7 @@ declare -gA REGEX
 #  ['YOUR REGEXP HERE']='the command to execute'
 REGEX=(
 ['https?://twitter.com/[^/]+/status/[0-9]+|t.co/[a-zA-Z0-9]+']='twitter.sh'
-['youtube.com|youtu.be']='youtube.sh'
+['youtube.com|youtu.be']='youtube.py'
 # literally anything can be a url nowadays
 ['(https?)://[^ ]+']='pagetitle.py'
 ['^moose']='moose.sh'
