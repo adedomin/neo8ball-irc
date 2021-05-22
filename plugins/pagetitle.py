@@ -14,31 +14,42 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 from html.parser import HTMLParser as HtmlParser
-from py8ball import LEN_LIMIT, chunk_read, request, log_d, log_e, main_decorator
+from typing import TextIO
+
+from py8ball import LEN_LIMIT, main_decorator
+from py8ball.http_helpers import chunk_read, request
+from py8ball.logging import log_d, log_e
 
 
 class TitleParser(HtmlParser):
+    """Parser Fetching <title> tag contents."""
+
     def __init__(self):
+        """Set up parser."""
         super().__init__(convert_charrefs=True)
         self.in_title = False
         self.done = False
         self.title = ''
 
     def handle_starttag(self, tag, attr):
+        """Find title."""
         if tag == 'title':
             self.in_title = True
 
     def handle_endtag(self, tag):
+        """Terminate parser on closing title."""
         if tag == 'title':
             self.in_title = False
             self.done = True
 
     def handle_data(self, inner_text):
+        """Collect title contents."""
         if self.in_title:
             self.title += inner_text
 
 
-def process_res(res):
+def process_res(res: TextIO) -> str:
+    """Process the HTML response."""
     content_type = res.headers.get('Content-Type', '')
     if 'html' not in content_type:
         raise TypeError('Not (X)HTML')
@@ -62,7 +73,7 @@ def process_res(res):
 @main_decorator
 def main(*,
          match: str = ''):
-
+    """Entrypoint."""
     url = match
     if not (url.startswith('http://') or url.startswith('https://')):
         log_e(f'Matched text - {url} - is not an http url.')
@@ -75,8 +86,11 @@ def main(*,
     # We don't handle non-HTML currently.
     except TypeError:
         log_d('TODO: Handle image, and other data.')
+        return 1
     except Exception as e:
         print(f':r {e} - ({url})')
+
+    return 0
 
 
 if __name__ == '__main__':

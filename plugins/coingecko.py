@@ -18,12 +18,14 @@
 # From Taigabot, with changes to work with neo8ball plus auto-updating code.
 
 from json import load as json_parse, JSONDecodeError, dump as json_dump
-from py8ball import \
-    request, log_e, log_i, \
-    get_persistant_location, main_decorator
 from urllib.parse import quote
 from urllib.error import URLError, HTTPError
 from datetime import datetime, timedelta
+
+from py8ball import main_decorator
+from py8ball.http_helpers import request_json
+from py8ball.logging import log_e, log_i
+from py8ball.environment import get_persistant_location
 
 
 try:
@@ -36,14 +38,16 @@ except KeyError:
 
 def get_coin_list() -> dict:
     """
-    Gets the latest list of coins that the coingecko ticker supports.
+    Get the latest list of coins that the coingecko ticker supports.
+
+    Returns:
+        JSON response.
     """
     try:
-        with request('https://api.coingecko.com/api/v3/coins/list') as res:
-            with DATA.open('w') as f:
-                json = json_parse(res)
-                json_dump(json, f)
-                return json
+        json = request_json('https://api.coingecko.com/api/v3/coins/list')
+        with DATA.open('w') as f:
+            json_dump(json, f)
+        return json
     except JSONDecodeError:
         log_e('API Error: returned invalid JSON')
         exit(1)
@@ -59,12 +63,12 @@ def get_coin_list() -> dict:
 
 
 def check_coin_list_mtime() -> bool:
-    '''
-    Checks if the coin list is up to date.
+    """
+    Check if the coin list is up to date.
 
     Returns:
         True if mtime is older than a week, false otherwise.
-    '''
+    """
     now = datetime.now()
     week_ago = timedelta(weeks=1)
     mtime = datetime.fromtimestamp(DATA.stat().st_mtime)
@@ -96,14 +100,9 @@ QUERY = ('localization=false'
          '&sparkline=false')
 
 
-def consume_api(cid: str) -> dict:
-    with request(f'{COIN_GECKO}{quote(cid)}?{QUERY}') as res:
-        return json_parse(res)
-
-
 def find_coin_id(q: str) -> (str, str, str):
-    '''
-    Finds the given coin by name or symbol from a list.
+    """
+    Find the given coin by name or symbol from a list.
 
     Args:
         q: the user provided coin to find.
@@ -115,7 +114,7 @@ def find_coin_id(q: str) -> (str, str, str):
         ValueError when coin is not found.
         JSONDecodeError when the API returns an invalid json doc.
         Exception the request module could have failed as well.
-    '''
+    """
     for coin in COIN_LIST:
         cid = coin.get('id', '')
         symbol = coin.get('symbol', '')
@@ -127,10 +126,9 @@ def find_coin_id(q: str) -> (str, str, str):
     raise ValueError(f"'{q}' is not in the coin list.")
 
 
-def cryptocoin(q) -> str:
-    '''
-    Returns a string suitable for output of IRC of a coin's current
-    price and some historical data.
+def cryptocoin(q: str) -> str:
+    """
+    Fetch a string suitable for output to IRC about a given coin.
 
     Args:
         q: the coin the user wants info on.
@@ -141,7 +139,7 @@ def cryptocoin(q) -> str:
     Raises:
         KeyError if the CoinGecko API has changed the shape
                  of their JSON.
-    '''
+    """
     if q == '':
         return "Search a coin with: .cg <name>"
 
@@ -151,7 +149,7 @@ def cryptocoin(q) -> str:
         return f'Cryptocurrency {q} not found.'
 
     try:
-        data = consume_api(cid)
+        data = request_json(f'{COIN_GECKO}{quote(cid)}?{QUERY}')
     except JSONDecodeError:
         log_e('API Error trying to get coin data.')
         return 'Unknown API Error; try again later.'
@@ -205,6 +203,7 @@ def cryptocoin(q) -> str:
 def main(*,
          message: str = '',
          command: str = 'cg') -> int:
+    """Entrypoint."""
     try:
         if command == 'cg' or command == 'coingecko':
             res = cryptocoin(message)

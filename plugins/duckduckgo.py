@@ -13,26 +13,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from py8ball import \
-    request, chunk_read, main_decorator
-
 from typing import NamedTuple
 from sys import exit
 from html.parser import HTMLParser
 from urllib.parse import urlparse, parse_qsl
+
+from py8ball import main_decorator
+from py8ball.http_helpers import request, chunk_read
+
 
 SEARCH_ENGINE = "https://html.duckduckgo.com/html/"
 LEN_LIMIT = 350
 
 
 class DdgResult(NamedTuple):
+    """Type holding a search engine result."""
+
     url: str
     snippet: str
 
 
 def get_real_url(indirected_url: str) -> str:
-    '''
-    Returns the true URL from a search.
+    """
+    Parse the true URL from a search result.
 
     Args:
         indirected_url: The url from the web search.
@@ -42,7 +45,7 @@ def get_real_url(indirected_url: str) -> str:
 
     Raises:
         ValueError for irredemably bad URLs.
-    '''
+    """
     url = ''
     parsed_query = urlparse(indirected_url)
     for k, v in parse_qsl(parsed_query.query):
@@ -61,7 +64,10 @@ def get_real_url(indirected_url: str) -> str:
 
 
 class DdgQueryParser(HTMLParser):
+    """HTMLParser that finds anchor tags with search results."""
+
     def __init__(self):
+        """Set up state of the parser."""
         super().__init__(convert_charrefs=True)
         self._url: str = ''
         self._snippet: str = ''
@@ -69,6 +75,7 @@ class DdgQueryParser(HTMLParser):
         self._in_result = False
 
     def handle_starttag(self, tag, attr):
+        """Hunt for anchor tags and transition the state of the parser."""
         if self.result:
             return
 
@@ -93,6 +100,7 @@ class DdgQueryParser(HTMLParser):
             self._snippet += "\x02"
 
     def handle_endtag(self, tag):
+        """Append a result or do nothing."""
         if tag == 'a' and self._in_result:
             self.result = DdgResult(self._url, self._snippet)
             self._in_result = False
@@ -102,11 +110,21 @@ class DdgQueryParser(HTMLParser):
             self._snippet += "\x02"
 
     def handle_data(self, data):
+        """Append snippet text."""
         if self._in_result:
             self._snippet += data
 
 
 def get_answer(q: str) -> str:
+    """
+    Search ddg for a given query.
+
+    Args:
+        q: The user supplied query.
+
+    Returns:
+        Result suitable for emitting to IRC.
+    """
     with request(SEARCH_ENGINE, {'q': q}) as res:
         parser = DdgQueryParser()
         # Up to 128KiB read.
@@ -114,6 +132,7 @@ def get_answer(q: str) -> str:
             if not frag:
                 break
             parser.feed(frag)
+            # We only want one result.
             if parser.result:
                 break
 
@@ -130,6 +149,7 @@ def get_answer(q: str) -> str:
 def main(*,
          message: str = '--help',
          command: str = 'ddg') -> int:
+    """Entrypoint."""
     query = message
     if query.startswith('--help'):
         print(f':r {command} [--help] query')

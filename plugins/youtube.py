@@ -13,37 +13,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from py8ball import request, main_decorator, log_e
+from py8ball import main_decorator
+from py8ball.http_helpers import request_json
+from py8ball.logging import log_e
 
 from os import environ
 from urllib.parse import parse_qsl
 from urllib.error import HTTPError
 from json import JSONDecodeError, load as json_load
 
-YT_STATS = 'https://www.googleapis.com/youtube/v3/videos'
 
+YT_STATS = 'https://www.googleapis.com/youtube/v3/videos'
 YT_SEARCH = 'https://www.googleapis.com/youtube/v3/search'
 
 
 def get_search(q: str, key: str) -> str:
     """Get a Youtube Video ID for a given search query"""
-    res = request(YT_SEARCH,
-                  query={'part': 'snippet',
-                         'type': 'video',
-                         'maxResults': '1',
-                         'q': q, 'key': key},
-                  headers={'Accept': 'application/json'})
-    res = json_load(res)
+    res = request_json(YT_SEARCH,
+                       query={'part': 'snippet',
+                              'type': 'video',
+                              'maxResults': '1',
+                              'q': q, 'key': key})
     return res['items'][0]['id']['videoId']
 
 
 def get_stats(ids: str, key: str, has_url: bool) -> str:
     """Get The YT stats for a given video as a string"""
-    res = request(YT_STATS,
-                  query={'part': 'snippet,statistics,contentDetails',
-                         'id': ids, 'key': key},
-                  headers={'Accept': 'application/json'})
-    res = json_load(res)
+    res = request_json(YT_STATS,
+                       query={'part': 'snippet,statistics,contentDetails',
+                              'id': ids, 'key': key},
     video = res['items'][0]
 
     retval = (f'\x02{video["snippet"]["title"]}\x02 '

@@ -14,10 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from py8ball import request, log_w, log_e, main_decorator
+from py8ball import main_decorator
+from py8ball.http_helpers import request, request_json
+from py8ball.logging import log_w, log_e
 
 from html.parser import HTMLParser as HtmlParser
-from json import load as json_parse
 
 from datetime import datetime
 from pytz import timezone
@@ -29,12 +30,16 @@ OUTGAME_STRING = '{} {} ({}{}) {} {}'
 
 
 class LatestEventParser(HtmlParser):
+    """Parser for latest events from the log."""
+
     def __init__(self):
+        """Init parser."""
         super().__init__(convert_charrefs=True)
         self.__largest_event = -1
         self.latest_event = ''
 
     def handle_starttag(self, tag, attr):
+        """Find event tags."""
         if tag == 'event':
             num = '-999'
             ev = ''
@@ -51,30 +56,30 @@ class LatestEventParser(HtmlParser):
 
 
 def get_html(url: str) -> str:
+    """Read API XML."""
     with request(url, headers={'Accept':
                                'text/html,application/xhtml+xml'}) as req:
         return req.read().decode('utf8', 'ignore')
 
 
-def get_json(url: str) -> dict:
-    with request(url, headers={'Accept':
-                               'application/json'}) as req:
-        return json_parse(req)
-
-
 def get_api_time_of_day():
-    '''This function makes a best effort to match the expected
-       timezone the MLB api server uses'''
+    """
+    Get the time of day that matches the MLB API Server timezone.
+
+    Returns:
+        Current time in America/New_York
+    """
     now = datetime.now(timezone(MLB_TIMEZONE))
     return now.strftime(API_DATEFMT)
 
 
-def get_more_detail(api_path, gid):
+def get_more_detail(api_path: str, gid: str) -> dict[str, str]:
+    """Get more details about a current game."""
     api_gid = 'gid_{}'.format(gid.replace('/', '_').replace('-', '_'))
     detail_linescore = '{}/{}/linescore.json'.format(api_path, api_gid)
     detail_eventlog = '{}/{}/eventLog.xml'.format(api_path, api_gid)
 
-    linescore = get_json(detail_linescore)
+    linescore = request_json(detail_linescore)
 
     if not isinstance(linescore, dict):
         raise Exception('linescore is not an object')
@@ -82,7 +87,7 @@ def get_more_detail(api_path, gid):
     try:
         linescore = linescore['data']['game']
     except KeyError:
-        raise Exception('linescore structure is unexpected')
+        raise Exception('Linescore structure is unexpected.')
 
     # count
     balls = linescore.get('balls', 'unkn')
@@ -91,8 +96,16 @@ def get_more_detail(api_path, gid):
 
     runners_onbase = linescore.get('runner_on_base_status', 'unkn')
 
-    pitcher = linescore.get('current_pitcher', dict()).get('last_name', 'unkn')
-    batter = linescore.get('current_batter', dict()).get('last_name', 'unkn')
+    try:
+        pitcher = linescore['current_pitcher']['last_name']
+
+    except KeyError:
+        pitcher = 'unkn'
+
+    try:
+        batter = linescore['current_batter']['last_name']
+    except KeyError:
+        batter = 'unkn'
 
     # bonus
     latest_event = ''
@@ -104,7 +117,7 @@ def get_more_detail(api_path, gid):
         if events.latest_event != '':
             latest_event = events.latest_event
     except Exception as e:
-        latest_event = e
+        latest_event = str(e)
 
     return {'balls':   balls,
             'strikes': strikes,
@@ -115,12 +128,22 @@ def get_more_detail(api_path, gid):
             'latest':  latest_event}
 
 
-def mlb(inp):
+def mlb(inp: str = '') -> str:
+    """
+    Get MLB Games scheduled for Today (in America/New_York TZ).
+
+    Args:
+        inp: Input query.
+
+    Returns:
+        A String containing the current line-score(s) of Game(s).
+        The string is all current games if the input query is a blank string.
+    """
     api_base = f'{MLB_DEPRECATED_API}/{get_api_time_of_day()}'
     api_string = f'{api_base}/grid.json'
 
     try:
-        games_today = get_json(api_string)
+        games_today = request_json(api_string)
     except Exception as e:
         log_e(str(e))
         return 'Failed to get games today (Note: gd2 API *is* deprecated).'
@@ -203,6 +226,7 @@ def mlb(inp):
 def main(*,
          message: str = '',
          command: str = 'mlb') -> int:
+    """Entrypoint."""
     if message.startswith('--help'):
         print(f':r usage: {command} [team]')
         exit(0)

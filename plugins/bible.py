@@ -19,10 +19,12 @@ import re
 from typing import TextIO, Union
 from pathlib import Path
 from io import StringIO
-from py8ball import \
-    get_persistant_location, \
-    paste_service, log_e, escape_fts5, \
-    Sqlite3Manager, main_decorator
+
+from py8ball import main_decorator
+from py8ball.sqlite3_helpers import Sqlite3Manager, escape_fts5
+from py8ball.logging import log_e
+from py8ball.environment import get_persistant_location
+from py8ball.http_helpers import paste_service
 
 
 try:
@@ -36,6 +38,7 @@ except KeyError:
 def read_bible_txt(cursor: sqlite3.Cursor,
                    the_good_book: str,
                    f: TextIO):
+    """Populate the database with text from a bible."""
     lineno = 1
     for line in f:
         book, verse = line.split('|', maxsplit=1)
@@ -51,6 +54,7 @@ def read_bible_txt(cursor: sqlite3.Cursor,
 
 
 def populate_db(cursor: sqlite3.Cursor):
+    """Load the king james bible text into the db."""
     statics = Path(__file__).parent / '..' / 'static'
     kjb = statics / 'king-james.txt'
     with kjb.open('r') as f:
@@ -63,6 +67,7 @@ def populate_db(cursor: sqlite3.Cursor):
 # sqlite3 already comes with a full-text search engine ootb.
 @BIBLE_DB.apply
 def setup_db(*, db: sqlite3.Connection):
+    """Ensure the sqlite3 schema exists, populate the db."""
     cur = db.cursor()
     cur.execute("""
     CREATE TABLE IF NOT EXISTS king_james (
@@ -90,6 +95,7 @@ def setup_db(*, db: sqlite3.Connection):
 @BIBLE_DB.apply
 def find_by_book(book: str, count: int = -1, *,
                  db: sqlite3.Connection) -> list[str]:
+    """Find by book + verse pair."""
     cur = db.cursor()
     stmt = cur.execute("""
     SELECT bid, book, verse
@@ -121,6 +127,7 @@ def find_by_book(book: str, count: int = -1, *,
 
 @BIBLE_DB.apply
 def random_verse(*, db: sqlite3.Connection) -> str:
+    """Fetch a random book + verse."""
     cur = db.cursor()
     stmt = cur.execute("""
     SELECT book, verse FROM king_james
@@ -138,6 +145,7 @@ def random_verse(*, db: sqlite3.Connection) -> str:
 
 @BIBLE_DB.apply
 def find_verse(query: str, *, db) -> str:
+    """Find a book + verse from a given query."""
     cur = db.cursor()
     stmt = cur.execute("""
     SELECT book, verse FROM king_james
@@ -158,6 +166,7 @@ def find_verse(query: str, *, db) -> str:
 
 
 def parse_query(query: str) -> (Union[str, None], int):
+    """Parse a user provided query."""
     like_book_verse = re.compile(r'\d{1,3}:\d{1,3}(?:-\d)?')
     parts = query.split(' ')
     if like_book_verse.fullmatch(parts[-1]):
@@ -175,6 +184,7 @@ def parse_query(query: str) -> (Union[str, None], int):
 @main_decorator
 def main(*,
          message: str = '') -> int:
+    """Entrypoint."""
     try:
         setup_db()
     except sqlite3.Error as e:
