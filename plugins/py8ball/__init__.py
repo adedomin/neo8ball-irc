@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from inspect import signature
 from functools import wraps
 from typing import Callable, Optional
 
@@ -85,7 +86,7 @@ def main_decorator(func: Callable) -> Callable:
     Returns:
         Wrapped callable which returns an exit code.
     """
-    argspec = func.__code__.co_varnames
+    argspec = signature(func)
 
     @wraps(func)
     def w() -> int:
@@ -93,7 +94,7 @@ def main_decorator(func: Callable) -> Callable:
             new_args = {}
             for flag, value in get_argsl():
                 real_flag = flag.value[2:]
-                if real_flag in argspec:
+                if real_flag in argspec.parameters:
                     new_args[real_flag] = value
             ret = func(**new_args)
         except ValueError as e:

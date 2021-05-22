@@ -270,7 +270,7 @@ def handle_command(cmd: str, nick: str,
         try:
             return get_quote_by_id(nick, arg)
         except KeyError as e:
-            return str(e)
+            return e.args[0]
     elif cmd == 'add':
         qid = add_quote(nick, arg)
         return f'Added quote #{qid} to {nick}.'
@@ -278,7 +278,7 @@ def handle_command(cmd: str, nick: str,
         try:
             res = search_quotes(nick, arg)
         except KeyError as e:
-            return str(e)
+            return e.args[0]
 
         if len(res) == 0:
             return 'No Results.'
@@ -287,8 +287,6 @@ def handle_command(cmd: str, nick: str,
         else:
             url = paste_service(StringIO('\n'.join(res)))
             return f':r Results: {url}'
-    else:
-        raise ValueError(f'Invalid command {cmd}')
 
 
 @main_decorator
