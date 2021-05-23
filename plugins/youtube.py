@@ -41,15 +41,16 @@ def get_stats(ids: str, key: str, has_url: bool) -> str:
     """Get The YT stats for a given video as a string"""
     res = request_json(YT_STATS,
                        query={'part': 'snippet,statistics,contentDetails',
-                              'id': ids, 'key': key},
+                              'id': ids, 'key': key})
     video = res['items'][0]
 
     retval = (f'\x02{video["snippet"]["title"]}\x02 '
-              f'({video["contentDetails"]["duration"][2:].lower()}) :: ')
-    retval += f'https://youtu.be/{video["id"]} :: ' if not has_url else ''
+              f'{video["contentDetails"]["duration"][2:].lower()} - ')
+    if has_url:
+        retval += f'https://youtu.be/{video["id"]} - '
     retval += (f'\x0303\u25b2 {int(video["statistics"]["likeCount"]):,}\x03 '
                f'\x0304\u25bc {int(video["statistics"]["dislikeCount"]):,}\x03 '
-               f'\x02Views\x02 {int(video["statistics"]["viewCount"]):,} :: '
+               f'\x02Views\x02 {int(video["statistics"]["viewCount"]):,} - '
                f'\x02By\x02 {video["snippet"]["channelTitle"]} '
                f'\x02on\x02 {video["snippet"]["publishedAt"][:10]}')
     return retval
