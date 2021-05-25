@@ -15,7 +15,7 @@
 
 from py8ball import main_decorator
 from py8ball.http_helpers import request_json
-from py8ball.logging import log_e
+from py8ball.logging import log_e, log_d
 
 from os import environ
 from urllib.parse import parse_qsl
@@ -121,7 +121,11 @@ def main(*,
         return 0
     elif match != '':
         has_url = True
-        ids = find_id(match)
+        try:
+            ids = find_id(message)
+        except ValueError:
+            log_d(f'Failed to detect an ID from the message: {message}')
+            return 0
     else:
         has_url = False
 

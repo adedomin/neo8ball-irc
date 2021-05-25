@@ -96,10 +96,9 @@ def main_decorator(func: Callable) -> Callable:
                 real_flag = flag.value[2:]
                 if real_flag in argspec.parameters:
                     new_args[real_flag] = value
-            ret = func(**new_args)
         except ValueError as e:
             log_e(str(e))
             return 1
 
-        return ret
+        return func(**new_args)
     return w
