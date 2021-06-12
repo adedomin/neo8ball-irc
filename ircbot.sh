@@ -339,7 +339,11 @@ iter_tokenize() {
     # Unused for now....
     #elif [[ "$1" == 'state' && "$2" == 'push' ]]; then
     #    __iter_stack+=("$__iter_remain")
-    #    [[ -n "$3" ]] && __iter_stack="$3"
+    #    if [[ -n "$3" ]]; then
+    #        __iter_remain="$3"
+    #    else
+    #        __iter_remain=''
+    #    fi
     #    REPLY=
     #elif [[ "$1" == 'state' && "$2" == 'pop' ]]; then
     #    __iter_remain="${__iter_stack[-1]}"
@@ -362,6 +366,21 @@ iter_tokenize() {
     fi
 }
 
+# Parse a given IRC message.
+# e.g. :some!message!host VERB param1 param2 param3
+# into user=some
+#      host=host
+#      sender=some!message!host
+#      command=VERB
+#      params=(param1 param2 param3)
+#
+# $1 - the full message to parse. may include or disclude \r
+#
+# mutates: sender  - the user who sent the message.
+# mutates: command - the IRC verb associated with the msessage.
+# mutates: params  - The params associated with this message.
+# mutates: user    - actually the nickname of the sender.
+# mutates: host    - the "hostname" associated with the sender.
 parse_irc() {
     # TODO: enable IRCv3 tags
     # local state=tags
@@ -430,6 +449,7 @@ parse_irc() {
 # v  - VOICED
 # '' - nothing
 #
+# $1             - the modebits
 # mutates: REPLY - empty if user has no modes or a single char.
 modebit_to_char() {
     local mode="$1"
@@ -985,6 +1005,8 @@ check_spam() {
 # $1 - nick to check
 #
 # returns: 1 if the user should be ignored.
+# config: IGNORE - a list of nickanmes we ignore
+#                  we transmute the list into a hashmap for speed.
 check_ignore() {
     if [[ -n "${ignore_hash[$1]}" ]]; then
         send_log "DEBUG" "IGNORED -> $1"
@@ -1010,6 +1032,7 @@ check_ignore() {
 # mutates: user    - The first word in the gateway's message.
 # mutates: host    - A unique host for a given gateway user.
 # returns: 1 if not a gateway
+# config: GATEWAY  - an array of nicknames we treat as gateways
 trusted_gateway() {
     local trusted
     for nick in "${GATEWAY[@]}"; do
