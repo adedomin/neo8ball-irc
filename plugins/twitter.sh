@@ -96,7 +96,7 @@ get_latest_tweet() {
     printf '%s' $'\002'"$1"$'\002'" - "
     jq -r '.[0] |
         .created_at + ": " +
-        (.text|gsub("\n"; " "))
+        (.full_text|gsub("\n"; " "))
     ' <<< "$res" \
     | HTML_CHAR_ENT_TO_UTF8
 }
@@ -112,7 +112,7 @@ get_tweet_status() {
 
     printf '%s' $'\002'Tweet$'\002'" - "
     jq -r '"By \(.user.screen_name) At \(.created_at): " + 
-           (.text|gsub("\n"; ""))
+           (.full_text|gsub("\n"; ""))
     ' <<< "$res" | HTML_CHAR_ENT_TO_UTF8
 }
 
