@@ -24,7 +24,7 @@ done
 
 TWITTER_OAUTH_URL='https://api.twitter.com/oauth2/token'
 TWITTER_TIMELINE_URL='https://api.twitter.com/1.1/statuses/user_timeline.json?count=1&screen_name='
-TWITTER_STATUS_URL='https://api.twitter.com/1.1/statuses/show.json?id='
+TWITTER_STATUS_URL='https://api.twitter.com/1.1/statuses/show.json?tweet_mode=extended&id='
 
 if [[ -z "$match" ]]; then
     while [[ -n "$msg" ]]; do
