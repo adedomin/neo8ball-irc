@@ -124,7 +124,7 @@ COMMANDS=(
 #["gay"]="fap.sh"
 #["straight"]="fap.sh"
 # see moose.ghetty.space/irc instead.
-#["moose"]="moose.sh"
+["moose"]="moose.sh"
 ["vote"]="vote.sh"
 ["yes"]="vote.sh"
 ["no"]="vote.sh"

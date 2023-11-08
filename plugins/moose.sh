@@ -40,19 +40,11 @@ while [[ -n "$q" ]]; do
     arg="${q%% *}"
 
     case "$arg" in
-        -l|--latest)
-            q='latest'
-            break
-        ;;
-        -r|--random)
-            q='random'
-            break
-        ;;
         -s|--search)
             SEARCH=1
         ;;
         -h|--help)
-            echo ":r usage: $command [--latest|--random|--search=page-#|--no-shade] [query]"
+            echo ":r usage: $command [--search] [query]"
             echo ":r Make Moose @ $MOOSE_URL"
             exit 0
         ;;
@@ -105,12 +97,14 @@ if ! mkdir "$MOOSE_LOCK"; then
     exit 0
 fi
 
+printf ':ld -- %s --\n'    curl --location --silent --fail "$MOOSE_URL/irc/$(URI_ENCODE "$q")"
+printf ':ld -- %s --\n' "$q" "$(URI_ENCODE "$q")"
 {
-    curl --silent --fail "$MOOSE_URL/irc/$q" ||
+    curl --location --silent --fail "$MOOSE_URL/irc/$(URI_ENCODE "$q")" ||
         "No such moose: $q"
 } | while read -r; do
     printf ":r %s\n" "$REPLY"
-    sleep "$MOOSE_SLEEP_DELAY"
+    sleep "${MOOSE_SLEEP_DELAY:-0.35s}"
 done
 
 # prevent moose abuse

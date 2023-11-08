@@ -18,11 +18,11 @@
 # $1     - message to uri encode
 # stdout - uri encoded string
 URI_ENCODE() {
-    echo -nE "$1" \
-    | curl -Gso /dev/null \
-        -w '%{url_effective}' \
-        --data-urlencode @- '' \
-    | cut -c 3-
+    python3 -c '
+from urllib.parse import quote
+from sys import argv
+print(quote("".join(argv[1:]), safe=""))
+' "$1"
 }
 export -f URI_ENCODE
 
