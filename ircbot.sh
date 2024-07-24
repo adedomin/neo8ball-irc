@@ -330,25 +330,11 @@ all_control_characters=$'\1\2\3\4\5\6\7\10\11\12\13\14\15\16\17\20\21\22\23\24\2
 ## mutates REPLY        - The next token found, or the remainder of the string.
 ##
 ## returns: (0|1) - 1 if no more input, 0 otherwise.
-#__iter_stack=()
 iter_tokenize() {
     if [[ "$1" == 'init' && -n "$2" ]]; then
         _iter_remain="$2"
         REPLY=
         return 0
-    # Unused for now....
-    #elif [[ "$1" == 'state' && "$2" == 'push' ]]; then
-    #    __iter_stack+=("$__iter_remain")
-    #    if [[ -n "$3" ]]; then
-    #        __iter_remain="$3"
-    #    else
-    #        __iter_remain=''
-    #    fi
-    #    REPLY=
-    #elif [[ "$1" == 'state' && "$2" == 'pop' ]]; then
-    #    __iter_remain="${__iter_stack[-1]}"
-    #    __iter_stack+=("${__iter_stack[@]:0:${#__iter_stack[@]}-1}")
-    #    REPLY=
     elif [[ -z "$_iter_remain" ]]; then
         REPLY=
         return 1

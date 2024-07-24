@@ -45,8 +45,7 @@ class TitleParser(HtmlParser):
     def handle_data(self, inner_text):
         """Collect title contents."""
         if self.in_title:
-            self.title += inner_text
-
+            self.title += ' '.join(inner_text.splitlines())
 
 def process_res(res: TextIO) -> str:
     """Process the HTML response."""
