@@ -45,7 +45,8 @@ class TitleParser(HtmlParser):
     def handle_data(self, inner_text):
         """Collect title contents."""
         if self.in_title:
-            self.title += ' '.join(inner_text.splitlines())
+            self.title += inner_text
+
 
 def process_res(res: TextIO) -> str:
     """Process the HTML response."""
@@ -61,7 +62,7 @@ def process_res(res: TextIO) -> str:
         if parser.done:
             break
 
-    out = parser.title
+    out = ' '.join(parser.title.strip().splitlines())
     if out == '':
         out = f'Untitled - {res.geturl()}'
     elif len(out) > LEN_LIMIT:
