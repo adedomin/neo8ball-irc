@@ -233,7 +233,7 @@ reload_config() {
 
     declare -A uniq_chans
     for chan in "${_channels[@]}" "${CHANNELS[@]}"; do
-        uniq_chans[$chan]+=1
+        uniq_chans[$chan]+='1'
     done
 
     declare -a leave_list=()
@@ -1366,7 +1366,7 @@ while {
                 CHANNELS+=("$channel")
                 send_log "JOIN" "$channel"
             else
-                unset user_modes["$channel $user"]
+                unset "user_modes[$channel $user]"
             fi
         ;;
         # when the bot leaves a channel
@@ -1377,9 +1377,9 @@ while {
             if [[ "$user" = "$NICK" ]]; then
                 for i in "${!CHANNELS[@]}"; do
                     if [[ "${CHANNELS[$i]}" = "$channel" ]]; then
-                        unset CHANNELS["$i"]
+                        unset "CHANNELS[$i]"
                         if [[ -n "${invites[$channel]}" ]]; then
-                            unset invites["$channel"]
+                            unset "invites[$channel]"
                             printf '%s\n' "${!invites[@]}" \
                                 > "$INVITE_FILE"
                         fi
@@ -1387,7 +1387,7 @@ while {
                 done
                 send_log "PART" "$channel"
             else
-                unset user_modes["$channel $user"]
+                unset "user_modes[$channel $user]"
             fi
         ;;
         # only way for the bot to be removed
@@ -1403,9 +1403,9 @@ while {
             if [[ "$target" = "$NICK" ]]; then
                 for i in "${!CHANNELS[@]}"; do
                     if [[ "${CHANNELS[$i]}" = "$channel" ]]; then
-                        unset CHANNELS["$i"]
+                        unset "CHANNELS[$i]"
                         if [[ -n "${invites[$channel]}" ]]; then
-                            unset invites["$channel"]
+                            unset "invites[$channel]"
                             printf '%s\n' "${!invites[@]}" \
                                 > "$INVITE_FILE"
                         fi
@@ -1413,7 +1413,7 @@ while {
                 done
                 send_log "KICK" "<$user> $channel [Reason: $why]"
             else
-                unset user_modes["$channel $user"]
+                unset "user_modes[$channel $user]"
             fi
         ;;
         NICK)
