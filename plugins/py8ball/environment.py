@@ -31,7 +31,9 @@ def get_persistant_location() -> Path:
     if ret is None:
         return Path(environ['PERSIST_LOC'])
     else:
-        return Path(ret)
+        path = Path(ret) / "neo8ball"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
 
 
 def check_channel_list(env: str, channel: str) -> bool:

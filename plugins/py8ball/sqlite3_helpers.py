@@ -68,6 +68,7 @@ class Sqlite3Manager():
         @wraps(func)
         def wrap(*args, **kwargs):
             db = sqlite3.connect(self.dbpath)
+            db.execute("pragma journal_mode=wal")
             kwargs[self.kwarg] = db
             try:
                 with db:
